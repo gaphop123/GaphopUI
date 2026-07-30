@@ -2195,9 +2195,6 @@ end)
 end
 
 GaphopUI.CreateWindow = GaphopUI.makeWindow
-   
 
-    end
-end)
 
 return GaphopUI
