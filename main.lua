@@ -9,6 +9,9 @@ local HttpService = game:GetService("HttpService")
 local loader = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Stratxgy/Roblox-Chams-Highlight/refs/heads/main/Highlight.lua"))() end)
 local loader =  loadstring(game:HttpGet("https://raw.githubusercontent.com/Stratxgy/Lua-Speed/refs/heads/main/speed.lua"))()
 
+print("GaphopUI mad by Gaphop")
+warn("UI cant run without window, if you load the libary but wont add window, GUI wont show")
+
 if not RunService:IsClient() then
     return
 end
