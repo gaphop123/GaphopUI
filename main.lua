@@ -954,10 +954,10 @@ function GaphopUI:CreatePrompt(cfg)
     overlay.Size = UDim2.fromScale(1, 1)
     overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     overlay.BackgroundTransparency = 1
-    overlay.ZIndex = 5000
+    overlay.ZIndex = 99999999999999
     overlay.Parent = ScreenGui
 
-    Tween(overlay, TweenInfo.new(0.25), {BackgroundTransparency = 0.5})
+    Tween(overlay, TweenInfo.new(0.25), {BackgroundTransparency = 1})
 
     local modal = Instance.new("Frame")
     modal.Size = UDim2.new(0, 340, 0, 180)
