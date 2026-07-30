@@ -26,20 +26,7 @@ end)
 ```
 
 
-# Window
 
-## Create Window
-
-Creates the main UI window.
-
-```lua
-local Window = GaphopUI:CreateWindow({
-    Name = "GaphopUI Demo",
-    Icon = "sparkles",
-    LoadingTitle = "GaphopUI",
-    LoadingSubtitle = "Modern Roblox UI Library"
-})
-```
 
 ---
 
