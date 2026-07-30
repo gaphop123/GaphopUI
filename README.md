@@ -2,14 +2,14 @@
 ---
 ## Loading the libary
 ---
-```
+```lua
 local GaphopUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/gaphop123/GaphopUI_V2/refs/heads/main/main.lua"))()
 
 ```
 ---
 ## Window 
 ---
-```
+```lua
 task.defer(function()
     if not GaphopUI.WindowInstance then
         local Window = GaphopUI:CreateWindow({
