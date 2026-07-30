@@ -2027,5 +2027,12 @@ end
 
 GaphopUI.CreateWindow = GaphopUI.makeWindow
 
+task.defer(function()
+    if not GaphopUI.WindowInstance then
+        
+
+        -- Tab and Elements
+    end
+end)
 
 return GaphopUI
