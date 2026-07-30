@@ -2195,12 +2195,7 @@ end)
 end
 
 GaphopUI.CreateWindow = GaphopUI.makeWindow
-
-task.defer(function()
-    if not GaphopUI.WindowInstance then
-        
-
-end)    
+   
 
     end
 end)
