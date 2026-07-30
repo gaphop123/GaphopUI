@@ -419,7 +419,56 @@ GaphopUI.Themes = {
     CyberNeon = { Background = Color3.fromRGB(10, 12, 18), Card = Color3.fromRGB(18, 22, 32), CardHover = Color3.fromRGB(26, 32, 46), Header = Color3.fromRGB(14, 16, 24), Accent = Color3.fromRGB(255, 0, 128), AccentGlow = Color3.fromRGB(210, 0, 105), Text = Color3.fromRGB(255, 255, 255), SubText = Color3.fromRGB(160, 170, 190), Border = Color3.fromRGB(60, 30, 70), ToggleOn = Color3.fromRGB(255, 0, 128), ToggleOff = Color3.fromRGB(35, 30, 45), SliderBar = Color3.fromRGB(35, 30, 45), InputBackground = Color3.fromRGB(14, 16, 24), Shadow = Color3.fromRGB(0, 0, 0) },
     Emerald = { Background = Color3.fromRGB(10, 18, 16), Card = Color3.fromRGB(18, 30, 26), CardHover = Color3.fromRGB(25, 42, 36), Header = Color3.fromRGB(14, 23, 20), Accent = Color3.fromRGB(16, 185, 129), AccentGlow = Color3.fromRGB(10, 150, 105), Text = Color3.fromRGB(240, 250, 245), SubText = Color3.fromRGB(140, 168, 155), Border = Color3.fromRGB(35, 60, 50), ToggleOn = Color3.fromRGB(16, 185, 129), ToggleOff = Color3.fromRGB(28, 45, 38), SliderBar = Color3.fromRGB(28, 45, 38), InputBackground = Color3.fromRGB(14, 24, 20), Shadow = Color3.fromRGB(0, 0, 0) },
     Ocean = { Background = Color3.fromRGB(8, 16, 24), Card = Color3.fromRGB(16, 28, 40), CardHover = Color3.fromRGB(24, 38, 54), Header = Color3.fromRGB(12, 22, 32), Accent = Color3.fromRGB(14, 165, 233), AccentGlow = Color3.fromRGB(2, 132, 199), Text = Color3.fromRGB(240, 248, 255), SubText = Color3.fromRGB(135, 162, 182), Border = Color3.fromRGB(32, 56, 78), ToggleOn = Color3.fromRGB(14, 165, 233), ToggleOff = Color3.fromRGB(25, 42, 60), SliderBar = Color3.fromRGB(25, 42, 60), InputBackground = Color3.fromRGB(12, 22, 32), Shadow = Color3.fromRGB(0, 0, 0) },
-    Light = { Background = Color3.fromRGB(242, 244, 248), Card = Color3.fromRGB(255, 255, 255), CardHover = Color3.fromRGB(245, 247, 252), Header = Color3.fromRGB(235, 238, 245), Accent = Color3.fromRGB(0, 122, 255), AccentGlow = Color3.fromRGB(0, 100, 220), Text = Color3.fromRGB(22, 25, 33), SubText = Color3.fromRGB(110, 115, 130), Border = Color3.fromRGB(215, 220, 232), ToggleOn = Color3.fromRGB(0, 122, 255), ToggleOff = Color3.fromRGB(210, 215, 225), SliderBar = Color3.fromRGB(210, 215, 225), InputBackground = Color3.fromRGB(248, 249, 252), Shadow = Color3.fromRGB(180, 185, 200) }
+    Light = { Background = Color3.fromRGB(242, 244, 248), Card = Color3.fromRGB(255, 255, 255), CardHover = Color3.fromRGB(245, 247, 252), Header = Color3.fromRGB(235, 238, 245), Accent = Color3.fromRGB(0, 122, 255), AccentGlow = Color3.fromRGB(0, 100, 220), Text = Color3.fromRGB(22, 25, 33), SubText = Color3.fromRGB(110, 115, 130), Border = Color3.fromRGB(215, 220, 232), ToggleOn = Color3.fromRGB(0, 122, 255), ToggleOff = Color3.fromRGB(210, 215, 225), SliderBar = Color3.fromRGB(210, 215, 225), InputBackground = Color3.fromRGB(248, 249, 252), Shadow = Color3.fromRGB(180, 185, 200) },
+    Bloom = { Background = Color3.fromRGB(248, 241, 244), Card = Color3.fromRGB(255, 250, 252), CardHover = Color3.fromRGB(255, 245, 248), Header = Color3.fromRGB(244, 224, 230), Accent = Color3.fromRGB(242, 146, 177), AccentGlow = Color3.fromRGB(255, 180, 205), Text = Color3.fromRGB(55, 45, 50), SubText = Color3.fromRGB(140, 125, 132), Border = Color3.fromRGB(234, 214, 222), ToggleOn = Color3.fromRGB(242, 146, 177), ToggleOff = Color3.fromRGB(212, 198, 203), SliderBar = Color3.fromRGB(240, 205, 218), InputBackground = Color3.fromRGB(255, 248, 250), Shadow = Color3.fromRGB(225, 190, 205) },
+    AmberGlow = {
+    Background      = Color3.fromRGB(24, 20, 14),
+    Card            = Color3.fromRGB(36, 30, 22),
+    CardHover       = Color3.fromRGB(46, 38, 28),
+
+    Header          = Color3.fromRGB(30, 24, 18),
+
+    Accent          = Color3.fromRGB(255, 179, 71),
+    AccentGlow      = Color3.fromRGB(255, 210, 120),
+
+    Text            = Color3.fromRGB(250, 245, 235),
+    SubText         = Color3.fromRGB(185, 172, 150),
+
+    Border          = Color3.fromRGB(72, 58, 42),
+
+    ToggleOn        = Color3.fromRGB(255, 179, 71),
+    ToggleOff       = Color3.fromRGB(58, 48, 36),
+
+    SliderBar       = Color3.fromRGB(58, 48, 36),
+
+    InputBackground = Color3.fromRGB(28, 23, 18),
+
+    Shadow          = Color3.fromRGB(0, 0, 0)
+    },
+    Amethyst = {
+    Background      = Color3.fromRGB(18, 16, 28),
+    Card            = Color3.fromRGB(28, 24, 42),
+    CardHover       = Color3.fromRGB(36, 31, 54),
+
+    Header          = Color3.fromRGB(23, 20, 34),
+
+    Accent          = Color3.fromRGB(168, 120, 255),
+    AccentGlow      = Color3.fromRGB(205, 175, 255),
+
+    Text            = Color3.fromRGB(248, 246, 255),
+    SubText         = Color3.fromRGB(175, 168, 198),
+
+    Border          = Color3.fromRGB(60, 52, 86),
+
+    ToggleOn        = Color3.fromRGB(168, 120, 255),
+    ToggleOff       = Color3.fromRGB(45, 39, 64),
+
+    SliderBar       = Color3.fromRGB(45, 39, 64),
+
+    InputBackground = Color3.fromRGB(22, 19, 33),
+
+    Shadow          = Color3.fromRGB(0, 0, 0)
+    }
 }
 
 -- STREAMING_CHUNK:Creating Main ScreenGui Container...
@@ -1891,7 +1940,7 @@ function GaphopUI:makeWindow(cfg)
 
     SettingsEngine:makeDropdown({
         Name = "UI Theme",
-        Options = {"Dark", "Midnight", "CyberNeon", "Emerald", "Ocean", "Light"},
+        Options = {"Dark", "Midnight", "CyberNeon", "Emerald", "Ocean", "Light", "Bloom", "AmberGlow", "Amethyst"},
         CurrentOption = GaphopUI.CurrentTheme,
         Callback = function(selected)
             GaphopUI:ApplyTheme(selected)
@@ -2030,8 +2079,7 @@ GaphopUI.CreateWindow = GaphopUI.makeWindow
 task.defer(function()
     if not GaphopUI.WindowInstance then
         
-
-        -- Tab and Elements
+        
     end
 end)
 
