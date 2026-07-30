@@ -9,9 +9,6 @@ local HttpService = game:GetService("HttpService")
 local loader = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Stratxgy/Roblox-Chams-Highlight/refs/heads/main/Highlight.lua"))() end)
 local loader =  loadstring(game:HttpGet("https://raw.githubusercontent.com/Stratxgy/Lua-Speed/refs/heads/main/speed.lua"))()
 
-print("GaphopUI made by Gaphop")
-warn("No window created. The GUI won't appear until you create a window.")
-
 if not RunService:IsClient() then
     return
 end
@@ -216,6 +213,7 @@ GaphopUI.LucideSprites = {
     torus = {16898613869, {48, 48}, {147, 771}},
     panelrightclose = {16898613613, {48, 48}, {453, 967}},
     hearthandshake = {16898613509, {48, 48}, {869, 563}},
+    heart = {16898673271,{256,256},{0,0}},
     trees = {16898613869, {48, 48}, {661, 771}},
     ham = {16898613509, {48, 48}, {355, 771}},
     text = {16898613869, {48, 48}, {771, 98}},
@@ -1567,8 +1565,109 @@ local function BindElementMethods(TabObj, page, theme)
             hexInput.Text = Color3ToHex(currentColor)
         end)
 
-        RegisterElement({Type = "colorpicker", Card = card, Stroke = stroke, Label = label, Input = hexInput, ColorDisplay = colorDisplay, ColorValue = currentColor, SearchText = name, Page = page})
+            RegisterElement({Type = "colorpicker", Card = card, Stroke = stroke, Label = label, Input = hexInput, ColorDisplay = colorDisplay, ColorValue = currentColor, SearchText = name, Page = page})
     end
+    TabObj.CreateLabel = TabObj.makeLabel
+TabObj.AddLabel = TabObj.makeLabel
+
+function TabObj:makeLabel(cfg)
+    cfg = cfg or {}
+
+    local title = cfg.Name or "Label"
+    local description = cfg.Label or cfg.Description or ""
+
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, -6, 0, description ~= "" and 56 or 42)
+    card.BackgroundColor3 = theme.Card
+    card.BackgroundTransparency = 0.3
+    card.Parent = page
+
+    local stroke = CreateStroke(card, theme.Border, 1, 0.6)
+    CreateCorner(card, 8)
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Position = UDim2.new(0, 12, 0, description ~= "" and 5 or 0)
+    titleLabel.Size = UDim2.new(1, -24, 0, description ~= "" and 20 or 42)
+    titleLabel.Font = Enum.Font.Gotham
+    titleLabel.Text = title
+    titleLabel.TextColor3 = theme.Text
+    titleLabel.TextSize = 13
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextYAlignment = description ~= "" and Enum.TextYAlignment.Bottom or Enum.TextYAlignment.Center
+    titleLabel.Parent = card
+
+    local descLabel
+
+    if description ~= "" then
+        descLabel = Instance.new("TextLabel")
+        descLabel.BackgroundTransparency = 1
+        descLabel.Position = UDim2.new(0, 12, 0, 27)
+        descLabel.Size = UDim2.new(1, -24, 0, 15)
+        descLabel.Font = Enum.Font.Gotham
+        descLabel.Text = description
+        descLabel.TextColor3 = theme.SubText or Color3.fromRGB(170, 170, 170)
+        descLabel.TextSize = 11
+        descLabel.TextXAlignment = Enum.TextXAlignment.Left
+        descLabel.TextYAlignment = Enum.TextYAlignment.Top
+        descLabel.Parent = card
+    end
+
+    RegisterElement({
+        Type = "label",
+        Card = card,
+        Stroke = stroke,
+        Label = titleLabel,
+        Description = descLabel,
+        SearchText = title,
+        Page = page
+    })
+
+    local LabelObj = {}
+
+    function LabelObj:Set(text)
+        titleLabel.Text = text
+    end
+
+    function LabelObj:SetDescription(text)
+        description = text or ""
+
+        if description == "" then
+            if descLabel then
+                descLabel:Destroy()
+                descLabel = nil
+            end
+
+            card.Size = UDim2.new(1, -6, 0, 42)
+            titleLabel.Position = UDim2.new(0, 12, 0, 0)
+            titleLabel.Size = UDim2.new(1, -24, 1, 0)
+            titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+        else
+            if not descLabel then
+                descLabel = Instance.new("TextLabel")
+                descLabel.BackgroundTransparency = 1
+                descLabel.Font = Enum.Font.Gotham
+                descLabel.TextColor3 = theme.SubText or Color3.fromRGB(170,170,170)
+                descLabel.TextSize = 11
+                descLabel.TextXAlignment = Enum.TextXAlignment.Left
+                descLabel.TextYAlignment = Enum.TextYAlignment.Top
+                descLabel.Parent = card
+            end
+
+            card.Size = UDim2.new(1, -6, 0, 56)
+
+            titleLabel.Position = UDim2.new(0, 12, 0, 5)
+            titleLabel.Size = UDim2.new(1, -24, 0, 20)
+            titleLabel.TextYAlignment = Enum.TextYAlignment.Bottom
+
+            descLabel.Position = UDim2.new(0, 12, 0, 27)
+            descLabel.Size = UDim2.new(1, -24, 0, 15)
+            descLabel.Text = description
+        end
+    end
+
+    return LabelObj
+end
     TabObj.CreateColorPicker = TabObj.makeColorPicker
     TabObj.AddColorPicker = TabObj.makeColorPicker
 
@@ -1627,7 +1726,7 @@ local function BindElementMethods(TabObj, page, theme)
 
         RegisterElement({Type = "paragraph", Card = card, Stroke = stroke, Label = pTitle, SubLabel = pContent, SearchText = titleText .. " " .. contentText, Page = page})
     end
-    TabObj.CreateParagraph = TabObj.makeParagraph
+    TabObj.makeParagraph = TabObj.CreateParagraph
     TabObj.AddParagraph = TabObj.CreateParagraph
 
     return TabObj
@@ -1906,7 +2005,8 @@ function GaphopUI:makeWindow(cfg)
         settingsPage.Visible = true
     end)
 
-    local minBtn = CreateTopButton("minimize", function() GaphopUI:ToggleUI() end)
+
+
     local maxBtn = CreateTopButton("maximize", function()
         local isMax = WindowFrame:GetAttribute("IsMaximized")
         local vpSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1200, 800)
@@ -1929,17 +2029,13 @@ function GaphopUI:makeWindow(cfg)
         end
     end)
 
+
     local closeBtn = CreateTopButton("close", function()
         GaphopUI:ToggleUI(false)
     end)
 
     -- Configure Built-In Settings Controls
     local SettingsEngine = BindElementMethods({}, settingsPage, theme)
-    SettingsEngine:makeInput({
-        Name = "Search Filter",
-        PlaceholderText = "Search elements...",
-        Callback = function(query) GaphopUI:FilterElements(query) end
-    })
 
     SettingsEngine:makeDropdown({
         Name = "UI Theme",
@@ -1968,6 +2064,12 @@ function GaphopUI:makeWindow(cfg)
             GaphopUI:Notify({Title = "Keybind Saved", Content = "UI toggle key set to " .. key.Name})
         end
     })
+
+    SettingsEngine:CreateParagraph({
+        Title = "About GaphopUI",
+        Content = [[GaphopUI Made by Gaphop Copyright © 2026 Gaphop Features: • Smooth Animations • Theme Engine • Mobile Support • Fluent Design
+    ]]
+})
 
     -- STREAMING_CHUNK:Defining Window Tab Creation & Sliding Highlight Method...
     function WindowObj:CreateTab(tabName, iconId)
@@ -2062,14 +2164,29 @@ function GaphopUI:makeWindow(cfg)
 
     if not noLoading then
         CreateLoadingScreen(loadingTitle, loadingSub, function()
-            WindowFrame.Visible = true
+    WindowFrame.Visible = true
+
+    GaphopUI:Notify({
+        Title = "Welcome, " .. PlayerName,
+        Content = "GaphopUI Loaded Successfully!",
+        Duration = 4,
+        Image = (PlayerUserId > 0 and ("rbxthumb://type=AvatarHeadShot&id=" .. PlayerUserId .. "&w=150&h=150")) or nil
+    })
+
+    task.spawn(function()
+        while GaphopUI.WindowInstance and GaphopUI.WindowInstance.Parent do
+            task.wait(120)
+
             GaphopUI:Notify({
-                Title = "Welcome, " .. PlayerName,
-                Content = "GaphopUI Ultimate Loaded Successfully!",
-                Duration = 4,
-                Image = (PlayerUserId > 0 and ("rbxthumb://type=AvatarHeadShot&id=" .. PlayerUserId .. "&w=150&h=150")) or nil
+                Title = "Enjoying GaphopUI?",
+                Content = "If you like GaphopUI, please consider leaving a ⭐ on GitHub!",
+                Duration = 8,
+                Image = "heart"
             })
-        end)
+        end
+    end)
+end)
+        
     else
         WindowFrame.Visible = true
     end
@@ -2082,7 +2199,9 @@ GaphopUI.CreateWindow = GaphopUI.makeWindow
 task.defer(function()
     if not GaphopUI.WindowInstance then
         
-        
+
+end)    
+
     end
 end)
 
