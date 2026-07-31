@@ -383,6 +383,7 @@ GaphopUI.LucideSprites = {
     blocks = {16898612819, {48, 48}, {49, 820}},
     washingmachine = {16898613869, {48, 48}, {918, 710}},
     siren = {16898613777, {48, 48}, {771, 147}},
+    copy = {16898613044,{48,48},{918,612}},
     cloudsun = {16898613044, {48, 48}, {0, 967}},
     circle = {16898613044, {48, 48}, {771, 355}},
     shieldalert = {16898613777, {48, 48}, {49, 771}},
@@ -399,7 +400,7 @@ GaphopUI.LucideSprites = {
 GaphopUI.LucideSprites.settings = GaphopUI.LucideSprites.sliders or {16898613777, {48, 48}, {404, 771}}
 GaphopUI.LucideSprites.close = GaphopUI.LucideSprites.x
 GaphopUI.LucideSprites.minimize = GaphopUI.LucideSprites.minuscircle
-GaphopUI.LucideSprites.maximize = GaphopUI.LucideSprites.maximize or GaphopUI.LucideSprites.maximize
+GaphopUI.LucideSprites.maximize = GaphopUI.LucideSprites.copy or GaphopUI.LucideSprites.copy
 GaphopUI.LucideSprites.refresh = GaphopUI.LucideSprites.refreshccwdot
 GaphopUI.LucideSprites.palette = GaphopUI.LucideSprites.paintbrush2
 GaphopUI.LucideSprites.keyboard = GaphopUI.LucideSprites.terminalsquare
@@ -2076,7 +2077,7 @@ function GaphopUI:makeWindow(cfg)
     ]]
 })
     SettingsEngine:CreateButton({
-        Name = "GitHub link",
+        Name = "GitHub",
         Callback = function()
             setclipboard("https://github.com/gaphop123/GaphopUI_V2")
         end
