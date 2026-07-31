@@ -138,7 +138,7 @@ GaphopUI.LucideSprites = {
     pictureinpicture = {16898613699, {48, 48}, {257, 869}},
     messagessquare = {16898613613, {48, 48}, {306, 869}},
     grab = {16898613509, {48, 48}, {514, 820}},
-    maximize={16898675359,{256,256},{514,514}}
+    maximize={16898675359,{256,256},{514,514}},
     phonecall = {16898613699, {48, 48}, {514, 820}},
     chevronupcircle = {16898612819, {48, 48}, {820, 808}},
     servercrash = {16898613699, {48, 48}, {918, 955}},
@@ -2197,5 +2197,17 @@ end
 
 GaphopUI.CreateWindow = GaphopUI.makeWindow
 
+task.defer(function()
+    if not GaphopUI.WindowInstance then
+        local Window = GaphopUI:CreateWindow({
+            Name = "GaphopUI Ultimate",
+            ShowText = "v3.0.0",
+            LoadingTitle = "GaphopUI Engine",
+            LoadingSubtitle = "Smooth Animations & RGB Loaded!"
+        })
+
+        -- Tab and Elements
+    end
+end)
 
 return GaphopUI
