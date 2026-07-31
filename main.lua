@@ -2076,7 +2076,7 @@ function GaphopUI:makeWindow(cfg)
     ]]
 })
     SettingsEngine:CreateButton({
-        Name = "GitHub",
+        Name = "GitHub link",
         Callback = function()
             setclipboard("https://github.com/gaphop123/GaphopUI_V2")
         end
