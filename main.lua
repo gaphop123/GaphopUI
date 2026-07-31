@@ -475,7 +475,143 @@ GaphopUI.Themes = {
     InputBackground = Color3.fromRGB(22, 19, 33),
 
     Shadow          = Color3.fromRGB(0, 0, 0)
-    }
+    },
+    Serenity = {
+    Background      = Color3.fromRGB(238, 242, 247),
+    Card            = Color3.fromRGB(247, 250, 253),
+    CardHover       = Color3.fromRGB(241, 246, 251),
+
+    Header          = Color3.fromRGB(228, 235, 243),
+
+    Accent          = Color3.fromRGB(77, 145, 205),
+    AccentGlow      = Color3.fromRGB(140, 190, 235),
+
+    Text            = Color3.fromRGB(42, 49, 60),
+    SubText         = Color3.fromRGB(122, 132, 145),
+
+    Border          = Color3.fromRGB(206, 216, 228),
+
+    ToggleOn        = Color3.fromRGB(77, 145, 205),
+    ToggleOff       = Color3.fromRGB(210, 218, 228),
+
+    SliderBar       = Color3.fromRGB(210, 218, 228),
+
+    InputBackground = Color3.fromRGB(251, 253, 255),
+
+    Shadow          = Color3.fromRGB(175, 185, 198)
+    },
+    Crimson = {
+    Background = Color3.fromRGB(24, 16, 18),
+    Card = Color3.fromRGB(35, 22, 26),
+    CardHover = Color3.fromRGB(45, 28, 32),
+    Header = Color3.fromRGB(29, 18, 21),
+    Accent = Color3.fromRGB(230, 57, 70),
+    AccentGlow = Color3.fromRGB(255, 120, 130),
+    Text = Color3.fromRGB(248, 244, 245),
+    SubText = Color3.fromRGB(176, 156, 160),
+    Border = Color3.fromRGB(70, 42, 46),
+    ToggleOn = Color3.fromRGB(230, 57, 70),
+    ToggleOff = Color3.fromRGB(52, 34, 37),
+    SliderBar = Color3.fromRGB(52, 34, 37),
+    InputBackground = Color3.fromRGB(28, 19, 21),
+    Shadow = Color3.fromRGB(0, 0, 0)
+    },
+    Frost = {
+    Background = Color3.fromRGB(243, 247, 252),
+    Card = Color3.fromRGB(252, 254, 255),
+    CardHover = Color3.fromRGB(247, 250, 255),
+    Header = Color3.fromRGB(232, 240, 247),
+    Accent = Color3.fromRGB(98, 196, 255),
+    AccentGlow = Color3.fromRGB(170, 225, 255),
+    Text = Color3.fromRGB(40, 50, 60),
+    SubText = Color3.fromRGB(118, 130, 145),
+    Border = Color3.fromRGB(208, 220, 232),
+    ToggleOn = Color3.fromRGB(98, 196, 255),
+    ToggleOff = Color3.fromRGB(214, 224, 233),
+    SliderBar = Color3.fromRGB(214, 224, 233),
+    InputBackground = Color3.fromRGB(255, 255, 255),
+    Shadow = Color3.fromRGB(180, 190, 205)
+},
+    Twilight = {
+    Background = Color3.fromRGB(20, 18, 28),
+    Card = Color3.fromRGB(30, 26, 40),
+    CardHover = Color3.fromRGB(40, 34, 52),
+    Header = Color3.fromRGB(25, 22, 34),
+    Accent = Color3.fromRGB(180, 120, 255),
+    AccentGlow = Color3.fromRGB(220, 170, 255),
+    Text = Color3.fromRGB(245, 240, 255),
+    SubText = Color3.fromRGB(160, 150, 180),
+    Border = Color3.fromRGB(60, 50, 80),
+    ToggleOn = Color3.fromRGB(180, 120, 255),
+    ToggleOff = Color3.fromRGB(45, 38, 60),
+    SliderBar = Color3.fromRGB(45, 38, 60),
+    InputBackground = Color3.fromRGB(22, 20, 32),
+    Shadow = Color3.fromRGB(0, 0, 0)
+    },
+    Forest = {
+    Background = Color3.fromRGB(16, 22, 17),
+    Card = Color3.fromRGB(24, 34, 26),
+    CardHover = Color3.fromRGB(32, 44, 34),
+    Header = Color3.fromRGB(20, 28, 22),
+    Accent = Color3.fromRGB(74, 170, 104),
+    AccentGlow = Color3.fromRGB(120, 220, 150),
+    Text = Color3.fromRGB(242, 247, 243),
+    SubText = Color3.fromRGB(156, 174, 160),
+    Border = Color3.fromRGB(50, 72, 54),
+    ToggleOn = Color3.fromRGB(74, 170, 104),
+    ToggleOff = Color3.fromRGB(38, 52, 40),
+    SliderBar = Color3.fromRGB(38, 52, 40),
+    InputBackground = Color3.fromRGB(20, 28, 22),
+    Shadow = Color3.fromRGB(0, 0, 0)
+    },
+    Sunset = {
+    Background = Color3.fromRGB(255, 243, 236),
+    Card = Color3.fromRGB(255, 250, 247),
+    CardHover = Color3.fromRGB(255, 245, 240),
+    Header = Color3.fromRGB(252, 230, 220),
+    Accent = Color3.fromRGB(255, 126, 95),
+    AccentGlow = Color3.fromRGB(255, 180, 145),
+    Text = Color3.fromRGB(60, 45, 40),
+    SubText = Color3.fromRGB(148, 125, 118),
+    Border = Color3.fromRGB(236, 214, 206),
+    ToggleOn = Color3.fromRGB(255, 126, 95),
+    ToggleOff = Color3.fromRGB(224, 210, 205),
+    SliderBar = Color3.fromRGB(224, 210, 205),
+    InputBackground = Color3.fromRGB(255, 252, 250),
+    Shadow = Color3.fromRGB(210, 185, 175)
+    },
+    Galaxy = {
+    Background = Color3.fromRGB(9, 12, 25),
+    Card = Color3.fromRGB(18, 22, 40),
+    CardHover = Color3.fromRGB(26, 31, 54),
+    Header = Color3.fromRGB(13, 17, 31),
+    Accent = Color3.fromRGB(120, 160, 255),
+    AccentGlow = Color3.fromRGB(170, 205, 255),
+    Text = Color3.fromRGB(245, 247, 255),
+    SubText = Color3.fromRGB(150, 165, 190),
+    Border = Color3.fromRGB(45, 56, 84),
+    ToggleOn = Color3.fromRGB(120, 160, 255),
+    ToggleOff = Color3.fromRGB(30, 36, 52),
+    SliderBar = Color3.fromRGB(30, 36, 52),
+    InputBackground = Color3.fromRGB(14, 18, 30),
+    Shadow = Color3.fromRGB(0, 0, 0)
+    },
+    Arctic = {
+    Background = Color3.fromRGB(239, 245, 250),
+    Card = Color3.fromRGB(250, 253, 255),
+    CardHover = Color3.fromRGB(245, 250, 254),
+    Header = Color3.fromRGB(229, 238, 246),
+    Accent = Color3.fromRGB(72, 182, 255),
+    AccentGlow = Color3.fromRGB(150, 220, 255),
+    Text = Color3.fromRGB(35, 46, 58),
+    SubText = Color3.fromRGB(116, 128, 143),
+    Border = Color3.fromRGB(204, 217, 230),
+    ToggleOn = Color3.fromRGB(72, 182, 255),
+    ToggleOff = Color3.fromRGB(210, 220, 232),
+    SliderBar = Color3.fromRGB(210, 220, 232),
+    InputBackground = Color3.fromRGB(252, 254, 255),
+    Shadow = Color3.fromRGB(175, 190, 205)
+    },
 }
 
 -- STREAMING_CHUNK:Creating Main ScreenGui Container...
@@ -2045,7 +2181,7 @@ function GaphopUI:makeWindow(cfg)
 
     SettingsEngine:makeDropdown({
         Name = "UI Theme",
-        Options = {"Dark", "Midnight", "CyberNeon", "Emerald", "Ocean", "Light", "Bloom", "AmberGlow", "Amethyst"},
+        Options = {"Dark", "Midnight", "CyberNeon", "Emerald", "Ocean", "Light", "Bloom", "AmberGlow", "Amethyst", "Serenity", "Crimson", "Frost", "Forest", "Sunset", "Sakura", "Galaxy", "Arctic", "Twilight"},
         CurrentOption = GaphopUI.CurrentTheme,
         Callback = function(selected)
             GaphopUI:ApplyTheme(selected)
