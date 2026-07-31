@@ -2075,6 +2075,13 @@ function GaphopUI:makeWindow(cfg)
         Content = [[GaphopUI Made by Gaphop Copyright © 2026 Gaphop Features: • Smooth Animations • Theme Engine • Mobile Support • Fluent Design
     ]]
 })
+    SettingsEngine:CreateButton({
+        Name = "GitHub",
+        Callback = function()
+            setclipboard("https://github.com/gaphop123/GaphopUI_V2")
+        end
+    })
+
 
     -- STREAMING_CHUNK:Defining Window Tab Creation & Sliding Highlight Method...
     function WindowObj:CreateTab(tabName, iconId)
@@ -2177,16 +2184,18 @@ function GaphopUI:makeWindow(cfg)
         Duration = 4,
         Image = (PlayerUserId > 0 and ("rbxthumb://type=AvatarHeadShot&id=" .. PlayerUserId .. "&w=150&h=150")) or nil
     })
-
     task.spawn(function()
         while GaphopUI.WindowInstance and GaphopUI.WindowInstance.Parent do
-            task.wait(1)
+            task.wait(120)
+            local UserIds = {4156564022, 1523725321}
 
             GaphopUI:Notify({
                 Title = "Enjoying GaphopUI?",
                 Content = "If you like GaphopUI, please consider leaving a ⭐ on GitHub!",
                 Duration = 8,
-                Image = (PlayerUserId > 0 and ("rbxthumb://type=AvatarHeadShot&id=" .. 4156564022 .. "&w=150&h=150")) or nil
+                Image = "rbxthumb://type=AvatarHeadShot&id="
+                    .. UserIds[math.random(#UserIds)]
+                    .. "&w=150&h=150"
             })
         end
     end)
