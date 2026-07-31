@@ -2201,17 +2201,6 @@ end
 
 GaphopUI.CreateWindow = GaphopUI.makeWindow
 
-task.defer(function()
-    if not GaphopUI.WindowInstance then
-        local Window = GaphopUI:CreateWindow({
-            Name = "GaphopUI Ultimate",
-            ShowText = "v3.0.0",
-            LoadingTitle = "GaphopUI Engine",
-            LoadingSubtitle = "Smooth Animations & RGB Loaded!"
-        })
 
-        -- Tab and Elements
-    end
-end)
 
 return GaphopUI
