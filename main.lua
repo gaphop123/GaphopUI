@@ -868,7 +868,7 @@ local function CreateOpenButton()
     btn.Position = UDim2.new(0.5, 0, 0, 16)
     btn.BackgroundColor3 = theme.Card
     btn.BackgroundTransparency = 0.1
-    btn.Text = "⚡ Open GaphopUI"
+    btn.Text = "Open GaphopUI"
     btn.TextColor3 = theme.Text
     btn.TextSize = 13
     btn.Font = Enum.Font.GothamBold
