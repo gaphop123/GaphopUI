@@ -11,18 +11,12 @@ local GaphopUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/gaph
 ## Window 
 ---
 ```lua
-task.defer(function()
-    if not GaphopUI.WindowInstance then
-        local Window = GaphopUI:CreateWindow({
-            Name = "GaphopUI Ultimate",
-            ShowText = "v3.0.0",
-            LoadingTitle = "GaphopUI Engine",
-            LoadingSubtitle = "Smooth Animations & RGB Loaded!"
-        })
-
-        -- Tab and Elements
-    end
-end)
+local Window = GaphopUI:CreateWindow({
+    Name = "GaphopUI",
+    ShowText = "V2",
+    LoadingTitle = "GaphopUI Engine",
+    LoadingSubtitle = "GaphopUI is loaded!"
+})
 ```
 
 
