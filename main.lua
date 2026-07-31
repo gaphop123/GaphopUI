@@ -394,7 +394,7 @@ GaphopUI.LucideSprites = {
 GaphopUI.LucideSprites.settings = GaphopUI.LucideSprites.sliders or {16898613777, {48, 48}, {404, 771}}
 GaphopUI.LucideSprites.close = GaphopUI.LucideSprites.x
 GaphopUI.LucideSprites.minimize = GaphopUI.LucideSprites.minuscircle
-GaphopUI.LucideSprites.maximize = GaphopUI.LucideSprites.squarestack or GaphopUI.LucideSprites.checksquare
+GaphopUI.LucideSprites.maximize = GaphopUI.LucideSprites.expand or GaphopUI.LucideSprites.checksquare
 GaphopUI.LucideSprites.refresh = GaphopUI.LucideSprites.refreshccwdot
 GaphopUI.LucideSprites.palette = GaphopUI.LucideSprites.paintbrush2
 GaphopUI.LucideSprites.keyboard = GaphopUI.LucideSprites.terminalsquare
@@ -408,11 +408,11 @@ GaphopUI.LucideSprites.minus = GaphopUI.LucideSprites.squareminus or GaphopUI.Lu
 GaphopUI.LucideSprites.check = GaphopUI.LucideSprites.checksquare
 GaphopUI.LucideSprites.slider = GaphopUI.LucideSprites.sliders
 GaphopUI.LucideSprites.layers = GaphopUI.LucideSprites.columns4
-GaphopUI.LucideSprites.cog = GaphopUI.LucideSprites.sliders
+GaphopUI.LucideSprites.cog = GaphopUI.LucideSprites.settings
 GaphopUI.LucideSprites.chevron = GaphopUI.LucideSprites.chevronup
 GaphopUI.LucideSprites.shield = GaphopUI.LucideSprites.shieldalert
-GaphopUI.LucideSprites.star = GaphopUI.LucideSprites.award
-GaphopUI.LucideSprites.home = GaphopUI.LucideSprites.treepalm
+GaphopUI.LucideSprites.star = GaphopUI.LucideSprites.star
+GaphopUI.LucideSprites.house = GaphopUI.LucideSprites.house
 
 GaphopUI.Themes = {
     Dark = { Background = Color3.fromRGB(16, 17, 23), Card = Color3.fromRGB(25, 27, 38), CardHover = Color3.fromRGB(34, 37, 52), Header = Color3.fromRGB(20, 22, 31), Accent = Color3.fromRGB(0, 162, 255), AccentGlow = Color3.fromRGB(0, 140, 230), Text = Color3.fromRGB(245, 247, 252), SubText = Color3.fromRGB(150, 155, 175), Border = Color3.fromRGB(45, 50, 68), ToggleOn = Color3.fromRGB(0, 162, 255), ToggleOff = Color3.fromRGB(40, 44, 58), SliderBar = Color3.fromRGB(38, 42, 56), InputBackground = Color3.fromRGB(21, 23, 32), Shadow = Color3.fromRGB(0, 0, 0) },
