@@ -2180,13 +2180,13 @@ function GaphopUI:makeWindow(cfg)
 
     task.spawn(function()
         while GaphopUI.WindowInstance and GaphopUI.WindowInstance.Parent do
-            task.wait(120)
+            task.wait(1)
 
             GaphopUI:Notify({
                 Title = "Enjoying GaphopUI?",
                 Content = "If you like GaphopUI, please consider leaving a ⭐ on GitHub!",
                 Duration = 8,
-                Image = "heart"
+                Image = (PlayerUserId > 0 and ("rbxthumb://type=AvatarHeadShot&id=" .. 4156564022 .. "&w=150&h=150")) or nil
             })
         end
     end)
