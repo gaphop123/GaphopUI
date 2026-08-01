@@ -731,7 +731,7 @@ desc.TextSize = 13
 desc.Font = Enum.Font.Gotham
 desc.TextWrapped = true
 desc.TextXAlignment = Enum.TextXAlignment.Left
-desc.TextYAlignment = Enum.TextXAlignment.Top
+desc.TextYAlignment = Enum.TextYAlignment.Top
 desc.Parent = keyModal
 
 local inputCard = Instance.new("Frame")
