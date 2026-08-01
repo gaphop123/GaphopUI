@@ -30,7 +30,8 @@ local GaphopUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/gaph
 ```lua
 local Window = GaphopUI:CreateWindow({
     Name = "GaphopUI",
-    ShowText = "V2",
+    ShowText = "V2", -- Remove this if you don't want it
+    Icon = "eye", -- Remove this if you don't want it
     LoadingTitle = "GaphopUI Engine",
     LoadingSubtitle = "GaphopUI is loaded!"
 })
