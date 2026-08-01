@@ -1,33 +1,13 @@
--- STREAMING_CHUNK:Initializing Core Roblox Services and Global Tables...
+-- STREAMING_CHUNK:Initializing Services and Local Variables...
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
 local HttpService = game:GetService("HttpService")
-
-warn("This UI may have bugs. Please report any issues you find.")
-warn("This is a GaphopUI test build. It is not intended for use.")
-
-wait(2)
-
-local loader1 = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Stratxgy/Roblox-Chams-Highlight/refs/heads/main/Highlight.lua"))() end)
-local loader2 = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Stratxgy/Lua-Speed/refs/heads/main/speed.lua"))() end)
-
-if not RunService:IsClient() then
-return
-end
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerName = (LocalPlayer and LocalPlayer.Name) or "Player"
-local PlayerUserId = (LocalPlayer and LocalPlayer.UserId) or 0
-
--- Ensure global environment tables exist to prevent nil indexing errors
-if type(getgenv) == "function" then
-local env = getgenv()
-env.speed = env.speed or {}
-env.chams = env.chams or {}
-end
+local PlayerMouse = LocalPlayer:GetMouse()
 
 -- STREAMING_CHUNK:Resolving Safe Parent Container for UI Rendering...
 local function GetSafeParent()
@@ -35,6 +15,14 @@ if type(gethui) == "function" then
 local ok, res = pcall(gethui)
 if ok and res then return res end
 end
+
+if type(cloneref) == "function" then
+    local ok, res = pcall(function() return cloneref(CoreGui) end)
+    if ok and res then return res end
+end
+
+local ok, res = pcall(function() return CoreGui end)
+if ok and res then return res end
 
 if LocalPlayer then
     local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui")
@@ -44,1090 +32,764 @@ if LocalPlayer then
     if pg then return pg end
 end
 
-if type(cloneref) == "function" then
-    local ok, res = pcall(function() return cloneref(CoreGui) end)
-    if ok and res then return res end
-end
-
-return CoreGui
+return fallback
 
 
 end
 
 local ParentUI = GetSafeParent()
 
--- Clean up any existing instance to prevent duplicates
-if ParentUI:FindFirstChild("GaphopUI_Engine") then
-ParentUI:FindFirstChild("GaphopUI_Engine"):Destroy()
+-- STREAMING_CHUNK:Cleaning up existing instances...
+if ParentUI then
+for _, child in ipairs(ParentUI:GetChildren()) do
+if child.Name == "GaphopUI_Engine" then
+child:Destroy()
+end
+end
 end
 
 -- STREAMING_CHUNK:Defining Ultimate Library Configurations & Color Palettes...
-local GaphopUI = {
-Version = "3.1.0 KeySystem Integration",
-Flags = {},
-Themes = {},
-CurrentTheme = "Dark",
-ToggleKey = Enum.KeyCode.K,
-IsOpen = true,
-Elements = {},
-Connections = {},
-WindowInstance = nil,
-OpenButton = nil,
-NotifyContainer = nil,
-AssetFolder = nil,
-CallbackRegistry = {},
-RGBEnabled = false,
-RGBConnection = nil,
-CurrentRGBColor = Color3.fromRGB(0, 162, 255),
-Icons = {
-settings = "⚙", search = "⌕", home = "⌂", close = "x", x = "x", minimize = "—", maximize = "▢",
-refresh = "↻", palette = "◐", keyboard = "⌨", sparkles = "✦", moon = "☾", sun = "☀",
-info = "ⓘ", bell = "🔔", menu = "☰", plus = "+", minus = "−", check = "✓", slider = "▭",
-layers = "☰", cog = "⚙", chevron = "⌵", shield = "🛡", zap = "⚡", star = "★"
-}
-}
+local GaphopUI = {}
+GaphopUI.Instances = {}
 
--- Mapping GaphopUI internal keywords directly to standard Lucide icons
-GaphopUI.LucideSprites = {
-x = {16898613869, {48, 48}, {869, 906}},
-checksquare = {16898612819, {48, 48}, {771, 808}},
-layers = {16898613613, {48, 48}, {49, 820}},
-chevronup = {16898612819, {48, 48}, {710, 918}},
-shieldalert = {16898613777, {48, 48}, {49, 771}},
+GaphopUI.Icons = {
+info = "ⓘ", bell = "🔔", menu = "☰", plus = "+", minus = "−", check = "✓", slider = "▭",
+layers = "☰", cog = "⚙", chevron = "⌵", shield = "🛡", zap = "⚡", star = "★", key = "🔑", copy = "📋"
 }
-GaphopUI.Icons.chevron = GaphopUI.LucideSprites.chevronup or GaphopUI.Icons.chevron
-GaphopUI.Icons.close = GaphopUI.LucideSprites.x or GaphopUI.Icons.close
 
 GaphopUI.Themes = {
-Dark = { Background = Color3.fromRGB(16, 17, 23), Card = Color3.fromRGB(25, 27, 38), CardHover = Color3.fromRGB(34, 37, 52), Header = Color3.fromRGB(20, 22, 31), Accent = Color3.fromRGB(0, 162, 255), AccentGlow = Color3.fromRGB(0, 140, 230), Text = Color3.fromRGB(245, 247, 252), SubText = Color3.fromRGB(150, 155, 175), Border = Color3.fromRGB(45, 50, 68), ToggleOn = Color3.fromRGB(0, 162, 255), ToggleOff = Color3.fromRGB(40, 44, 58), SliderBar = Color3.fromRGB(38, 42, 56), InputBackground = Color3.fromRGB(21, 23, 32), Shadow = Color3.fromRGB(0, 0, 0) },
-Midnight = { Background = Color3.fromRGB(11, 11, 20), Card = Color3.fromRGB(20, 20, 36), CardHover = Color3.fromRGB(28, 28, 48), Header = Color3.fromRGB(15, 15, 26), Accent = Color3.fromRGB(130, 90, 255), AccentGlow = Color3.fromRGB(110, 70, 230), Text = Color3.fromRGB(245, 245, 255), SubText = Color3.fromRGB(145, 145, 178), Border = Color3.fromRGB(45, 45, 75), ToggleOn = Color3.fromRGB(130, 90, 255), ToggleOff = Color3.fromRGB(32, 32, 52), SliderBar = Color3.fromRGB(32, 32, 55), InputBackground = Color3.fromRGB(16, 16, 28), Shadow = Color3.fromRGB(0, 0, 0) },
-CyberNeon = { Background = Color3.fromRGB(10, 12, 18), Card = Color3.fromRGB(18, 22, 32), CardHover = Color3.fromRGB(26, 32, 46), Header = Color3.fromRGB(14, 16, 24), Accent = Color3.fromRGB(255, 0, 128), AccentGlow = Color3.fromRGB(210, 0, 105), Text = Color3.fromRGB(255, 255, 255), SubText = Color3.fromRGB(160, 170, 190), Border = Color3.fromRGB(60, 30, 70), ToggleOn = Color3.fromRGB(255, 0, 128), ToggleOff = Color3.fromRGB(35, 30, 45), SliderBar = Color3.fromRGB(35, 30, 45), InputBackground = Color3.fromRGB(14, 16, 24), Shadow = Color3.fromRGB(0, 0, 0) },
-Emerald = { Background = Color3.fromRGB(10, 18, 16), Card = Color3.fromRGB(18, 30, 26), CardHover = Color3.fromRGB(25, 42, 36), Header = Color3.fromRGB(14, 23, 20), Accent = Color3.fromRGB(16, 185, 129), AccentGlow = Color3.fromRGB(10, 150, 105), Text = Color3.fromRGB(240, 250, 245), SubText = Color3.fromRGB(140, 168, 155), Border = Color3.fromRGB(35, 60, 50), ToggleOn = Color3.fromRGB(16, 185, 129), ToggleOff = Color3.fromRGB(28, 45, 38), SliderBar = Color3.fromRGB(28, 45, 38), InputBackground = Color3.fromRGB(14, 24, 20), Shadow = Color3.fromRGB(0, 0, 0) },
+Dark = { Background = Color3.fromRGB(16, 17, 23), Card = Color3.fromRGB(25, 27, 38), CardHover = Color3.fromRGB(34, 37, 52), Header = Color3.fromRGB(20, 22, 31), Accent = Color3.fromRGB(0, 162, 255), AccentGlow = Color3.fromRGB(0, 140, 230), Text = Color3.fromRGB(245, 247, 252), SubText = Color3.fromRGB(150, 155, 175), Border = Color3.fromRGB(45, 50, 68), ToggleOn = Color3.fromRGB(0, 162, 255), ToggleOff = Color3.fromRGB(40, 44, 58), SliderBar = Color3.fromRGB(38, 42, 56), InputBackground = Color3.fromRGB(21, 23, 32), Shadow = Color3.fromRGB(0, 0, 0), Red = Color3.fromRGB(255, 75, 75), Green = Color3.fromRGB(75, 255, 120) },
+Midnight = { Background = Color3.fromRGB(11, 11, 20), Card = Color3.fromRGB(20, 20, 36), CardHover = Color3.fromRGB(28, 28, 48), Header = Color3.fromRGB(15, 15, 26), Accent = Color3.fromRGB(130, 90, 255), AccentGlow = Color3.fromRGB(110, 70, 230), Text = Color3.fromRGB(245, 245, 255), SubText = Color3.fromRGB(145, 145, 178), Border = Color3.fromRGB(45, 45, 75), ToggleOn = Color3.fromRGB(130, 90, 255), ToggleOff = Color3.fromRGB(32, 32, 52), SliderBar = Color3.fromRGB(32, 32, 55), InputBackground = Color3.fromRGB(16, 16, 28), Shadow = Color3.fromRGB(0, 0, 0), Red = Color3.fromRGB(255, 75, 75), Green = Color3.fromRGB(75, 255, 120) }
 }
 
--- STREAMING_CHUNK:Creating Main ScreenGui Container...
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GaphopUI_Engine"
-ScreenGui.DisplayOrder = 999999
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Enabled = true
-ScreenGui.Parent = ParentUI
-
--- STREAMING_CHUNK:Defining Animation Utility Helpers & Smooth Easing Physics...
+-- STREAMING_CHUNK:Defining Utility and Tweening Helpers...
 local function Tween(instance, info, properties)
-if not instance then return end
-local tween = TweenService:Create(instance, info, properties)
+local tweenInfo = TweenInfo.new(info[1], info[2] or Enum.EasingStyle.Quad, info[3] or Enum.EasingDirection.Out)
+local tween = TweenService:Create(instance, tweenInfo, properties)
 tween:Play()
 return tween
 end
 
-local function SpringTween(instance, duration, properties, style)
-style = style or Enum.EasingStyle.Quart
-local info = TweenInfo.new(duration or 0.3, style, Enum.EasingDirection.Out)
-return Tween(instance, info, properties)
-end
+local function MakeDraggable(topbarobject, object)
+local Dragging = false
+local DragInput
+local DragStart
+local StartPosition
 
-local function CreateRipple(parent, inputPosition)
-if not parent then return end
-local ripple = Instance.new("Frame")
-ripple.Name = "RippleEffect"
-ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-ripple.BackgroundTransparency = 0.75
-ripple.ZIndex = (parent.ZIndex or 1) + 10
-ripple.ClipsDescendants = true
+topbarobject.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = true
+        DragStart = input.Position
+        StartPosition = object.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                Dragging = false
+            end
+        end)
+    end
+end)
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(1, 0)
-corner.Parent = ripple
-
-local parentAbsPos = parent.AbsolutePosition
-local parentAbsSize = parent.AbsoluteSize
-local relX = (inputPosition and inputPosition.X or (parentAbsPos.X + parentAbsSize.X/2)) - parentAbsPos.X
-local relY = (inputPosition and inputPosition.Y or (parentAbsPos.Y + parentAbsSize.Y/2)) - parentAbsPos.Y
-
-ripple.Position = UDim2.fromOffset(relX, relY)
-ripple.Size = UDim2.fromOffset(0, 0)
-ripple.Parent = parent
-
-local maxSize = math.max(parentAbsSize.X, parentAbsSize.Y) * 2.5
-Tween(ripple, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-    Size = UDim2.fromOffset(maxSize, maxSize),
-    BackgroundTransparency = 1
-})
-
-task.delay(0.5, function()
-    if ripple and ripple.Parent then ripple:Destroy() end
+topbarobject.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        DragInput = input
+    end
 end)
 
 
+-- STREAMING_CHUNK:Applying Drag Logic via RunService...
+RunService.RenderStepped:Connect(function()
+if Dragging and DragInput then
+local delta = DragInput.Position - DragStart
+local targetPos = UDim2.new(
+StartPosition.X.Scale, StartPosition.X.Offset + delta.X,
+StartPosition.Y.Scale, StartPosition.Y.Offset + delta.Y
+)
+Tween(object, {0.15, Enum.EasingStyle.Sine}, {Position = targetPos})
+end
+end)
 end
 
 local function CreateCorner(parent, radius)
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, radius or 10)
+corner.CornerRadius = UDim.new(0, radius or 8)
 corner.Parent = parent
 return corner
 end
 
 local function CreateStroke(parent, color, thickness, transparency)
 local stroke = Instance.new("UIStroke")
-stroke.Color = color or GaphopUI.Themes[GaphopUI.CurrentTheme].Border
+stroke.Color = color or Color3.fromRGB(255, 255, 255)
 stroke.Thickness = thickness or 1
-stroke.Transparency = transparency or 0.6
+stroke.Transparency = transparency or 0.8
 stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 stroke.Parent = parent
 return stroke
 end
 
-local function Color3ToHex(color)
-if not color then return "#FFFFFF" end
-return string.format("#%02X%02X%02X", math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255))
+-- STREAMING_CHUNK:Building Window and Key System Initialization...
+function GaphopUI:CreateWindow(Options)
+Options = Options or {}
+local Title = Options.Name or "GaphopUI Engine"
+local Theme = GaphopUI.Themes[Options.Theme] or GaphopUI.Themes.Dark
+local KeySystemConfig = Options.KeySystem or nil
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GaphopUI_Engine"
+ScreenGui.DisplayOrder = 999999
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+ScreenGui.ResetOnSpawn = false
+
+local success = pcall(function() ScreenGui.Parent = ParentUI end)
+if not success and LocalPlayer then
+    pcall(function() ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end)
 end
 
--- STREAMING_CHUNK:Implementing Smooth Window Dragging Mechanics...
-local function MakeDraggable(gui, handle)
-local dragging, dragInput, dragStart, startPos
-handle = handle or gui
+table.insert(GaphopUI.Instances, ScreenGui)
 
-local conn1 = handle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = gui.Position
+-- Container for notifications
+local NotifContainer = Instance.new("Frame")
+NotifContainer.Name = "NotifContainer"
+NotifContainer.Size = UDim2.new(0, 300, 1, -20)
+NotifContainer.Position = UDim2.new(1, -320, 0, 20)
+NotifContainer.BackgroundTransparency = 1
+NotifContainer.Parent = ScreenGui
 
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+local NotifLayout = Instance.new("UIListLayout")
+NotifLayout.SortOrder = Enum.SortOrder.LayoutOrder
+NotifLayout.Padding = UDim.new(0, 10)
+NotifLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+NotifLayout.Parent = NotifContainer
+
+
+-- STREAMING_CHUNK:Constructing Main CanvasGroup Frame...
+local MainFrame = Instance.new("CanvasGroup")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 650, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -325, 0.5, -210)
+MainFrame.BackgroundColor3 = Theme.Background
+MainFrame.GroupTransparency = 1 -- Hidden initially
+MainFrame.Parent = ScreenGui
+CreateCorner(MainFrame, 12)
+CreateStroke(MainFrame, Theme.Border, 1, 0)
+MakeDraggable(MainFrame, MainFrame)
+
+-- Topbar
+local Topbar = Instance.new("Frame")
+Topbar.Name = "Topbar"
+Topbar.Size = UDim2.new(1, 0, 0, 45)
+Topbar.BackgroundColor3 = Theme.Header
+Topbar.BorderSizePixel = 0
+Topbar.Parent = MainFrame
+
+local TopbarLine = Instance.new("Frame")
+TopbarLine.Size = UDim2.new(1, 0, 0, 1)
+TopbarLine.Position = UDim2.new(0, 0, 1, 0)
+TopbarLine.BackgroundColor3 = Theme.Border
+TopbarLine.BorderSizePixel = 0
+TopbarLine.Parent = Topbar
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(1, -20, 1, 0)
+TitleText.Position = UDim2.new(0, 20, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = Title
+TitleText.TextColor3 = Theme.Text
+TitleText.TextSize = 16
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.Parent = Topbar
+
+
+-- STREAMING_CHUNK:Constructing Sidebar and Tab Containers...
+local Sidebar = Instance.new("Frame")
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.new(0, 160, 1, -45)
+Sidebar.Position = UDim2.new(0, 0, 0, 45)
+Sidebar.BackgroundColor3 = Theme.Header
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = MainFrame
+
+local SidebarLayout = Instance.new("UIListLayout")
+SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SidebarLayout.Padding = UDim.new(0, 5)
+SidebarLayout.Parent = Sidebar
+
+local SidebarPadding = Instance.new("UIPadding")
+SidebarPadding.PaddingTop = UDim.new(0, 10)
+SidebarPadding.PaddingLeft = UDim.new(0, 10)
+SidebarPadding.PaddingRight = UDim.new(0, 10)
+SidebarPadding.Parent = Sidebar
+
+local ContentContainer = Instance.new("Frame")
+ContentContainer.Name = "ContentContainer"
+ContentContainer.Size = UDim2.new(1, -160, 1, -45)
+ContentContainer.Position = UDim2.new(0, 160, 0, 45)
+ContentContainer.BackgroundTransparency = 1
+ContentContainer.Parent = MainFrame
+
+local Window = {
+    Tabs = {},
+    CurrentTab = nil
+}
+
+
+-- STREAMING_CHUNK:Implementing Notification System...
+function Window:Notify(options)
+local nTitle = options.Title or "Notification"
+local nContent = options.Content or "Description here"
+local duration = options.Duration or 3
+
+    local NotifCard = Instance.new("Frame")
+    NotifCard.Size = UDim2.new(1, 0, 0, 0)
+    NotifCard.BackgroundColor3 = Theme.Card
+    NotifCard.BackgroundTransparency = 1
+    NotifCard.ClipsDescendants = true
+    NotifCard.Parent = NotifContainer
+    CreateCorner(NotifCard, 8)
+    local stroke = CreateStroke(NotifCard, Theme.Border, 1, 1)
+
+    local NTitleLabel = Instance.new("TextLabel")
+    NTitleLabel.Size = UDim2.new(1, -20, 0, 25)
+    NTitleLabel.Position = UDim2.new(0, 10, 0, 10)
+    NTitleLabel.BackgroundTransparency = 1
+    NTitleLabel.Text = nTitle
+    NTitleLabel.TextColor3 = Theme.Text
+    NTitleLabel.TextSize = 14
+    NTitleLabel.Font = Enum.Font.GothamBold
+    NTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    NTitleLabel.TextTransparency = 1
+    NTitleLabel.Parent = NotifCard
+
+    local NDescLabel = Instance.new("TextLabel")
+    NDescLabel.Size = UDim2.new(1, -20, 0, 20)
+    NDescLabel.Position = UDim2.new(0, 10, 0, 35)
+    NDescLabel.BackgroundTransparency = 1
+    NDescLabel.Text = nContent
+    NDescLabel.TextColor3 = Theme.SubText
+    NDescLabel.TextSize = 13
+    NDescLabel.Font = Enum.Font.Gotham
+    NDescLabel.TextXAlignment = Enum.TextXAlignment.Left
+    NDescLabel.TextWrapped = true
+    NDescLabel.TextTransparency = 1
+    NDescLabel.Parent = NotifCard
+
+
+-- STREAMING_CHUNK:Animating Notification Entrance and Exit...
+NotifCard.Size = UDim2.new(1, 0, 0, 65)
+NotifCard.Position = UDim2.new(1, 20, 0, 0)
+
+    Tween(NotifCard, {0.4, Enum.EasingStyle.Back}, {Position = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 0})
+    Tween(stroke, {0.3}, {Transparency = 0})
+    Tween(NTitleLabel, {0.3}, {TextTransparency = 0})
+    Tween(NDescLabel, {0.3}, {TextTransparency = 0})
+
+    task.delay(duration, function()
+        Tween(NotifCard, {0.4, Enum.EasingStyle.Sine}, {Position = UDim2.new(1, 50, 0, 0), BackgroundTransparency = 1})
+        Tween(stroke, {0.3}, {Transparency = 1})
+        Tween(NTitleLabel, {0.3}, {TextTransparency = 1})
+        Tween(NDescLabel, {0.3}, {TextTransparency = 1})
+        task.wait(0.4)
+        NotifCard:Destroy()
+    end)
+end
+
+
+-- STREAMING_CHUNK:Implementing Key System Logic & UI...
+local function ValidateKey(inputKey)
+if not KeySystemConfig then return true end
+
+    if KeySystemConfig.GrabKeyFromSite then
+        local success, response = pcall(function()
+            return game:HttpGet(KeySystemConfig.Key)
         end)
-    end
-end)
-
-local conn2 = handle.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
-local conn3 = UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        SpringTween(gui, 0.12, {
-            Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        }, Enum.EasingStyle.Sine)
-    end
-end)
-
-
-end
-
--- STREAMING_CHUNK:Constructing Animated Notification Stack System...
-local NotifyContainer = Instance.new("Frame")
-NotifyContainer.Name = "NotifyContainer"
-NotifyContainer.Size = UDim2.new(0, 320, 1, -40)
-NotifyContainer.Position = UDim2.new(1, -330, 0, 20)
-NotifyContainer.BackgroundTransparency = 1
-NotifyContainer.ZIndex = 100000 -- Ensure it's above Key System
-NotifyContainer.Parent = ScreenGui
-
-local NotifyLayout = Instance.new("UIListLayout")
-NotifyLayout.SortOrder = Enum.SortOrder.LayoutOrder
-NotifyLayout.Padding = UDim.new(0, 10)
-NotifyLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
-NotifyLayout.Parent = NotifyContainer
-
-GaphopUI.NotifyContainer = NotifyContainer
-
-function GaphopUI:Notify(cfg)
-cfg = cfg or {}
-local titleText = cfg.Title or "Notification"
-local contentText = cfg.Content or ""
-local duration = cfg.Duration or 4
-local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
-
-local card = Instance.new("Frame")
-card.Size = UDim2.new(1, 0, 0, 72)
-card.BackgroundColor3 = theme.Card
-card.BackgroundTransparency = 0.12
-card.Position = UDim2.new(1, 360, 0, 0)
-card.ClipsDescendants = true
-card.Parent = NotifyContainer
-
-CreateCorner(card, 12)
-CreateStroke(card, theme.Accent, 1, 0.4)
-
-local padding = Instance.new("UIPadding")
-padding.PaddingLeft = UDim.new(0, 16)
-padding.PaddingRight = UDim.new(0, 12)
-padding.PaddingTop = UDim.new(0, 10)
-padding.PaddingBottom = UDim.new(0, 10)
-padding.Parent = card
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 20)
-title.Position = UDim2.new(0, 0, 0, 2)
-title.BackgroundTransparency = 1
-title.Text = titleText
-title.TextColor3 = theme.Text
-title.TextSize = 14
-title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = card
-
-local content = Instance.new("TextLabel")
-content.Size = UDim2.new(1, 0, 0, 28)
-content.Position = UDim2.new(0, 0, 0, 22)
-content.BackgroundTransparency = 1
-content.Text = contentText
-content.TextColor3 = theme.SubText
-content.TextSize = 12
-content.Font = Enum.Font.Gotham
-content.TextWrapped = true
-content.TextXAlignment = Enum.TextXAlignment.Left
-content.Parent = card
-
-SpringTween(card, 0.45, { Position = UDim2.new(0, 0, 0, 0) }, Enum.EasingStyle.Back)
-
-local timerBar = Instance.new("Frame")
-timerBar.Size = UDim2.new(1, 0, 0, 3)
-timerBar.Position = UDim2.new(0, 0, 1, -3)
-timerBar.BackgroundColor3 = theme.Accent
-timerBar.BorderSizePixel = 0
-timerBar.Parent = card
-
-Tween(timerBar, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
-    Size = UDim2.new(0, 0, 0, 3)
-})
-
-task.delay(duration, function()
-    if card and card.Parent then
-        local exitTween = SpringTween(card, 0.35, {
-            Position = UDim2.new(1, 360, 0, 0),
-            BackgroundTransparency = 1
-        }, Enum.EasingStyle.Quart)
-
-        if exitTween then
-            exitTween.Completed:Connect(function() card:Destroy() end)
-        else
-            card:Destroy()
-        end
-    end
-end)
-
-
-end
-
--- STREAMING_CHUNK:Binding UI Component Engine with Spring & Ripple Animations...
-local function RegisterElement(entry)
-if entry then table.insert(GaphopUI.Elements, entry) end
-end
-
-local function BindElementMethods(TabObj, page, theme)
-TabObj = TabObj or {}
-
-function TabObj:makeButton(cfg)
-    cfg = cfg or {}
-    local btnName = cfg.Name or "Button"
-    local callback = cfg.Callback or function() end
-
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, -6, 0, 42)
-    card.BackgroundColor3 = theme.Card
-    card.BackgroundTransparency = 0.3
-    card.ClipsDescendants = true
-    card.Parent = page
-    local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-    CreateCorner(card, 8)
-
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 1, 0)
-    btn.BackgroundTransparency = 1
-    btn.Text = btnName
-    btn.TextColor3 = theme.Text
-    btn.TextSize = 13
-    btn.Font = Enum.Font.GothamMedium
-    btn.Parent = card
-
-    btn.MouseEnter:Connect(function() SpringTween(card, 0.2, {BackgroundColor3 = theme.CardHover}) end)
-    btn.MouseLeave:Connect(function() SpringTween(card, 0.2, {BackgroundColor3 = theme.Card}) end)
-    btn.MouseButton1Click:Connect(function(input)
-        CreateRipple(card, input)
-        SpringTween(card, 0.1, {Size = UDim2.new(1, -12, 0, 38)}).Completed:Connect(function()
-            SpringTween(card, 0.15, {Size = UDim2.new(1, -6, 0, 42)})
-        end)
-        callback()
-    end)
-    RegisterElement({Type = "button", Card = card, Stroke = stroke, Button = btn, SearchText = btnName, Page = page})
-end
-TabObj.CreateButton = TabObj.makeButton
-TabObj.AddButton = TabObj.makeButton
-
-function TabObj:makeToggle(cfg)
-    cfg = cfg or {}
-    local name = cfg.Name or "Toggle"
-    local state = cfg.CurrentValue or false
-    local flag = cfg.Flag
-    local callback = cfg.Callback or function() end
-
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, -6, 0, 42)
-    card.BackgroundColor3 = theme.Card
-    card.BackgroundTransparency = 0.3
-    card.ClipsDescendants = true
-    card.Parent = page
-    local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-    CreateCorner(card, 8)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -60, 1, 0)
-    label.Position = UDim2.new(0, 12, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = theme.Text
-    label.TextSize = 13
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = card
-
-    local switchBg = Instance.new("TextButton")
-    switchBg.Size = UDim2.new(0, 44, 0, 22)
-    switchBg.Position = UDim2.new(1, -54, 0.5, -11)
-    switchBg.BackgroundColor3 = state and theme.ToggleOn or theme.ToggleOff
-    switchBg.Text = ""
-    switchBg.Parent = card
-    CreateCorner(switchBg, 12)
-
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 16, 0, 16)
-    knob.Position = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
-    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    knob.Parent = switchBg
-    CreateCorner(knob, 10)
-
-    switchBg.MouseButton1Click:Connect(function(input)
-        CreateRipple(card, input)
-        state = not state
-        if flag then GaphopUI.Flags[flag] = state end
-        SpringTween(switchBg, 0.25, {BackgroundColor3 = state and theme.ToggleOn or theme.ToggleOff})
-        SpringTween(knob, 0.25, {Position = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)}, Enum.EasingStyle.Back)
-        callback(state)
-    end)
-    if flag then GaphopUI.Flags[flag] = state end
-    RegisterElement({Type = "toggle", Card = card, Stroke = stroke, Label = label, ToggleBg = switchBg, ToggleKnob = knob, ToggleState = state, SearchText = name, Page = page})
-end
-TabObj.CreateToggle = TabObj.makeToggle
-TabObj.AddToggle = TabObj.makeToggle
-
-function TabObj:makeSlider(cfg)
-    cfg = cfg or {}
-    local name = cfg.Name or "Slider"
-    local range = cfg.Range or {0, 100}
-    local minVal, maxVal = range[1] or 0, range[2] or 100
-    local val = cfg.CurrentValue or minVal
-    local suffix = cfg.Suffix or ""
-    local flag = cfg.Flag
-    local callback = cfg.Callback or function() end
-
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, -6, 0, 56)
-    card.BackgroundColor3 = theme.Card
-    card.BackgroundTransparency = 0.3
-    card.ClipsDescendants = false
-    card.Parent = page
-    local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-    CreateCorner(card, 8)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -80, 0, 24)
-    label.Position = UDim2.new(0, 12, 0, 4)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = theme.Text
-    label.TextSize = 13
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = card
-
-    local valLabel = Instance.new("TextLabel")
-    valLabel.Size = UDim2.new(0, 60, 0, 24)
-    valLabel.Position = UDim2.new(1, -72, 0, 4)
-    valLabel.BackgroundTransparency = 1
-    valLabel.Text = tostring(val) .. suffix
-    valLabel.TextColor3 = theme.Accent
-    valLabel.TextSize = 12
-    valLabel.Font = Enum.Font.GothamBold
-    valLabel.TextXAlignment = Enum.TextXAlignment.Right
-    valLabel.Parent = card
-
-    local sliderTrack = Instance.new("Frame")
-    sliderTrack.Size = UDim2.new(1, -24, 0, 6)
-    sliderTrack.Position = UDim2.new(0, 12, 0, 38)
-    sliderTrack.BackgroundColor3 = theme.SliderBar
-    sliderTrack.Parent = card
-    CreateCorner(sliderTrack, 3)
-
-    local initPercent = (val - minVal) / (maxVal - minVal)
-    local sliderFill = Instance.new("Frame")
-    sliderFill.Size = UDim2.new(math.clamp(initPercent, 0, 1), 0, 1, 0)
-    sliderFill.BackgroundColor3 = theme.Accent
-    sliderFill.Parent = sliderTrack
-    CreateCorner(sliderFill, 3)
-
-    local dragging = false
-    local function UpdateSlider(input)
-        local pos = math.clamp((input.Position.X - sliderTrack.AbsolutePosition.X) / sliderTrack.AbsoluteSize.X, 0, 1)
-        local calculated = math.floor(minVal + (maxVal - minVal) * pos)
-        SpringTween(sliderFill, 0.08, { Size = UDim2.new(pos, 0, 1, 0) }, Enum.EasingStyle.Sine)
-        valLabel.Text = tostring(calculated) .. suffix
-        if flag then GaphopUI.Flags[flag] = calculated end
-        callback(calculated)
-    end
-
-    sliderTrack.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; UpdateSlider(input)
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            UpdateSlider(input)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-    RegisterElement({Type = "slider", Card = card, Stroke = stroke, Label = label, SliderTrack = sliderTrack, SliderFill = sliderFill, ValueLabel = valLabel, SearchText = name, Page = page})
-end
-TabObj.CreateSlider = TabObj.makeSlider
-TabObj.AddSlider = TabObj.makeSlider
-
-function TabObj:makeInput(cfg)
-    cfg = cfg or {}
-    local name = cfg.Name or "Input"
-    local placeholder = cfg.PlaceholderText or "Type here..."
-    local callback = cfg.Callback or function() end
-
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, -6, 0, 42)
-    card.BackgroundColor3 = theme.Card
-    card.BackgroundTransparency = 0.3
-    card.ClipsDescendants = true
-    card.Parent = page
-    local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-    CreateCorner(card, 8)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 150, 1, 0)
-    label.Position = UDim2.new(0, 12, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = theme.Text
-    label.TextSize = 13
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = card
-
-    local textBox = Instance.new("TextBox")
-    textBox.Size = UDim2.new(0, 160, 0, 26)
-    textBox.Position = UDim2.new(1, -172, 0.5, -13)
-    textBox.BackgroundColor3 = theme.InputBackground
-    textBox.Text = ""
-    textBox.PlaceholderText = placeholder
-    textBox.TextColor3 = theme.Text
-    textBox.PlaceholderColor3 = theme.SubText
-    textBox.TextSize = 12
-    textBox.Font = Enum.Font.Gotham
-    textBox.Parent = card
-    CreateCorner(textBox, 6)
-    local boxStroke = CreateStroke(textBox, theme.Border, 1, 0.4)
-
-    textBox.Focused:Connect(function() SpringTween(boxStroke, 0.2, {Color = theme.Accent, Transparency = 0.1}) end)
-    textBox.FocusLost:Connect(function() SpringTween(boxStroke, 0.2, {Color = theme.Border, Transparency = 0.4}); callback(textBox.Text) end)
-    RegisterElement({Type = "input", Card = card, Stroke = stroke, Label = label, Input = textBox, SearchText = name, Page = page})
-end
-TabObj.CreateInput = TabObj.makeInput
-TabObj.AddInput = TabObj.makeInput
-
-function TabObj:makeDropdown(cfg)
-    cfg = cfg or {}
-    local name = cfg.Name or "Dropdown"
-    local options = cfg.Options or {}
-    local current = cfg.CurrentOption or options[1] or ""
-    local flag = cfg.Flag
-    local callback = cfg.Callback or function() end
-
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, -6, 0, 42)
-    card.BackgroundColor3 = theme.Card
-    card.BackgroundTransparency = 0.3
-    card.ClipsDescendants = true
-    card.Parent = page
-    local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-    CreateCorner(card, 8)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 150, 0, 42)
-    label.Position = UDim2.new(0, 12, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = theme.Text
-    label.TextSize = 13
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = card
-
-    local dropBtn = Instance.new("TextButton")
-    dropBtn.Size = UDim2.new(0, 150, 0, 26)
-    dropBtn.Position = UDim2.new(1, -162, 0, 8)
-    dropBtn.BackgroundColor3 = theme.InputBackground
-    dropBtn.Text = tostring(current) .. "   ▼"
-    dropBtn.TextColor3 = theme.Text
-    dropBtn.TextSize = 12
-    dropBtn.Font = Enum.Font.Gotham
-    dropBtn.Parent = card
-    CreateCorner(dropBtn, 6)
-
-    local optionsContainer = Instance.new("Frame")
-    optionsContainer.Size = UDim2.new(1, -24, 0, 0)
-    optionsContainer.Position = UDim2.new(0, 12, 0, 40)
-    optionsContainer.BackgroundTransparency = 1
-    optionsContainer.ClipsDescendants = true
-    optionsContainer.Parent = card
-    
-    local optLayout = Instance.new("UIListLayout")
-    optLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    optLayout.Padding = UDim.new(0, 4)
-    optLayout.Parent = optionsContainer
-
-    local isOpen = false
-    local function RefreshDropdown()
-        for _, child in ipairs(optionsContainer:GetChildren()) do
-            if child:IsA("TextButton") then child:Destroy() end
-        end
-        for _, opt in ipairs(options) do
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, 0, 0, 24)
-            btn.BackgroundColor3 = theme.InputBackground
-            btn.Text = tostring(opt)
-            btn.TextColor3 = theme.Text
-            btn.TextSize = 12
-            btn.Font = Enum.Font.Gotham
-            btn.Parent = optionsContainer
-            CreateCorner(btn, 4)
-            
-            btn.MouseButton1Click:Connect(function()
-                isOpen = false
-                current = opt
-                dropBtn.Text = tostring(current) .. "   ▼"
-                SpringTween(card, 0.35, {Size = UDim2.new(1, -6, 0, 42)}, Enum.EasingStyle.Quart)
-                if flag then GaphopUI.Flags[flag] = current end
-                callback(current)
+        if success and response then
+            -- Try to find key in JSON or raw text
+            if string.find(response, inputKey) then return true end
+            pcall(function()
+                local decoded = HttpService:JSONDecode(response)
+                if decoded.key == inputKey or decoded.pass == inputKey then
+                    return true
+                end
             end)
         end
-    end
-    RefreshDropdown()
-
-    dropBtn.MouseButton1Click:Connect(function(input)
-        CreateRipple(dropBtn, input)
-        isOpen = not isOpen
-        SpringTween(card, 0.35, {
-            Size = UDim2.new(1, -6, 0, isOpen and (48 + #options * 28) or 42)
-        }, Enum.EasingStyle.Quart)
-    end)
-    
-    RegisterElement({Type = "dropdown", Card = card, Stroke = stroke, Label = label, DropdownButton = dropBtn, SearchText = name, Page = page})
-end
-TabObj.CreateDropdown = TabObj.makeDropdown
-TabObj.AddDropdown = TabObj.makeDropdown
-
-
-end
-
--- STREAMING_CHUNK:Constructing Key System Integration Module...
-local function FetchWebsiteKey(url)
-local success, response = pcall(function()
-if type(syn) == "table" and syn.request then
-return syn.request({Url = url, Method = "GET"}).Body
-elseif type(http_request) == "function" then
-return http_request({Url = url, Method = "GET"}).Body
-elseif type(request) == "function" then
-return request({Url = url, Method = "GET"}).Body
-else
-return game:HttpGet(url)
-end
-end)
-
-if not success or not response then
-    return nil
-end
-
-local jsonSuccess, decoded = pcall(function()
-    return HttpService:JSONDecode(response)
-end)
-
-if jsonSuccess and type(decoded) == "table" then
-    return decoded.key or decoded.password or decoded.pass or response
-end
-
--- Return raw response, trimming empty spaces
-return string.gsub(response, "^%s*(.-)%s*$", "%1")
-
-
-end
-
-local function CopyKeyLink(link)
-local success = pcall(function()
-if setclipboard then
-setclipboard(link)
-elseif toclipboard then
-toclipboard(link)
-else
-error("No clipboard support")
-end
-end)
-return success
-end
-
-function GaphopUI:CreateKeyWindow(cfg)
-
-print("cfg =", cfg)
-
-for k, v in pairs(cfg) do
-    print(k, typeof(v), v)
-end
-
-local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
-
-local keyModal = Instance.new("CanvasGroup")
-keyModal.Size = UDim2.new(0, 420, 0, 260)
-keyModal.Position = UDim2.fromScale(0.5, 0.45)
-keyModal.AnchorPoint = Vector2.new(0.5, 0.5)
-keyModal.BackgroundColor3 = theme.Background
-keyModal.BackgroundTransparency = 0.1
-keyModal.GroupTransparency = 1
-keyModal.ZIndex = 500
-keyModal.Parent = ScreenGui
-
-CreateCorner(keyModal, 14)
-CreateStroke(keyModal, theme.Border, 1.2, 0.3)
-MakeDraggable(keyModal)
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Position = UDim2.new(0, 20, 0, 15)
-title.BackgroundTransparency = 1
-title.Text = cfg.Title or "Key System"
-title.TextColor3 = theme.Text
-title.TextSize = 20
-title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = keyModal
-
-local desc = Instance.new("TextLabel")
-desc.Size = UDim2.new(1, -40, 0, 40)
-desc.Position = UDim2.new(0, 20, 0, 55)
-desc.BackgroundTransparency = 1
-desc.Text = cfg.Description
-desc.TextColor3 = theme.SubText
-desc.TextSize = 13
-desc.Font = Enum.Font.Gotham
-desc.TextWrapped = true
-desc.TextXAlignment = Enum.TextXAlignment.Left
-desc.TextYAlignment = Enum.TextYAlignment.Top
-desc.Parent = keyModal
-
-local inputCard = Instance.new("Frame")
-inputCard.Size = UDim2.new(1, -40, 0, 44)
-inputCard.Position = UDim2.new(0, 20, 0, 105)
-inputCard.BackgroundColor3 = theme.InputBackground
-inputCard.Parent = keyModal
-CreateCorner(inputCard, 8)
-local inputStroke = CreateStroke(inputCard, theme.Border, 1, 0.5)
-
-local textBox = Instance.new("TextBox")
-textBox.Size = UDim2.new(1, -20, 1, 0)
-textBox.Position = UDim2.new(0, 10, 0, 0)
-textBox.BackgroundTransparency = 1
-textBox.PlaceholderText = "Enter your key here..."
-textBox.Text = ""
-textBox.TextColor3 = theme.Text
-textBox.PlaceholderColor3 = theme.SubText
-textBox.TextSize = 14
-textBox.Font = Enum.Font.Gotham
-textBox.TextXAlignment = Enum.TextXAlignment.Left
-textBox.Parent = inputCard
-textBox.ClearTextOnFocus = false
-
-textBox.Focused:Connect(function() SpringTween(inputStroke, 0.2, {Color = theme.Accent, Transparency = 0.1}) end)
-textBox.FocusLost:Connect(function() SpringTween(inputStroke, 0.2, {Color = theme.Border, Transparency = 0.5}) end)
-
-local submitBtn = Instance.new("TextButton")
-submitBtn.Size = UDim2.new(0.5, -25, 0, 40)
-submitBtn.Position = UDim2.new(0, 20, 1, -65)
-submitBtn.BackgroundColor3 = theme.Accent
-submitBtn.Text = "Check Key"
-submitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-submitBtn.Font = Enum.Font.GothamBold
-submitBtn.TextSize = 14
-submitBtn.Parent = keyModal
-CreateCorner(submitBtn, 8)
-
-local getBtn = Instance.new("TextButton")
-getBtn.Size = UDim2.new(0.5, -25, 0, 40)
-getBtn.Position = UDim2.new(0.5, 5, 1, -65)
-getBtn.BackgroundColor3 = theme.Card
-getBtn.Text = "Get Key"
-getBtn.TextColor3 = theme.Text
-getBtn.Font = Enum.Font.GothamBold
-getBtn.TextSize = 14
-getBtn.Parent = keyModal
-CreateCorner(getBtn, 8)
-CreateStroke(getBtn, theme.Border, 1, 0.3)
-
-local statusLbl = Instance.new("TextLabel")
-statusLbl.Size = UDim2.new(1, -40, 0, 20)
-statusLbl.Position = UDim2.new(0, 20, 0, 155)
-statusLbl.BackgroundTransparency = 1
-statusLbl.Text = ""
-statusLbl.TextColor3 = Color3.fromRGB(230, 60, 60)
-statusLbl.TextSize = 12
-statusLbl.Font = Enum.Font.GothamMedium
-statusLbl.TextXAlignment = Enum.TextXAlignment.Left
-statusLbl.Parent = keyModal
-
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -40, 0, 15)
-closeBtn.BackgroundTransparency = 1
-closeBtn.Text = GaphopUI.Icons.close or "x"
-closeBtn.TextColor3 = theme.SubText
-closeBtn.TextSize = 16
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.Parent = keyModal
-closeBtn.MouseButton1Click:Connect(function()
-    SpringTween(keyModal, 0.3, {Position = UDim2.fromScale(0.5, 0.5), GroupTransparency = 1})
-    task.wait(0.3)
-    keyModal:Destroy()
-end)
-
-Tween(keyModal, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {GroupTransparency = 0, Position = UDim2.fromScale(0.5, 0.5)})
-
-getBtn.MouseButton1Click:Connect(function(input)
-    CreateRipple(getBtn, input)
-    local copied = CopyKeyLink(cfg.Link)
-    if copied then
-        GaphopUI:Notify({Title = "Key System", Content = "✔ Link copied!", Duration = 3})
-        getBtn.Text = "Copied!"
-        task.delay(2, function() if getBtn then getBtn.Text = "Get Key" end end)
     else
-        textBox.Text = cfg.Link
-        statusLbl.TextColor3 = theme.SubText
-        statusLbl.Text = "Please copy the link from the textbox above."
+        if type(KeySystemConfig.Key) == "table" then
+            for _, k in pairs(KeySystemConfig.Key) do
+                if k == inputKey then return true end
+            end
+        elseif KeySystemConfig.Key == inputKey then
+            return true
+        end
     end
+    return false
+end
+
+if KeySystemConfig then
+    local KeyFrame = Instance.new("CanvasGroup")
+    KeyFrame.Name = "KeyFrame"
+    KeyFrame.Size = UDim2.new(0, 400, 0, 250)
+    KeyFrame.Position = UDim2.new(0.5, -200, 0.5, -125)
+    KeyFrame.BackgroundColor3 = Theme.Background
+    KeyFrame.Parent = ScreenGui
+    CreateCorner(KeyFrame, 12)
+    local KeyStroke = CreateStroke(KeyFrame, Theme.Border, 1, 0)
+    MakeDraggable(KeyFrame, KeyFrame)
+
+    local KTitle = Instance.new("TextLabel")
+    KTitle.Size = UDim2.new(1, 0, 0, 40)
+    KTitle.BackgroundTransparency = 1
+    KTitle.Text = Title .. " - Key System"
+    KTitle.TextColor3 = Theme.Text
+    KTitle.TextSize = 16
+    KTitle.Font = Enum.Font.GothamBold
+    KTitle.Parent = KeyFrame
+
+    local KDesc = Instance.new("TextLabel")
+    KDesc.Size = UDim2.new(1, -40, 0, 40)
+    KDesc.Position = UDim2.new(0, 20, 0, 40)
+    KDesc.BackgroundTransparency = 1
+    KDesc.Text = KeySystemConfig.Description or "Vui lòng nhập key để tiếp tục."
+    KDesc.TextColor3 = Theme.SubText
+    KDesc.TextSize = 13
+    KDesc.TextWrapped = true
+    KDesc.Font = Enum.Font.Gotham
+    KDesc.Parent = KeyFrame
+
+
+-- STREAMING_CHUNK:Building Key Input Box and Buttons...
+local KeyInput = Instance.new("TextBox")
+KeyInput.Size = UDim2.new(1, -40, 0, 40)
+KeyInput.Position = UDim2.new(0, 20, 0, 90)
+KeyInput.BackgroundColor3 = Theme.InputBackground
+KeyInput.Text = ""
+KeyInput.PlaceholderText = "Enter Key Here..."
+KeyInput.TextColor3 = Theme.Text
+KeyInput.TextSize = 14
+KeyInput.Font = Enum.Font.Gotham
+KeyInput.Parent = KeyFrame
+CreateCorner(KeyInput, 6)
+CreateStroke(KeyInput, Theme.Border, 1, 0)
+
+    local VerifyBtn = Instance.new("TextButton")
+    VerifyBtn.Size = UDim2.new(0.45, 0, 0, 40)
+    VerifyBtn.Position = UDim2.new(0, 20, 0, 150)
+    VerifyBtn.BackgroundColor3 = Theme.Accent
+    VerifyBtn.Text = "Verify Key"
+    VerifyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    VerifyBtn.TextSize = 14
+    VerifyBtn.Font = Enum.Font.GothamBold
+    VerifyBtn.Parent = KeyFrame
+    CreateCorner(VerifyBtn, 6)
+
+    local GetKeyBtn = Instance.new("TextButton")
+    GetKeyBtn.Size = UDim2.new(0.45, 0, 0, 40)
+    GetKeyBtn.Position = UDim2.new(1, -20 - (400 * 0.45), 0, 150)
+    GetKeyBtn.BackgroundColor3 = Theme.CardHover
+    GetKeyBtn.Text = "Get Key"
+    GetKeyBtn.TextColor3 = Theme.Text
+    GetKeyBtn.TextSize = 14
+    GetKeyBtn.Font = Enum.Font.GothamBold
+    GetKeyBtn.Parent = KeyFrame
+    CreateCorner(GetKeyBtn, 6)
+
+
+-- STREAMING_CHUNK:Scripting Key Verification and Clipboard Actions...
+GetKeyBtn.MouseButton1Click:Connect(function()
+if KeySystemConfig.Link then
+local link = KeySystemConfig.Link
+if type(setclipboard) == "function" then
+pcall(function() setclipboard(link) end)
+Window:Notify({Title = "Thành công", Content = "Đã copy link lấy key vào bộ nhớ tạm!", Duration = 3})
+elseif type(toclipboard) == "function" then
+pcall(function() toclipboard(link) end)
+Window:Notify({Title = "Thành công", Content = "Đã copy link lấy key vào bộ nhớ tạm!", Duration = 3})
+else
+KeyInput.Text = link
+Window:Notify({Title = "Lưu ý", Content = "Executor không hỗ trợ copy, link đã dán vào ô nhập key. Hãy copy nó!", Duration = 5})
+end
+end
 end)
 
-local checking = false
-submitBtn.MouseButton1Click:Connect(function(input)
-    if checking then return end
-    checking = true
-    CreateRipple(submitBtn, input)
-    
-    local inputKey = textBox.Text
-    submitBtn.Text = "Checking..."
-    statusLbl.Text = "Checking key..."
-    statusLbl.TextColor3 = theme.SubText
-
-    task.spawn(function()
-        local expected = cfg.Pass
-        if cfg.GrabFromSite then
-            local fetched = FetchWebsiteKey(cfg.Link)
-            if not fetched then
-                statusLbl.Text = "Unable to contact key server."
-                statusLbl.TextColor3 = Color3.fromRGB(230, 60, 60)
-                submitBtn.Text = "Check Key"
-                checking = false
-                return
-            end
-            expected = fetched
-        end
-
-        if inputKey == expected then
-            statusLbl.Text = "✔ Access Granted"
-            statusLbl.TextColor3 = Color3.fromRGB(40, 200, 100)
-            submitBtn.Text = "Success"
+    VerifyBtn.MouseButton1Click:Connect(function()
+        local input = KeyInput.Text
+        if ValidateKey(input) then
+            VerifyBtn.Text = "Thành công!"
+            VerifyBtn.BackgroundColor3 = Theme.Green
+            Tween(KeyFrame, {0.5, Enum.EasingStyle.Sine}, {GroupTransparency = 1})
             task.wait(0.5)
-            SpringTween(keyModal, 0.4, {GroupTransparency = 1, Position = UDim2.fromScale(0.5, 0.55)})
-            task.wait(0.4)
-            keyModal:Destroy()
-            if cfg.OnSuccess then cfg.OnSuccess() end
-        else
-            statusLbl.Text = "❌ Wrong Key"
-            statusLbl.TextColor3 = Color3.fromRGB(230, 60, 60)
-            submitBtn.Text = "Check Key"
+            KeyFrame:Destroy()
             
-            local initPos = keyModal.Position
+            -- Show main UI
+            MainFrame.Position = UDim2.new(0.5, -325, 0.5, -190)
+            Tween(MainFrame, {0.5, Enum.EasingStyle.Quint}, {GroupTransparency = 0, Position = UDim2.new(0.5, -325, 0.5, -210)})
+            Window:Notify({Title = "Xác thực thành công", Content = "Chào mừng tới " .. Title, Duration = 4})
+        else
+            VerifyBtn.Text = "Key Sai!"
+            VerifyBtn.BackgroundColor3 = Theme.Red
+            KeyStroke.Color = Theme.Red
+            
+            -- Shake effect
+            local origPos = KeyFrame.Position
             for i = 1, 4 do
-                keyModal.Position = initPos + UDim2.fromOffset(math.random(-5, 5), math.random(-5, 5))
+                KeyFrame.Position = origPos + UDim2.new(0, math.random(-5, 5), 0, math.random(-5, 5))
                 task.wait(0.05)
             end
-            keyModal.Position = initPos
-            checking = false
+            KeyFrame.Position = origPos
+            
+            task.wait(1)
+            VerifyBtn.Text = "Verify Key"
+            VerifyBtn.BackgroundColor3 = Theme.Accent
+            KeyStroke.Color = Theme.Border
         end
     end)
+else
+    -- If no key system, show UI immediately
+    MainFrame.GroupTransparency = 0
+end
+
+
+-- STREAMING_CHUNK:Defining Tab Creation Functionality...
+function Window:MakeTab(TabOptions)
+local TName = TabOptions.Name or "Tab"
+local TIcon = TabOptions.Icon or "layers"
+
+    local TabButton = Instance.new("TextButton")
+    TabButton.Name = TName
+    TabButton.Size = UDim2.new(1, 0, 0, 35)
+    TabButton.BackgroundColor3 = Theme.Card
+    TabButton.BackgroundTransparency = 1
+    TabButton.Text = ""
+    TabButton.Parent = Sidebar
+    CreateCorner(TabButton, 6)
+
+    local TabIcon = Instance.new("TextLabel")
+    TabIcon.Size = UDim2.new(0, 30, 1, 0)
+    TabIcon.Position = UDim2.new(0, 5, 0, 0)
+    TabIcon.BackgroundTransparency = 1
+    TabIcon.Text = GaphopUI.Icons[TIcon] or GaphopUI.Icons["layers"]
+    TabIcon.TextColor3 = Theme.SubText
+    TabIcon.TextSize = 14
+    TabIcon.Font = Enum.Font.Gotham
+    TabIcon.Parent = TabButton
+
+    local TabText = Instance.new("TextLabel")
+    TabText.Size = UDim2.new(1, -35, 1, 0)
+    TabText.Position = UDim2.new(0, 35, 0, 0)
+    TabText.BackgroundTransparency = 1
+    TabText.Text = TName
+    TabText.TextColor3 = Theme.SubText
+    TabText.TextSize = 14
+    TabText.Font = Enum.Font.GothamBold
+    TabText.TextXAlignment = Enum.TextXAlignment.Left
+    TabText.Parent = TabButton
+
+    local TabPage = Instance.new("ScrollingFrame")
+    TabPage.Name = TName .. "Page"
+    TabPage.Size = UDim2.new(1, 0, 1, 0)
+    TabPage.BackgroundTransparency = 1
+    TabPage.BorderSizePixel = 0
+    TabPage.ScrollBarThickness = 3
+    TabPage.ScrollBarImageColor3 = Theme.Border
+    TabPage.Visible = false
+    TabPage.Parent = ContentContainer
+
+    local PageLayout = Instance.new("UIListLayout")
+    PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    PageLayout.Padding = UDim.new(0, 8)
+    PageLayout.Parent = TabPage
+
+    local PagePadding = Instance.new("UIPadding")
+    PagePadding.PaddingTop = UDim.new(0, 10)
+    PagePadding.PaddingBottom = UDim.new(0, 10)
+    PagePadding.PaddingLeft = UDim.new(0, 10)
+    PagePadding.PaddingRight = UDim.new(0, 15)
+    PagePadding.Parent = TabPage
+
+
+-- STREAMING_CHUNK:Tab Switch Logic and Auto-Size Scrolling...
+PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+TabPage.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 20)
 end)
 
+    local function SelectTab()
+        if Window.CurrentTab then
+            Tween(Window.CurrentTab.Btn, {0.2}, {BackgroundTransparency = 1})
+            Tween(Window.CurrentTab.Text, {0.2}, {TextColor3 = Theme.SubText})
+            Tween(Window.CurrentTab.Icon, {0.2}, {TextColor3 = Theme.SubText})
+            Window.CurrentTab.Page.Visible = false
+        end
+        Window.CurrentTab = {Btn = TabButton, Text = TabText, Icon = TabIcon, Page = TabPage}
+        
+        Tween(TabButton, {0.2}, {BackgroundTransparency = 0})
+        Tween(TabText, {0.2}, {TextColor3 = Theme.Text})
+        Tween(TabIcon, {0.2}, {TextColor3 = Theme.Accent})
+        TabPage.Visible = true
+    end
 
-end
+    TabButton.MouseButton1Click:Connect(SelectTab)
 
--- STREAMING_CHUNK:Architecting Main Window & Loader Sequence...
-function GaphopUI:CreateWindow(cfg)
-cfg = cfg or {}
-local Name = cfg.Name or "GaphopUI"
-local ShowText = cfg.ShowText or "V2"
-local LoadingTitle = cfg.LoadingTitle or "GaphopUI Engine"
-local LoadingSubtitle = cfg.LoadingSubtitle or "GaphopUI is loaded!"
+    if #Window.Tabs == 0 then
+        SelectTab()
+    end
+    table.insert(Window.Tabs, TabPage)
 
-local useKey = cfg.key == true
-local grabKeyFromSite = cfg.grabkeyformsite == true
-local keyDescription = cfg.description or "Please obtain a key from our website before using this script."
-local keyLink = cfg.link or "https://example.com/getkey"
-local keyPass = cfg.pass or "nokey"
+    local Elements = {}
 
-local WindowObj = {}
-local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
 
--- Setup window instantly to allow immediate API calls, but keep it hidden
-local window = Instance.new("Frame")
-window.Name = "MainWindow"
-window.Size = UDim2.new(0, 680, 0, 440)
-window.Position = UDim2.fromScale(0.5, 0.5)
-window.AnchorPoint = Vector2.new(0.5, 0.5)
-window.BackgroundColor3 = theme.Background
-window.BackgroundTransparency = 0.15
-window.ClipsDescendants = true
-window.Visible = false
-window.Parent = ScreenGui
-window:SetAttribute("NormalSize", window.Size)
-GaphopUI.WindowInstance = window
+-- STREAMING_CHUNK:Implementing AddButton Function...
+function Elements:AddButton(BtnOptions)
+local BName = BtnOptions.Name or "Button"
+local Callback = BtnOptions.Callback or function() end
 
-CreateCorner(window, 12)
-CreateStroke(window, theme.Border, 1, 0.3)
+        local ButtonFrame = Instance.new("TextButton")
+        ButtonFrame.Size = UDim2.new(1, 0, 0, 40)
+        ButtonFrame.BackgroundColor3 = Theme.Card
+        ButtonFrame.Text = ""
+        ButtonFrame.AutoButtonColor = false
+        ButtonFrame.Parent = TabPage
+        CreateCorner(ButtonFrame, 6)
+        CreateStroke(ButtonFrame, Theme.Border, 1, 0)
 
-local topBar = Instance.new("Frame")
-topBar.Name = "TopBar"
-topBar.Size = UDim2.new(1, 0, 0, 40)
-topBar.BackgroundColor3 = theme.Header
-topBar.BorderSizePixel = 0
-topBar.Parent = window
-MakeDraggable(window, topBar)
+        local BText = Instance.new("TextLabel")
+        BText.Size = UDim2.new(1, -20, 1, 0)
+        BText.Position = UDim2.new(0, 15, 0, 0)
+        BText.BackgroundTransparency = 1
+        BText.Text = BName
+        BText.TextColor3 = Theme.Text
+        BText.TextSize = 14
+        BText.Font = Enum.Font.Gotham
+        BText.TextXAlignment = Enum.TextXAlignment.Left
+        BText.Parent = ButtonFrame
 
-local titleLbl = Instance.new("TextLabel")
-titleLbl.Size = UDim2.new(0, 300, 1, 0)
-titleLbl.Position = UDim2.new(0, 16, 0, 0)
-titleLbl.BackgroundTransparency = 1
-titleLbl.Text = Name .. " <font color='#" .. Color3ToHex(theme.Accent) .. "'>" .. ShowText .. "</font>"
-titleLbl.RichText = true
-titleLbl.TextColor3 = theme.Text
-titleLbl.TextSize = 16
-titleLbl.Font = Enum.Font.GothamBold
-titleLbl.TextXAlignment = Enum.TextXAlignment.Left
-titleLbl.Parent = topBar
+        local BIcon = Instance.new("TextLabel")
+        BIcon.Size = UDim2.new(0, 20, 1, 0)
+        BIcon.Position = UDim2.new(1, -30, 0, 0)
+        BIcon.BackgroundTransparency = 1
+        BIcon.Text = "→"
+        BIcon.TextColor3 = Theme.SubText
+        BIcon.TextSize = 16
+        BIcon.Font = Enum.Font.GothamBold
+        BIcon.Parent = ButtonFrame
 
-local sideBar = Instance.new("Frame")
-sideBar.Name = "SideBar"
-sideBar.Size = UDim2.new(0, 160, 1, -40)
-sideBar.Position = UDim2.new(0, 0, 0, 40)
-sideBar.BackgroundColor3 = theme.Card
-sideBar.BackgroundTransparency = 0.5
-sideBar.BorderSizePixel = 0
-sideBar.Parent = window
+        ButtonFrame.MouseEnter:Connect(function()
+            Tween(ButtonFrame, {0.2}, {BackgroundColor3 = Theme.CardHover})
+            Tween(BIcon, {0.2}, {Position = UDim2.new(1, -25, 0, 0), TextColor3 = Theme.Text})
+        end)
 
-local tabContainer = Instance.new("ScrollingFrame")
-tabContainer.Size = UDim2.new(1, 0, 1, -20)
-tabContainer.Position = UDim2.new(0, 0, 0, 10)
-tabContainer.BackgroundTransparency = 1
-tabContainer.ScrollBarThickness = 0
-tabContainer.Parent = sideBar
+        ButtonFrame.MouseLeave:Connect(function()
+            Tween(ButtonFrame, {0.2}, {BackgroundColor3 = Theme.Card})
+            Tween(BIcon, {0.2}, {Position = UDim2.new(1, -30, 0, 0), TextColor3 = Theme.SubText})
+        end)
 
-local tabLayout = Instance.new("UIListLayout")
-tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
-tabLayout.Padding = UDim.new(0, 6)
-tabLayout.Parent = tabContainer
+        ButtonFrame.MouseButton1Click:Connect(function()
+            local circle = Instance.new("Frame")
+            circle.Size = UDim2.new(0, 0, 0, 0)
+            circle.Position = UDim2.new(0.5, 0, 0.5, 0)
+            circle.AnchorPoint = Vector2.new(0.5, 0.5)
+            circle.BackgroundColor3 = Theme.Text
+            circle.BackgroundTransparency = 0.8
+            circle.Parent = ButtonFrame
+            CreateCorner(circle, 999)
+            
+            Tween(circle, {0.4}, {Size = UDim2.new(1, 50, 1, 50), BackgroundTransparency = 1})
+            task.wait(0.4)
+            circle:Destroy()
+            
+            pcall(Callback)
+        end)
+    end
 
-local tabPad = Instance.new("UIPadding")
-tabPad.PaddingLeft = UDim.new(0, 10)
-tabPad.PaddingRight = UDim.new(0, 10)
-tabPad.Parent = tabContainer
 
-local pageContainer = Instance.new("Frame")
-pageContainer.Name = "PageContainer"
-pageContainer.Size = UDim2.new(1, -160, 1, -40)
-pageContainer.Position = UDim2.new(0, 160, 0, 40)
-pageContainer.BackgroundTransparency = 1
-pageContainer.Parent = window
+-- STREAMING_CHUNK:Implementing AddToggle Function...
+function Elements:AddToggle(TogOptions)
+local TName = TogOptions.Name or "Toggle"
+local Default = TogOptions.Default or false
+local Callback = TogOptions.Callback or function() end
+local State = Default
 
-local firstTab = true
+        local ToggleFrame = Instance.new("TextButton")
+        ToggleFrame.Size = UDim2.new(1, 0, 0, 40)
+        ToggleFrame.BackgroundColor3 = Theme.Card
+        ToggleFrame.Text = ""
+        ToggleFrame.AutoButtonColor = false
+        ToggleFrame.Parent = TabPage
+        CreateCorner(ToggleFrame, 6)
+        CreateStroke(ToggleFrame, Theme.Border, 1, 0)
 
-function WindowObj:makeTab(cfgTab)
-    cfgTab = cfgTab or {}
-    local tabName = cfgTab.Name or "Tab"
-    local iconId = cfgTab.Icon or "layers"
+        local TText = Instance.new("TextLabel")
+        TText.Size = UDim2.new(1, -60, 1, 0)
+        TText.Position = UDim2.new(0, 15, 0, 0)
+        TText.BackgroundTransparency = 1
+        TText.Text = TName
+        TText.TextColor3 = Theme.Text
+        TText.TextSize = 14
+        TText.Font = Enum.Font.Gotham
+        TText.TextXAlignment = Enum.TextXAlignment.Left
+        TText.Parent = ToggleFrame
 
-    local tabBtn = Instance.new("TextButton")
-    tabBtn.Size = UDim2.new(1, 0, 0, 36)
-    tabBtn.BackgroundColor3 = theme.Accent
-    tabBtn.BackgroundTransparency = firstTab and 0.1 or 1
-    tabBtn.Text = ""
-    tabBtn.Parent = tabContainer
-    CreateCorner(tabBtn, 8)
+        local Switch = Instance.new("Frame")
+        Switch.Size = UDim2.new(0, 40, 0, 20)
+        Switch.Position = UDim2.new(1, -55, 0.5, -10)
+        Switch.BackgroundColor3 = State and Theme.ToggleOn or Theme.ToggleOff
+        Switch.Parent = ToggleFrame
+        CreateCorner(Switch, 10)
 
-    local iconLbl = Instance.new("TextLabel")
-    iconLbl.Size = UDim2.new(0, 36, 1, 0)
-    iconLbl.BackgroundTransparency = 1
-    iconLbl.Text = GaphopUI.Icons[iconId] or iconId
-    iconLbl.TextColor3 = firstTab and Color3.fromRGB(255,255,255) or theme.SubText
-    iconLbl.TextSize = 16
-    iconLbl.Font = Enum.Font.GothamBold
-    iconLbl.Parent = tabBtn
+        local Indicator = Instance.new("Frame")
+        Indicator.Size = UDim2.new(0, 16, 0, 16)
+        Indicator.Position = State and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+        Indicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        Indicator.Parent = Switch
+        CreateCorner(Indicator, 8)
+        
+        -- Initial callback
+        pcall(Callback, State)
 
-    local titleLblTab = Instance.new("TextLabel")
-    titleLblTab.Size = UDim2.new(1, -36, 1, 0)
-    titleLblTab.Position = UDim2.new(0, 36, 0, 0)
-    titleLblTab.BackgroundTransparency = 1
-    titleLblTab.Text = tabName
-    titleLblTab.TextColor3 = firstTab and Color3.fromRGB(255,255,255) or theme.SubText
-    titleLblTab.TextSize = 13
-    titleLblTab.Font = Enum.Font.GothamMedium
-    titleLblTab.TextXAlignment = Enum.TextXAlignment.Left
-    titleLblTab.Parent = tabBtn
-
-    local pageScroll = Instance.new("ScrollingFrame")
-    pageScroll.Size = UDim2.new(1, 0, 1, 0)
-    pageScroll.BackgroundTransparency = 1
-    pageScroll.ScrollBarThickness = 2
-    pageScroll.ScrollBarImageColor3 = theme.Border
-    pageScroll.Visible = firstTab
-    pageScroll.Parent = pageContainer
-
-    local pageLayout = Instance.new("UIListLayout")
-    pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    pageLayout.Padding = UDim.new(0, 8)
-    pageLayout.Parent = pageScroll
-    
-    local pagePad = Instance.new("UIPadding")
-    pagePad.PaddingTop = UDim.new(0, 12)
-    pagePad.PaddingLeft = UDim.new(0, 12)
-    pagePad.PaddingRight = UDim.new(0, 12)
-    pagePad.PaddingBottom = UDim.new(0, 12)
-    pagePad.Parent = pageScroll
-
-    pageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        pageScroll.CanvasSize = UDim2.new(0, 0, 0, pageLayout.AbsoluteContentSize.Y + 24)
-    end)
-
-    tabBtn.MouseButton1Click:Connect(function(input)
-        CreateRipple(tabBtn, input)
-        for _, child in ipairs(tabContainer:GetChildren()) do
-            if child:IsA("TextButton") then
-                SpringTween(child, 0.2, {BackgroundTransparency = 1})
-                child:FindFirstChild("TextLabel").TextColor3 = theme.SubText
-                child:GetChildren()[2].TextColor3 = theme.SubText
+        ToggleFrame.MouseButton1Click:Connect(function()
+            State = not State
+            if State then
+                Tween(Switch, {0.3}, {BackgroundColor3 = Theme.ToggleOn})
+                Tween(Indicator, {0.3, Enum.EasingStyle.Back}, {Position = UDim2.new(1, -18, 0.5, -8)})
+            else
+                Tween(Switch, {0.3}, {BackgroundColor3 = Theme.ToggleOff})
+                Tween(Indicator, {0.3, Enum.EasingStyle.Back}, {Position = UDim2.new(0, 2, 0.5, -8)})
             end
+            pcall(Callback, State)
+        end)
+    end
+
+
+-- STREAMING_CHUNK:Implementing AddSlider Function...
+function Elements:AddSlider(SliOptions)
+local SName = SliOptions.Name or "Slider"
+local Min = SliOptions.Min or 0
+local Max = SliOptions.Max or 100
+local Default = SliOptions.Default or Min
+local Callback = SliOptions.Callback or function() end
+
+        local SliderFrame = Instance.new("Frame")
+        SliderFrame.Size = UDim2.new(1, 0, 0, 55)
+        SliderFrame.BackgroundColor3 = Theme.Card
+        SliderFrame.Parent = TabPage
+        CreateCorner(SliderFrame, 6)
+        CreateStroke(SliderFrame, Theme.Border, 1, 0)
+
+        local SText = Instance.new("TextLabel")
+        SText.Size = UDim2.new(1, -20, 0, 25)
+        SText.Position = UDim2.new(0, 15, 0, 5)
+        SText.BackgroundTransparency = 1
+        SText.Text = SName
+        SText.TextColor3 = Theme.Text
+        SText.TextSize = 14
+        SText.Font = Enum.Font.Gotham
+        SText.TextXAlignment = Enum.TextXAlignment.Left
+        SText.Parent = SliderFrame
+
+        local SValue = Instance.new("TextLabel")
+        SValue.Size = UDim2.new(0, 40, 0, 25)
+        SValue.Position = UDim2.new(1, -55, 0, 5)
+        SValue.BackgroundTransparency = 1
+        SValue.Text = tostring(Default)
+        SValue.TextColor3 = Theme.SubText
+        SValue.TextSize = 14
+        SValue.Font = Enum.Font.GothamBold
+        SValue.TextXAlignment = Enum.TextXAlignment.Right
+        SValue.Parent = SliderFrame
+
+        local BarBg = Instance.new("TextButton")
+        BarBg.Size = UDim2.new(1, -30, 0, 6)
+        BarBg.Position = UDim2.new(0, 15, 0, 35)
+        BarBg.BackgroundColor3 = Theme.SliderBar
+        BarBg.Text = ""
+        BarBg.AutoButtonColor = false
+        BarBg.Parent = SliderFrame
+        CreateCorner(BarBg, 3)
+
+        local BarFill = Instance.new("Frame")
+        local startSize = math.clamp((Default - Min) / (Max - Min), 0, 1)
+        BarFill.Size = UDim2.new(startSize, 0, 1, 0)
+        BarFill.BackgroundColor3 = Theme.Accent
+        BarFill.Parent = BarBg
+        CreateCorner(BarFill, 3)
+
+        local Sliding = false
+        
+        local function UpdateSlider(input)
+            local pos = math.clamp((input.Position.X - BarBg.AbsolutePosition.X) / BarBg.AbsoluteSize.X, 0, 1)
+            local value = math.floor(Min + ((Max - Min) * pos))
+            Tween(BarFill, {0.1}, {Size = UDim2.new(pos, 0, 1, 0)})
+            SValue.Text = tostring(value)
+            pcall(Callback, value)
         end
-        for _, page in ipairs(pageContainer:GetChildren()) do
-            if page:IsA("ScrollingFrame") then page.Visible = false end
-        end
-        SpringTween(tabBtn, 0.3, {BackgroundTransparency = 0.1})
-        iconLbl.TextColor3 = Color3.fromRGB(255,255,255)
-        titleLblTab.TextColor3 = Color3.fromRGB(255,255,255)
-        pageScroll.Visible = true
-    end)
 
-    firstTab = false
-    local TabObj = {}
-    BindElementMethods(TabObj, pageScroll, theme)
-    return TabObj
-end
-WindowObj.CreateTab = WindowObj.makeTab
-WindowObj.AddTab = WindowObj.makeTab
+        BarBg.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                Sliding = true
+                UpdateSlider(input)
+            end
+        end)
 
-local function TriggerMainLoadingScreen()
-    local loadingFrame = Instance.new("CanvasGroup")
-    loadingFrame.Size = UDim2.fromOffset(300, 150)
-    loadingFrame.Position = UDim2.fromScale(0.5, 0.5)
-    loadingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    loadingFrame.BackgroundColor3 = theme.Background
-    loadingFrame.BackgroundTransparency = 0.1
-    loadingFrame.GroupTransparency = 1
-    loadingFrame.Parent = ScreenGui
-    CreateCorner(loadingFrame, 12)
-    CreateStroke(loadingFrame, theme.Border, 1, 0.5)
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                Sliding = false
+            end
+        end)
 
-    local loadTitle = Instance.new("TextLabel")
-    loadTitle.Size = UDim2.new(1, 0, 0, 30)
-    loadTitle.Position = UDim2.new(0, 0, 0, 30)
-    loadTitle.BackgroundTransparency = 1
-    loadTitle.Text = LoadingTitle
-    loadTitle.TextColor3 = theme.Text
-    loadTitle.Font = Enum.Font.GothamBold
-    loadTitle.TextSize = 18
-    loadTitle.Parent = loadingFrame
+        UserInputService.InputChanged:Connect(function(input)
+            if Sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                UpdateSlider(input)
+            end
+        end)
+    end
 
-    local loadSub = Instance.new("TextLabel")
-    loadSub.Size = UDim2.new(1, 0, 0, 20)
-    loadSub.Position = UDim2.new(0, 0, 0, 60)
-    loadSub.BackgroundTransparency = 1
-    loadSub.Text = LoadingSubtitle
-    loadSub.TextColor3 = theme.SubText
-    loadSub.Font = Enum.Font.Gotham
-    loadSub.TextSize = 13
-    loadSub.Parent = loadingFrame
 
-    local barBg = Instance.new("Frame")
-    barBg.Size = UDim2.new(0, 240, 0, 6)
-    barBg.Position = UDim2.new(0.5, -120, 0, 100)
-    barBg.BackgroundColor3 = theme.Border
-    barBg.Parent = loadingFrame
-    CreateCorner(barBg, 3)
+-- STREAMING_CHUNK:Implementing AddTextbox Function...
+function Elements:AddTextbox(TBoxOptions)
+local TName = TBoxOptions.Name or "Textbox"
+local Default = TBoxOptions.Default or ""
+local PlaceHolder = TBoxOptions.PlaceholderText or "Enter here..."
+local Callback = TBoxOptions.Callback or function() end
 
-    local barFill = Instance.new("Frame")
-    barFill.Size = UDim2.new(0, 0, 1, 0)
-    barFill.BackgroundColor3 = theme.Accent
-    barFill.Parent = barBg
-    CreateCorner(barFill, 3)
+        local BoxFrame = Instance.new("Frame")
+        BoxFrame.Size = UDim2.new(1, 0, 0, 45)
+        BoxFrame.BackgroundColor3 = Theme.Card
+        BoxFrame.Parent = TabPage
+        CreateCorner(BoxFrame, 6)
+        CreateStroke(BoxFrame, Theme.Border, 1, 0)
 
-    Tween(loadingFrame, TweenInfo.new(0.3), {GroupTransparency = 0})
+        local BText = Instance.new("TextLabel")
+        BText.Size = UDim2.new(0.5, -15, 1, 0)
+        BText.Position = UDim2.new(0, 15, 0, 0)
+        BText.BackgroundTransparency = 1
+        BText.Text = TName
+        BText.TextColor3 = Theme.Text
+        BText.TextSize = 14
+        BText.Font = Enum.Font.Gotham
+        BText.TextXAlignment = Enum.TextXAlignment.Left
+        BText.Parent = BoxFrame
 
-    Tween(barFill, TweenInfo.new(1.5, Enum.EasingStyle.Quart), {Size = UDim2.new(1, 0, 1, 0)}).Completed:Connect(function()
-        SpringTween(loadingFrame, 0.3, {Size = UDim2.fromOffset(300, 0), GroupTransparency = 1})
-        task.wait(0.3)
-        loadingFrame:Destroy()
+        local Input = Instance.new("TextBox")
+        Input.Size = UDim2.new(0.5, -15, 0, 25)
+        Input.Position = UDim2.new(0.5, 0, 0.5, -12.5)
+        Input.BackgroundColor3 = Theme.InputBackground
+        Input.Text = Default
+        Input.PlaceholderText = PlaceHolder
+        Input.TextColor3 = Theme.Text
+        Input.TextSize = 13
+        Input.Font = Enum.Font.Gotham
+        Input.Parent = BoxFrame
+        CreateCorner(Input, 4)
+        CreateStroke(Input, Theme.Border, 1, 0)
 
-        window.Visible = true
-        window.Size = UDim2.new(0, 680, 0, 0)
-        SpringTween(window, 0.5, {Size = UDim2.new(0, 680, 0, 440)}, Enum.EasingStyle.Back)
-    end)
+        Input.FocusLost:Connect(function()
+            pcall(Callback, Input.Text)
+        end)
+    end
+
+    return Elements
 end
 
-if useKey then
-    GaphopUI:CreateKeyWindow({
-        Title = Name .. " " .. ShowText,
-        Description = keyDescription,
-        Link = keyLink,
-        Pass = keyPass,
-        GrabFromSite = grabKeyFromSite,
-        OnSuccess = TriggerMainLoadingScreen
-    })
-else
-    TriggerMainLoadingScreen()
-end
-
-return WindowObj
+return Window
 
 
 end
