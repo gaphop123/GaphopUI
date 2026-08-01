@@ -56,9 +56,11 @@ local GeneralTab = Window:CreateTab("General", "home")
 
 # Section
 
-## Create Section
+## Create Section ⚠️
 
-Creates a labeled section to organize elements.
+> **Note:** This feature currently has a bug.
+
+Creates a labeled section to organize UI elements.
 
 ```lua
 GeneralTab:CreateSection("Smooth Animation Controls")
