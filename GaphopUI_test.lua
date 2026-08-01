@@ -694,6 +694,13 @@ return success
 end
 
 function GaphopUI:CreateKeyWindow(cfg)
+
+print("cfg =", cfg)
+
+for k, v in pairs(cfg) do
+    print(k, typeof(v), v)
+end
+
 local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
 
 local keyModal = Instance.new("CanvasGroup")
