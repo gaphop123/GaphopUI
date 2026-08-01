@@ -1,0 +1,1041 @@
+-- STREAMING_CHUNK:Initializing Core Roblox Services and Global Tables...
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+
+warn("This UI may have bugs. Please report any issues you find.")
+warn("This is a GaphopUI test build. It is not intended for use.")
+
+wait(2)
+
+local loader = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Stratxgy/Roblox-Chams-Highlight/refs/heads/main/Highlight.lua"))() end)
+local loader =  loadstring(game:HttpGet("https://raw.githubusercontent.com/Stratxgy/Lua-Speed/refs/heads/main/speed.lua"))()
+
+if not RunService:IsClient() then
+return
+end
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerName = (LocalPlayer and LocalPlayer.Name) or "Player"
+local PlayerUserId = (LocalPlayer and LocalPlayer.UserId) or 0
+
+-- Ensure global environment tables exist to prevent nil indexing errors
+if type(getgenv) == "function" then
+local env = getgenv()
+env.speed = env.speed or {}
+env.chams = env.chams or {}
+end
+
+-- STREAMING_CHUNK:Resolving Safe Parent Container for UI Rendering...
+local function GetSafeParent()
+if type(gethui) == "function" then
+local ok, res = pcall(gethui)
+if ok and res then return res end
+end
+
+if LocalPlayer then
+    local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if not pg then
+        pcall(function() pg = LocalPlayer:WaitForChild("PlayerGui", 3) end)
+    end
+    if pg then return pg end
+end
+
+if type(cloneref) == "function" then
+    local ok, res = pcall(function() return cloneref(CoreGui) end)
+    if ok and res then return res end
+end
+
+return CoreGui
+
+
+end
+
+local ParentUI = GetSafeParent()
+
+-- Clean up any existing instance to prevent duplicates
+if ParentUI:FindFirstChild("GaphopUI_Engine") then
+ParentUI:FindFirstChild("GaphopUI_Engine"):Destroy()
+end
+
+-- STREAMING_CHUNK:Defining Ultimate Library Configurations & Color Palettes...
+local GaphopUI = {
+Version = "3.1.0 Ultimate KeySystem",
+Flags = {},
+Themes = {},
+CurrentTheme = "Dark",
+ToggleKey = Enum.KeyCode.K,
+IsOpen = true,
+Elements = {},
+Connections = {},
+WindowInstance = nil,
+OpenButton = nil,
+NotifyContainer = nil,
+AssetFolder = nil,
+CallbackRegistry = {},
+RGBEnabled = false,
+RGBConnection = nil,
+CurrentRGBColor = Color3.fromRGB(0, 162, 255),
+Icons = {
+settings = "⚙",
+search = "⌕",
+home = "⌂",
+close = "x",
+x = "x",
+minimize = "—",
+maximize = "▢",
+refresh = "↻",
+palette = "◐",
+keyboard = "⌨",
+sparkles = "✦",
+moon = "☾",
+sun = "☀",
+info = "ⓘ",
+bell = "🔔",
+menu = "☰",
+plus = "+",
+minus = "−",
+check = "✓",
+slider = "▭",
+layers = "☰",
+cog = "⚙",
+chevron = "⌵",
+shield = "🛡",
+zap = "⚡",
+star = "★"
+}
+}
+
+-- MAPPING TRỰC TIẾP LUCIDE ICONS BẰNG SPRITESHEET ĐỂ RENDER HD
+GaphopUI.LucideSprites = {
+rewind = {16898613699, {48, 48}, {563, 967}},
+fuel = {16898613353, {48, 48}, {196, 967}},
+squarearrowoutupright = {16898613777, {48, 48}, {967, 514}},
+tablecellssplit = {16898613777, {48, 48}, {771, 955}},
+gavel = {16898613353, {48, 48}, {967, 808}},
+dnaoff = {16898613044, {48, 48}, {453, 967}},
+refreshccwdot = {16898613699, {48, 48}, {869, 404}},
+bean = {16898612629, {48, 48}, {967, 906}},
+arrowuprightfromcircle = {16898612629, {48, 48}, {563, 967}},
+tablecolumnssplit = {16898613777, {48, 48}, {967, 808}},
+bolt = {16898612819, {48, 48}, {306, 820}},
+squareasterisk = {16898613777, {48, 48}, {710, 771}},
+feather = {16898613353, {48, 48}, {771, 98}},
+alignhorizontaldistributecenter = {16898612629, {48, 48}, {771, 355}},
+aligncenter = {16898612629, {48, 48}, {0, 869}},
+gripvertical = {16898613509, {48, 48}, {0, 869}},
+personstanding = {16898613699, {48, 48}, {563, 771}},
+badgeswissfranc = {16898612629, {48, 48}, {771, 857}},
+betweenhorizontalend = {16898612819, {48, 48}, {771, 306}},
+rotatecw = {16898613699, {48, 48}, {869, 453}},
+framer = {16898613353, {48, 48}, {661, 967}},
+busfront = {16898612819, {48, 48}, {869, 612}},
+shieldellipsis = {16898613777, {48, 48}, {771, 306}},
+filelock2 = {16898613353, {48, 48}, {257, 918}},
+betweenverticalend = {16898612819, {48, 48}, {257, 820}},
+globelock = {16898613509, {48, 48}, {820, 514}},
+toggleleft = {16898613869, {48, 48}, {869, 49}},
+conciergebell = {16898613044, {48, 48}, {869, 147}},
+video = {16898613869, {48, 48}, {355, 967}},
+arrowleftsquare = {16898612629, {48, 48}, {196, 820}},
+filedown = {16898613353, {48, 48}, {98, 820}},
+pictureinpicture = {16898613699, {48, 48}, {257, 869}},
+messagessquare = {16898613613, {48, 48}, {306, 869}},
+grab = {16898613509, {48, 48}, {514, 820}},
+maximize={16898675359,{256,256},{514,514}},
+phonecall = {16898613699, {48, 48}, {514, 820}},
+chevronupcircle = {16898612819, {48, 48}, {820, 808}},
+servercrash = {16898613699, {48, 48}, {918, 955}},
+heading3 = {16898613509, {48, 48}, {869, 306}},
+squircle = {16898613777, {48, 48}, {820, 759}},
+wifioff = {16898613869, {48, 48}, {918, 759}},
+sunmedium = {16898613777, {48, 48}, {661, 967}},
+ungroup = {16898613869, {48, 48}, {257, 967}},
+clouddownload = {16898613044, {48, 48}, {612, 820}},
+sigmasquare = {16898613777, {48, 48}, {869, 514}},
+folderplus = {16898613353, {48, 48}, {661, 918}},
+harddrivedownload = {16898613509, {48, 48}, {918, 0}},
+scatterchart = {16898613699, {48, 48}, {196, 967}},
+pointer = {16898613699, {48, 48}, {661, 771}},
+ligature = {16898613509, {48, 48}, {612, 967}},
+chevronsupdown = {16898612819, {48, 48}, {918, 759}},
+iterationcw = {16898613509, {48, 48}, {869, 147}},
+railsymbol = {16898613699, {48, 48}, {967, 514}},
+squarestack = {16898613777, {48, 48}, {453, 869}},
+parentheses = {16898613613, {48, 48}, {869, 906}},
+bookup2 = {16898612819, {48, 48}, {306, 869}},
+flame = {16898613353, {48, 48}, {967, 306}},
+chevronsup = {16898612819, {48, 48}, {869, 808}},
+chevronrightsquare = {16898612819, {48, 48}, {918, 710}},
+squaremousepointer = {16898613777, {48, 48}, {869, 661}},
+superscript = {16898613777, {48, 48}, {918, 759}},
+signal = {16898613777, {48, 48}, {918, 0}},
+filewarning = {16898613353, {48, 48}, {967, 514}},
+hexagon = {16898613509, {48, 48}, {967, 0}},
+navigation2off = {16898613613, {48, 48}, {918, 612}},
+unlock = {16898613869, {48, 48}, {771, 710}},
+arrowsupfromline = {16898612629, {48, 48}, {918, 404}},
+squareganttchart = {16898613777, {48, 48}, {453, 820}},
+squarechevronleft = {16898613777, {48, 48}, {967, 49}},
+scaling = {16898613699, {48, 48}, {967, 661}},
+inspectionpanel = {16898613509, {48, 48}, {563, 918}},
+arrowleftfromline = {16898612629, {48, 48}, {869, 147}},
+ship = {16898613777, {48, 48}, {771, 98}},
+ticketpercent = {16898613869, {48, 48}, {257, 869}},
+arrowrightsquare = {16898612629, {48, 48}, {869, 404}},
+calendarclock = {16898612819, {48, 48}, {918, 98}},
+x = {16898613869, {48, 48}, {869, 906}},
+eye = {16898669897,{256,256},{0,0}},
+voicemail = {16898613869, {48, 48}, {869, 710}},
+presentation = {16898613699, {48, 48}, {771, 196}},
+treepalm = {16898613869, {48, 48}, {820, 612}},
+popsicle = {16898613699, {48, 48}, {563, 869}},
+captionsoff = {16898612819, {48, 48}, {661, 869}},
+alignverticaljustifycenter = {16898612629, {48, 48}, {49, 869}},
+theater = {16898613869, {48, 48}, {98, 771}},
+tent = {16898613869, {48, 48}, {49, 771}},
+repeat1 = {16898613699, {48, 48}, {918, 612}},
+stethoscope = {16898613777, {48, 48}, {147, 967}},
+screenshareoff = {16898613699, {48, 48}, {771, 906}},
+arrowbigup = {16898612629, {48, 48}, {918, 306}},
+volumex = {16898613869, {48, 48}, {710, 869}},
+mousepointerclick = {16898613613, {48, 48}, {771, 710}},
+squarem = {16898613777, {48, 48}, {306, 967}},
+harddrive = {16898613509, {48, 48}, {820, 98}},
+packageminus = {16898613613, {48, 48}, {771, 808}},
+cloud = {16898613044, {48, 48}, {918, 306}},
+mousepointersquaredashed = {16898613613, {48, 48}, {710, 771}},
+fliphorizontal = {16898613353, {48, 48}, {306, 967}},
+alertcircle = {16898612629, {48, 48}, {869, 0}},
+unplug = {16898613869, {48, 48}, {710, 771}},
+badgecent = {16898612629, {48, 48}, {612, 967}},
+checksquare2 = {16898612819, {48, 48}, {820, 759}},
+monitorcheck = {16898613613, {48, 48}, {196, 771}},
+trello = {16898613869, {48, 48}, {612, 820}},
+paintbrush2 = {16898613613, {48, 48}, {967, 404}},
+barcharthorizontal = {16898612629, {48, 48}, {710, 967}},
+bookplus = {16898612819, {48, 48}, {771, 404}},
+torus = {16898613869, {48, 48}, {147, 771}},
+panelrightclose = {16898613613, {48, 48}, {453, 967}},
+hearthandshake = {16898613509, {48, 48}, {869, 563}},
+heart = {16898673271,{256,256},{0,0}},
+trees = {16898613869, {48, 48}, {661, 771}},
+ham = {16898613509, {48, 48}, {355, 771}},
+text = {16898613869, {48, 48}, {771, 98}},
+nutoff = {16898613613, {48, 48}, {98, 967}},
+beanoff = {16898612629, {48, 48}, {869, 955}},
+rat = {16898613699, {48, 48}, {869, 612}},
+separatorhorizontal = {16898613699, {48, 48}, {918, 906}},
+squarearrowupright = {16898613777, {48, 48}, {820, 661}},
+signalzero = {16898613777, {48, 48}, {514, 869}},
+citrus = {16898613044, {48, 48}, {306, 820}},
+phonemissed = {16898613699, {48, 48}, {771, 98}},
+userroundcheck = {16898613869, {48, 48}, {869, 404}},
+batterymedium = {16898612629, {48, 48}, {869, 906}},
+squareminus = {16898613777, {48, 48}, {918, 612}},
+hotel = {16898613509, {48, 48}, {98, 869}},
+folderoutput = {16898613353, {48, 48}, {771, 808}},
+icecream = {16898613509, {48, 48}, {869, 355}},
+menu = {16898613613, {48, 48}, {49, 820}},
+arrowupleftsquare = {16898612629, {48, 48}, {710, 820}},
+lightbulb = {16898613509, {48, 48}, {918, 196}},
+badgehelp = {16898612629, {48, 48}, {147, 967}},
+angry = {16898612629, {48, 48}, {257, 918}},
+outdent = {16898613613, {48, 48}, {918, 661}},
+circledotdashed = {16898613044, {48, 48}, {771, 514}},
+speech = {16898613777, {48, 48}, {820, 147}},
+cakeslice = {16898612819, {48, 48}, {661, 820}},
+gitgraph = {16898613509, {48, 48}, {0, 771}},
+armchair = {16898612629, {48, 48}, {820, 147}},
+qrcode = {16898613699, {48, 48}, {967, 257}},
+copy = {16898613044, {48, 48}, {918, 612}},
+goal = {16898613509, {48, 48}, {563, 771}},
+trendingdown = {16898613869, {48, 48}, {563, 869}},
+haze = {16898613509, {48, 48}, {98, 820}},
+nfc = {16898613613, {48, 48}, {612, 918}},
+receiptrussianruble = {16898613699, {48, 48}, {514, 967}},
+disc = {16898613044, {48, 48}, {661, 967}},
+notebooktabs = {16898613613, {48, 48}, {967, 98}},
+panelsleftbottom = {16898613613, {48, 48}, {820, 906}},
+videotape = {16898613869, {48, 48}, {967, 612}},
+sunmoon = {16898613777, {48, 48}, {967, 196}},
+calendar = {16898612819, {48, 48}, {355, 918}},
+minuscircle = {16898613613, {48, 48}, {869, 98}},
+sunset = {16898613777, {48, 48}, {967, 710}},
+navigation2 = {16898613613, {48, 48}, {869, 661}},
+messagesquareheart = {16898613613, {48, 48}, {771, 147}},
+rectangleellipsis = {16898613699, {48, 48}, {820, 196}},
+badgeplus = {16898612629, {48, 48}, {918, 710}},
+indianrupee = {16898613509, {48, 48}, {710, 771}},
+monitordot = {16898613613, {48, 48}, {147, 820}},
+delete = {16898613044, {48, 48}, {661, 918}},
+clipboardpenline = {16898613044, {48, 48}, {918, 0}},
+foldersearch = {16898613353, {48, 48}, {918, 196}},
+utensilscrossed = {16898613869, {48, 48}, {918, 147}},
+dices = {16898613044, {48, 48}, {918, 710}},
+reply = {16898613699, {48, 48}, {612, 918}},
+flaskround = {16898613353, {48, 48}, {404, 869}},
+pause = {16898613699, {48, 48}, {0, 771}},
+shrub = {16898613777, {48, 48}, {306, 820}},
+flag = {16898613353, {48, 48}, {98, 918}},
+underline = {16898613869, {48, 48}, {820, 404}},
+alignhorizontaldistributeend = {16898612629, {48, 48}, {355, 771}},
+newspaper = {16898613613, {48, 48}, {661, 869}},
+table = {16898613777, {48, 48}, {820, 955}},
+movevertical = {16898613613, {48, 48}, {820, 453}},
+filepenline = {16898613353, {48, 48}, {612, 820}},
+badgerussianruble = {16898612629, {48, 48}, {820, 808}},
+radius = {16898613699, {48, 48}, {257, 967}},
+loader2 = {16898613509, {48, 48}, {820, 857}},
+pilcrow = {16898613699, {48, 48}, {612, 771}},
+scanface = {16898613699, {48, 48}, {820, 808}},
+spade = {16898613777, {48, 48}, {514, 918}},
+bookuser = {16898612819, {48, 48}, {918, 514}},
+user = {16898613869,{48,48},{661,869}},
+flipvertical = {16898613353, {48, 48}, {918, 612}},
+squarearrowdown = {16898613777, {48, 48}, {453, 771}},
+circleplus = {16898613044, {48, 48}, {869, 0}},
+view = {16898613869, {48, 48}, {918, 661}},
+cctv = {16898612819, {48, 48}, {355, 967}},
+morehorizontal = {16898613613, {48, 48}, {257, 967}},
+filekey2 = {16898613353, {48, 48}, {404, 771}},
+pauseoctagon = {16898613699, {48, 48}, {771, 0}},
+circlearrowoutdownleft = {16898612819, {48, 48}, {771, 955}},
+volume = {16898613869, {48, 48}, {661, 918}},
+facebook = {16898613353, {48, 48}, {563, 771}},
+octagonalert = {16898613613, {48, 48}, {918, 404}},
+panelbottomdashed = {16898613613, {48, 48}, {918, 710}},
+booka = {16898612819, {48, 48}, {820, 563}},
+alignendvertical = {16898612629, {48, 48}, {820, 306}},
+userx2 = {16898613869, {48, 48}, {771, 759}},
+chrome = {16898612819, {48, 48}, {820, 857}},
+receiptjapaneseyen = {16898613699, {48, 48}, {612, 869}},
+rabbit = {16898613699, {48, 48}, {869, 355}},
+scissorssquare = {16898613699, {48, 48}, {869, 808}},
+checksquare = {16898612819, {48, 48}, {771, 808}},
+trainfronttunnel = {16898613869, {48, 48}, {771, 404}},
+panelleftdashed = {16898613613, {48, 48}, {661, 967}},
+fish = {16898613353, {48, 48}, {869, 147}},
+slack = {16898613777, {48, 48}, {0, 918}},
+sliders = {16898613777, {48, 48}, {404, 771}},
+messagecirclewarning = {16898613613, {48, 48}, {771, 612}},
+map = {16898613613, {48, 48}, {306, 771}},
+route = {16898613699, {48, 48}, {404, 918}},
+arrowupleft = {16898612629, {48, 48}, {661, 869}},
+award = {16898612629, {48, 48}, {918, 661}},
+messagesquareplus = {16898613613, {48, 48}, {49, 869}},
+unfoldhorizontal = {16898613869, {48, 48}, {355, 869}},
+areachart = {16898612629, {48, 48}, {869, 98}},
+music4 = {16898613613, {48, 48}, {306, 967}},
+shieldx = {16898613777, {48, 48}, {514, 820}},
+planelanding = {16898613699, {48, 48}, {771, 147}},
+disc3 = {16898613044, {48, 48}, {771, 857}},
+columns4 = {16898613044, {48, 48}, {710, 771}},
+archivex = {16898612629, {48, 48}, {967, 0}},
+squaredashedkanban = {16898613777, {48, 48}, {98, 918}},
+users2 = {16898613869, {48, 48}, {612, 918}},
+shieldoff = {16898613777, {48, 48}, {820, 514}},
+compass = {16898613044, {48, 48}, {514, 967}},
+vegan = {16898613869, {48, 48}, {967, 355}},
+messagecircleplus = {16898613613, {48, 48}, {257, 869}},
+stopcircle = {16898613777, {48, 48}, {453, 918}},
+nut = {16898613613, {48, 48}, {967, 355}},
+search = {16898613699, {48, 48}, {918, 857}},
+files = {16898613353, {48, 48}, {771, 710}},
+sendtoback = {16898613699, {48, 48}, {820, 955}},
+alarmclock = {16898612629, {48, 48}, {257, 820}},
+shoppingbasket = {16898613777, {48, 48}, {0, 869}},
+send = {16898613699, {48, 48}, {967, 857}},
+chevronleftsquare = {16898612819, {48, 48}, {453, 918}},
+terminalsquare = {16898613869, {48, 48}, {0, 820}},
+wifi = {16898613869, {48, 48}, {869, 808}},
+skipback = {16898613777, {48, 48}, {147, 771}},
+wraptext = {16898613869, {48, 48}, {869, 857}},
+filescan = {16898613353, {48, 48}, {820, 147}},
+messagesquaredashed = {16898613613, {48, 48}, {918, 0}},
+trophy = {16898613869, {48, 48}, {820, 147}},
+umbrella = {16898613869, {48, 48}, {869, 355}},
+touchpad = {16898613869, {48, 48}, {49, 869}},
+clipboardcopy = {16898613044, {48, 48}, {820, 563}},
+pentagon = {16898613699, {48, 48}, {771, 306}},
+arrowupfromline = {16898612629, {48, 48}, {820, 710}},
+circlechevronup = {16898613044, {48, 48}, {771, 0}},
+worm = {16898613869, {48, 48}, {918, 808}},
+lampdesk = {16898613509, {48, 48}, {355, 918}},
+circlearrowup = {16898612819, {48, 48}, {967, 857}},
+zap = {16898613869, {48, 48}, {918, 906}},
+boxes = {16898612819, {48, 48}, {196, 771}},
+swissfranc = {16898613777, {48, 48}, {820, 857}},
+moveleft = {16898613613, {48, 48}, {98, 918}},
+chevronup = {16898612819, {48, 48}, {710, 918}},
+instagram = {16898613509, {48, 48}, {514, 967}},
+pentool = {16898613699, {48, 48}, {820, 0}},
+pencilruler = {16898613699, {48, 48}, {0, 820}},
+grid2x2 = {16898613509, {48, 48}, {771, 98}},
+arrowbigdowndash = {16898612629, {48, 48}, {771, 196}},
+clipboardedit = {16898613044, {48, 48}, {771, 612}},
+mic = {16898613613, {48, 48}, {820, 612}},
+fileminus2 = {16898613353, {48, 48}, {869, 563}},
+gitlab = {16898613509, {48, 48}, {820, 257}},
+rotate3d = {16898613699, {48, 48}, {147, 918}},
+spellcheck = {16898613777, {48, 48}, {196, 771}},
+popcorn = {16898613699, {48, 48}, {612, 820}},
+blocks = {16898612819, {48, 48}, {49, 820}},
+washingmachine = {16898613869, {48, 48}, {918, 710}},
+siren = {16898613777, {48, 48}, {771, 147}},
+copy = {16898613044,{48,48},{918,612}},
+cloudsun = {16898613044, {48, 48}, {0, 967}},
+circle = {16898613044, {48, 48}, {771, 355}},
+shieldalert = {16898613777, {48, 48}, {49, 771}},
+rainbow = {16898613699, {48, 48}, {918, 563}},
+separatorvertical = {16898613699, {48, 48}, {869, 955}},
+ampersands = {16898612629, {48, 48}, {355, 820}},
+usersearch = {16898613869, {48, 48}, {918, 612}},
+fence = {16898613353, {48, 48}, {98, 771}},
+squareuserround = {16898613777, {48, 48}, {355, 0}}
+}
+
+-- Mapping GaphopUI internal keywords directly to standard Lucide icons
+GaphopUI.LucideSprites.settings = GaphopUI.LucideSprites.sliders or {16898613777, {48, 48}, {404, 771}}
+GaphopUI.LucideSprites.close = GaphopUI.LucideSprites.x
+GaphopUI.LucideSprites.minimize = GaphopUI.LucideSprites.minuscircle
+GaphopUI.LucideSprites.maximize = GaphopUI.LucideSprites.copy or GaphopUI.LucideSprites.copy
+GaphopUI.LucideSprites.refresh = GaphopUI.LucideSprites.refreshccwdot
+GaphopUI.LucideSprites.palette = GaphopUI.LucideSprites.paintbrush2
+GaphopUI.LucideSprites.keyboard = GaphopUI.LucideSprites.terminalsquare
+GaphopUI.LucideSprites.sparkles = GaphopUI.LucideSprites.lightbulb
+GaphopUI.LucideSprites.moon = GaphopUI.LucideSprites.sunmoon
+GaphopUI.LucideSprites.sun = GaphopUI.LucideSprites.sunmedium
+GaphopUI.LucideSprites.info = GaphopUI.LucideSprites.badgehelp
+GaphopUI.LucideSprites.bell = GaphopUI.LucideSprites.conciergebell
+GaphopUI.LucideSprites.plus = GaphopUI.LucideSprites.circleplus
+GaphopUI.LucideSprites.minus = GaphopUI.LucideSprites.squareminus or GaphopUI.LucideSprites.minuscircle
+GaphopUI.LucideSprites.check = GaphopUI.LucideSprites.checksquare
+GaphopUI.LucideSprites.slider = GaphopUI.LucideSprites.sliders
+GaphopUI.LucideSprites.layers = GaphopUI.LucideSprites.layers
+GaphopUI.LucideSprites.cog = GaphopUI.LucideSprites.settings
+GaphopUI.LucideSprites.chevron = GaphopUI.LucideSprites.chevronup
+GaphopUI.LucideSprites.shield = GaphopUI.LucideSprites.shieldalert
+GaphopUI.LucideSprites.star = GaphopUI.LucideSprites.star
+GaphopUI.LucideSprites.house = GaphopUI.LucideSprites.house
+
+GaphopUI.Themes = {
+Dark = { Background = Color3.fromRGB(16, 17, 23), Card = Color3.fromRGB(25, 27, 38), CardHover = Color3.fromRGB(34, 37, 52), Header = Color3.fromRGB(20, 22, 31), Accent = Color3.fromRGB(0, 162, 255), AccentGlow = Color3.fromRGB(0, 140, 230), Text = Color3.fromRGB(245, 247, 252), SubText = Color3.fromRGB(150, 155, 175), Border = Color3.fromRGB(45, 50, 68), ToggleOn = Color3.fromRGB(0, 162, 255), ToggleOff = Color3.fromRGB(40, 44, 58), SliderBar = Color3.fromRGB(38, 42, 56), InputBackground = Color3.fromRGB(21, 23, 32), Shadow = Color3.fromRGB(0, 0, 0) },
+Midnight = { Background = Color3.fromRGB(11, 11, 20), Card = Color3.fromRGB(20, 20, 36), CardHover = Color3.fromRGB(28, 28, 48), Header = Color3.fromRGB(15, 15, 26), Accent = Color3.fromRGB(130, 90, 255), AccentGlow = Color3.fromRGB(110, 70, 230), Text = Color3.fromRGB(245, 245, 255), SubText = Color3.fromRGB(145, 145, 178), Border = Color3.fromRGB(45, 45, 75), ToggleOn = Color3.fromRGB(130, 90, 255), ToggleOff = Color3.fromRGB(32, 32, 52), SliderBar = Color3.fromRGB(32, 32, 55), InputBackground = Color3.fromRGB(16, 16, 28), Shadow = Color3.fromRGB(0, 0, 0) },
+CyberNeon = { Background = Color3.fromRGB(10, 12, 18), Card = Color3.fromRGB(18, 22, 32), CardHover = Color3.fromRGB(26, 32, 46), Header = Color3.fromRGB(14, 16, 24), Accent = Color3.fromRGB(255, 0, 128), AccentGlow = Color3.fromRGB(210, 0, 105), Text = Color3.fromRGB(255, 255, 255), SubText = Color3.fromRGB(160, 170, 190), Border = Color3.fromRGB(60, 30, 70), ToggleOn = Color3.fromRGB(255, 0, 128), ToggleOff = Color3.fromRGB(35, 30, 45), SliderBar = Color3.fromRGB(35, 30, 45), InputBackground = Color3.fromRGB(14, 16, 24), Shadow = Color3.fromRGB(0, 0, 0) },
+Emerald = { Background = Color3.fromRGB(10, 18, 16), Card = Color3.fromRGB(18, 30, 26), CardHover = Color3.fromRGB(25, 42, 36), Header = Color3.fromRGB(14, 23, 20), Accent = Color3.fromRGB(16, 185, 129), AccentGlow = Color3.fromRGB(10, 150, 105), Text = Color3.fromRGB(240, 250, 245), SubText = Color3.fromRGB(140, 168, 155), Border = Color3.fromRGB(35, 60, 50), ToggleOn = Color3.fromRGB(16, 185, 129), ToggleOff = Color3.fromRGB(28, 45, 38), SliderBar = Color3.fromRGB(28, 45, 38), InputBackground = Color3.fromRGB(14, 24, 20), Shadow = Color3.fromRGB(0, 0, 0) },
+Ocean = { Background = Color3.fromRGB(8, 16, 24), Card = Color3.fromRGB(16, 28, 40), CardHover = Color3.fromRGB(24, 38, 54), Header = Color3.fromRGB(12, 22, 32), Accent = Color3.fromRGB(14, 165, 233), AccentGlow = Color3.fromRGB(2, 132, 199), Text = Color3.fromRGB(240, 248, 255), SubText = Color3.fromRGB(135, 162, 182), Border = Color3.fromRGB(32, 56, 78), ToggleOn = Color3.fromRGB(14, 165, 233), ToggleOff = Color3.fromRGB(25, 42, 60), SliderBar = Color3.fromRGB(25, 42, 60), InputBackground = Color3.fromRGB(12, 22, 32), Shadow = Color3.fromRGB(0, 0, 0) },
+Light = { Background = Color3.fromRGB(242, 244, 248), Card = Color3.fromRGB(255, 255, 255), CardHover = Color3.fromRGB(245, 247, 252), Header = Color3.fromRGB(235, 238, 245), Accent = Color3.fromRGB(0, 122, 255), AccentGlow = Color3.fromRGB(0, 100, 220), Text = Color3.fromRGB(22, 25, 33), SubText = Color3.fromRGB(110, 115, 130), Border = Color3.fromRGB(215, 220, 232), ToggleOn = Color3.fromRGB(0, 122, 255), ToggleOff = Color3.fromRGB(210, 215, 225), SliderBar = Color3.fromRGB(210, 215, 225), InputBackground = Color3.fromRGB(248, 249, 252), Shadow = Color3.fromRGB(180, 185, 200) },
+Bloom = { Background = Color3.fromRGB(248, 241, 244), Card = Color3.fromRGB(255, 250, 252), CardHover = Color3.fromRGB(255, 245, 248), Header = Color3.fromRGB(244, 224, 230), Accent = Color3.fromRGB(242, 146, 177), AccentGlow = Color3.fromRGB(255, 180, 205), Text = Color3.fromRGB(55, 45, 50), SubText = Color3.fromRGB(140, 125, 132), Border = Color3.fromRGB(234, 214, 222), ToggleOn = Color3.fromRGB(242, 146, 177), ToggleOff = Color3.fromRGB(212, 198, 203), SliderBar = Color3.fromRGB(240, 205, 218), InputBackground = Color3.fromRGB(255, 248, 250), Shadow = Color3.fromRGB(225, 190, 205) },
+AmberGlow = { Background = Color3.fromRGB(24, 20, 14), Card = Color3.fromRGB(36, 30, 22), CardHover = Color3.fromRGB(46, 38, 28), Header = Color3.fromRGB(30, 24, 18), Accent = Color3.fromRGB(255, 179, 71), AccentGlow = Color3.fromRGB(255, 210, 120), Text = Color3.fromRGB(250, 245, 235), SubText = Color3.fromRGB(185, 172, 150), Border = Color3.fromRGB(72, 58, 42), ToggleOn = Color3.fromRGB(255, 179, 71), ToggleOff = Color3.fromRGB(58, 48, 36), SliderBar = Color3.fromRGB(58, 48, 36), InputBackground = Color3.fromRGB(28, 23, 18), Shadow = Color3.fromRGB(0, 0, 0) },
+Amethyst = { Background = Color3.fromRGB(18, 16, 28), Card = Color3.fromRGB(28, 24, 42), CardHover = Color3.fromRGB(36, 31, 54), Header = Color3.fromRGB(23, 20, 34), Accent = Color3.fromRGB(168, 120, 255), AccentGlow = Color3.fromRGB(205, 175, 255), Text = Color3.fromRGB(248, 246, 255), SubText = Color3.fromRGB(175, 168, 198), Border = Color3.fromRGB(60, 52, 86), ToggleOn = Color3.fromRGB(168, 120, 255), ToggleOff = Color3.fromRGB(45, 39, 64), SliderBar = Color3.fromRGB(45, 39, 64), InputBackground = Color3.fromRGB(22, 19, 33), Shadow = Color3.fromRGB(0, 0, 0) },
+Serenity = { Background = Color3.fromRGB(238, 242, 247), Card = Color3.fromRGB(247, 250, 253), CardHover = Color3.fromRGB(241, 246, 251), Header = Color3.fromRGB(228, 235, 243), Accent = Color3.fromRGB(77, 145, 205), AccentGlow = Color3.fromRGB(140, 190, 235), Text = Color3.fromRGB(42, 49, 60), SubText = Color3.fromRGB(122, 132, 145), Border = Color3.fromRGB(206, 216, 228), ToggleOn = Color3.fromRGB(77, 145, 205), ToggleOff = Color3.fromRGB(210, 218, 228), SliderBar = Color3.fromRGB(210, 218, 228), InputBackground = Color3.fromRGB(251, 253, 255), Shadow = Color3.fromRGB(175, 185, 198) }
+}
+
+-- STREAMING_CHUNK:Creating Main ScreenGui Container...
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GaphopUI_Engine"
+ScreenGui.DisplayOrder = 999999
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Enabled = true
+ScreenGui.Parent = ParentUI
+
+-- STREAMING_CHUNK:Defining Animation Utility Helpers & Smooth Easing Physics...
+local function Tween(instance, info, properties)
+if not instance then return end
+local tween = TweenService:Create(instance, info, properties)
+tween:Play()
+return tween
+end
+
+local function SpringTween(instance, duration, properties, style)
+style = style or Enum.EasingStyle.Quart
+local info = TweenInfo.new(duration or 0.3, style, Enum.EasingDirection.Out)
+return Tween(instance, info, properties)
+end
+
+local function CreateRipple(parent, inputPosition)
+if not parent then return end
+local ripple = Instance.new("Frame")
+ripple.Name = "RippleEffect"
+ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ripple.BackgroundTransparency = 0.75
+ripple.ZIndex = (parent.ZIndex or 1) + 10
+ripple.ClipsDescendants = true
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1, 0)
+corner.Parent = ripple
+
+local parentAbsPos = parent.AbsolutePosition
+local parentAbsSize = parent.AbsoluteSize
+local relX = (inputPosition and inputPosition.X or (parentAbsPos.X + parentAbsSize.X/2)) - parentAbsPos.X
+local relY = (inputPosition and inputPosition.Y or (parentAbsPos.Y + parentAbsSize.Y/2)) - parentAbsPos.Y
+
+ripple.Position = UDim2.fromOffset(relX, relY)
+ripple.Size = UDim2.fromOffset(0, 0)
+ripple.Parent = parent
+
+local maxSize = math.max(parentAbsSize.X, parentAbsSize.Y) * 2.5
+Tween(ripple, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+    Size = UDim2.fromOffset(maxSize, maxSize),
+    BackgroundTransparency = 1
+})
+
+task.delay(0.5, function()
+    if ripple and ripple.Parent then ripple:Destroy() end
+end)
+
+
+end
+
+local function CreateCorner(parent, radius)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, radius or 10)
+corner.Parent = parent
+return corner
+end
+
+local function CreateStroke(parent, color, thickness, transparency)
+local stroke = Instance.new("UIStroke")
+stroke.Color = color or GaphopUI.Themes[GaphopUI.CurrentTheme].Border
+stroke.Thickness = thickness or 1
+stroke.Transparency = transparency or 0.6
+stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+stroke.Parent = parent
+return stroke
+end
+
+local function ResolveIconValue(icon, fallback)
+if icon == nil or icon == false or icon == 0 then
+return fallback or ""
+end
+
+if type(icon) == "number" then
+    return "rbxassetid://" .. tostring(icon)
+end
+
+if type(icon) ~= "string" then
+    return fallback or ""
+end
+
+local cleaned = icon:lower():gsub("^lucide:", ""):gsub("[%s%-]", "")
+
+if cleaned ~= "" and GaphopUI.LucideSprites and GaphopUI.LucideSprites[cleaned] then
+    return GaphopUI.LucideSprites[cleaned]
+end
+
+if cleaned ~= "" and GaphopUI.Icons[cleaned] then
+    return GaphopUI.Icons[cleaned]
+end
+
+if icon:match("^rbxassetid://") or icon:match("^http") or icon:match("^rbxthumb://") then
+    return icon
+end
+
+return icon
+
+
+end
+
+function GaphopUI:CreateIcon(parent, icon, size, color, opts)
+opts = opts or {}
+local theme = opts.Theme or GaphopUI.Themes[GaphopUI.CurrentTheme]
+local resolved = ResolveIconValue(icon, opts.Fallback)
+
+if type(resolved) == "table" and resolved[1] and resolved[2] and resolved[3] then
+    local image = Instance.new("ImageLabel")
+    image.BackgroundTransparency = 1
+    image.Size = size or UDim2.fromOffset(20, 20)
+    image.Position = opts.Position or UDim2.new()
+    image.Image = "rbxassetid://" .. tostring(resolved[1])
+    image.ImageRectSize = Vector2.new(resolved[2][1], resolved[2][2])
+    image.ImageRectOffset = Vector2.new(resolved[3][1], resolved[3][2])
+    image.ImageColor3 = color or Color3.new(1, 1, 1)
+    image.Parent = parent
+    return image
+end
+
+if type(resolved) == "string" and (resolved:match("^rbxassetid://") or resolved:match("^http") or resolved:match("^rbxthumb://")) then
+    local image = Instance.new("ImageLabel")
+    image.BackgroundTransparency = 1
+    image.Size = size or UDim2.fromOffset(20, 20)
+    image.Position = opts.Position or UDim2.new()
+    image.Image = resolved
+    image.ImageColor3 = color or Color3.new(1, 1, 1)
+    image.Parent = parent
+    return image
+end
+
+local label = Instance.new("TextLabel")
+label.BackgroundTransparency = 1
+label.Size = size or UDim2.fromOffset(20, 20)
+label.Position = opts.Position or UDim2.new()
+label.Text = tostring(resolved or "")
+label.TextColor3 = color or theme.Text
+label.Font = Enum.Font.GothamBold
+label.TextSize = opts.TextSize or 14
+label.Parent = parent
+return label
+
+
+end
+
+-- STREAMING_CHUNK:RGB Glow Engine Management...
+function GaphopUI:ToggleRGB(enabled)
+GaphopUI.RGBEnabled = enabled
+if GaphopUI.RGBConnection then
+GaphopUI.RGBConnection:Disconnect()
+GaphopUI.RGBConnection = nil
+end
+
+if enabled then
+    local hue = 0
+    GaphopUI.RGBConnection = RunService.RenderStepped:Connect(function(dt)
+        hue = (hue + dt * 0.25) % 1
+        local color = Color3.fromHSV(hue, 0.85, 1)
+        GaphopUI.CurrentRGBColor = color
+
+        if GaphopUI.WindowInstance then
+            local stroke = GaphopUI.WindowInstance:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = color end
+        end
+    end)
+else
+    if GaphopUI.WindowInstance then
+        local stroke = GaphopUI.WindowInstance:FindFirstChildOfClass("UIStroke")
+        if stroke then stroke.Color = GaphopUI.Themes[GaphopUI.CurrentTheme].Border end
+    end
+end
+
+
+end
+
+-- STREAMING_CHUNK:Implementing Smooth Window Dragging Mechanics...
+local function MakeDraggable(gui, handle)
+local dragging, dragInput, dragStart, startPos
+handle = handle or gui
+
+local conn1 = handle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = gui.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+local conn2 = handle.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+local conn3 = UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        SpringTween(gui, 0.12, {
+            Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        }, Enum.EasingStyle.Sine)
+    end
+end)
+
+table.insert(GaphopUI.Connections, conn1)
+table.insert(GaphopUI.Connections, conn2)
+table.insert(GaphopUI.Connections, conn3)
+
+
+end
+
+-- STREAMING_CHUNK:Constructing Animated Notification Stack System...
+local NotifyContainer = Instance.new("Frame")
+NotifyContainer.Name = "NotifyContainer"
+NotifyContainer.Size = UDim2.new(0, 320, 1, -40)
+NotifyContainer.Position = UDim2.new(1, -330, 0, 20)
+NotifyContainer.BackgroundTransparency = 1
+NotifyContainer.ZIndex = 1000
+NotifyContainer.Parent = ScreenGui
+
+local NotifyLayout = Instance.new("UIListLayout")
+NotifyLayout.SortOrder = Enum.SortOrder.LayoutOrder
+NotifyLayout.Padding = UDim.new(0, 10)
+NotifyLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+NotifyLayout.Parent = NotifyContainer
+
+GaphopUI.NotifyContainer = NotifyContainer
+
+function GaphopUI:Notify(cfg)
+cfg = cfg or {}
+local titleText = cfg.Title or "Notification"
+local contentText = cfg.Content or ""
+local duration = cfg.Duration or 4
+local imgId = cfg.Image
+local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
+
+local card = Instance.new("Frame")
+card.Size = UDim2.new(1, 0, 0, 72)
+card.BackgroundColor3 = theme.Card
+card.BackgroundTransparency = 0.12
+card.Position = UDim2.new(1, 360, 0, 0)
+card.ClipsDescendants = true
+card.Parent = NotifyContainer
+
+CreateCorner(card, 12)
+local stroke = CreateStroke(card, theme.Accent, 1, 0.4)
+
+local padding = Instance.new("UIPadding")
+padding.PaddingLeft = UDim.new(0, 16)
+padding.PaddingRight = UDim.new(0, 12)
+padding.PaddingTop = UDim.new(0, 10)
+padding.PaddingBottom = UDim.new(0, 10)
+padding.Parent = card
+
+local iconOffset = 0
+if imgId then
+    iconOffset = 42
+    local resolvedNotify = ResolveIconValue(imgId, nil)
+    
+    local iconImg = Instance.new("ImageLabel")
+    iconImg.Size = UDim2.new(0, 34, 0, 34)
+    iconImg.Position = UDim2.new(0, 0, 0.5, -17)
+    iconImg.BackgroundTransparency = 1
+    
+    if type(resolvedNotify) == "table" then
+        iconImg.Image = "rbxassetid://" .. tostring(resolvedNotify[1])
+        iconImg.ImageRectSize = Vector2.new(resolvedNotify[2][1], resolvedNotify[2][2])
+        iconImg.ImageRectOffset = Vector2.new(resolvedNotify[3][1], resolvedNotify[3][2])
+        iconImg.ImageColor3 = theme.Text
+    else
+        iconImg.Image = (type(resolvedNotify) == "number" and "rbxassetid://" .. tostring(resolvedNotify)) or tostring(resolvedNotify)
+    end
+    
+    iconImg.Parent = card
+    CreateCorner(iconImg, 8)
+end
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -iconOffset, 0, 20)
+title.Position = UDim2.new(0, iconOffset, 0, 2)
+title.BackgroundTransparency = 1
+title.Text = titleText
+title.TextColor3 = theme.Text
+title.TextSize = 14
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = card
+
+local content = Instance.new("TextLabel")
+content.Size = UDim2.new(1, -iconOffset, 0, 28)
+content.Position = UDim2.new(0, iconOffset, 0, 22)
+content.BackgroundTransparency = 1
+content.Text = contentText
+content.TextColor3 = theme.SubText
+content.TextSize = 12
+content.Font = Enum.Font.Gotham
+content.TextWrapped = true
+content.TextXAlignment = Enum.TextXAlignment.Left
+content.Parent = card
+
+SpringTween(card, 0.45, { Position = UDim2.new(0, 0, 0, 0) }, Enum.EasingStyle.Back)
+
+local timerBar = Instance.new("Frame")
+timerBar.Size = UDim2.new(1, 0, 0, 3)
+timerBar.Position = UDim2.new(0, 0, 1, -3)
+timerBar.BackgroundColor3 = theme.Accent
+timerBar.BorderSizePixel = 0
+timerBar.Parent = card
+
+Tween(timerBar, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+    Size = UDim2.new(0, 0, 0, 3)
+})
+
+task.delay(duration, function()
+    if card and card.Parent then
+        local exitTween = SpringTween(card, 0.35, {
+            Position = UDim2.new(1, 360, 0, 0),
+            BackgroundTransparency = 1
+        }, Enum.EasingStyle.Quart)
+
+        if exitTween then
+            exitTween.Completed:Connect(function() card:Destroy() end)
+        else
+            card:Destroy()
+        end
+    end
+end)
+
+
+end
+
+-- STREAMING_CHUNK:Building Floating Mobile Button & Window Toggle Logic...
+local function IsMobile()
+return UserInputService.TouchEnabled
+end
+
+local function CreateOpenButton()
+if not IsMobile() or GaphopUI.OpenButton then return end
+
+local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
+local btn = Instance.new("TextButton")
+btn.Name = "GaphopOpenButton"
+btn.Size = UDim2.new(0, 160, 0, 44)
+btn.AnchorPoint = Vector2.new(0.5, 0)
+btn.Position = UDim2.new(0.5, 0, 0, 16)
+btn.BackgroundColor3 = theme.Card
+btn.BackgroundTransparency = 0.1
+btn.Text = "Open GaphopUI"
+btn.TextColor3 = theme.Text
+btn.TextSize = 13
+btn.Font = Enum.Font.GothamBold
+btn.ZIndex = 9999
+btn.Visible = not GaphopUI.IsOpen
+btn.Parent = ScreenGui
+
+CreateCorner(btn, 18)
+CreateStroke(btn, theme.Accent, 1.2, 0.3)
+MakeDraggable(btn, btn)
+
+btn.MouseButton1Click:Connect(function(input)
+    CreateRipple(btn, input)
+    GaphopUI:ToggleUI(true)
+end)
+
+GaphopUI.OpenButton = btn
+
+
+end
+
+function GaphopUI:ToggleUI(forceState)
+local shouldOpen = (forceState ~= nil and forceState) or (not GaphopUI.IsOpen)
+GaphopUI.IsOpen = shouldOpen
+
+if GaphopUI.WindowInstance then
+    if GaphopUI.IsOpen then
+        GaphopUI.WindowInstance.Visible = true
+        SpringTween(GaphopUI.WindowInstance, 0.4, {
+            Size = GaphopUI.WindowInstance:GetAttribute("NormalSize") or UDim2.new(0, 680, 0, 440),
+            BackgroundTransparency = 0.15
+        }, Enum.EasingStyle.Back)
+
+        if GaphopUI.OpenButton then GaphopUI.OpenButton.Visible = false end
+    else
+        local tw = SpringTween(GaphopUI.WindowInstance, 0.3, {
+            Size = UDim2.new(0, 680, 0, 0),
+            BackgroundTransparency = 1
+        }, Enum.EasingStyle.Quart)
+
+        if tw then
+            tw.Completed:Connect(function()
+                if not GaphopUI.IsOpen then GaphopUI.WindowInstance.Visible = false end
+            end)
+        else
+            GaphopUI.WindowInstance.Visible = false
+        end
+
+        if IsMobile() and GaphopUI.Flags.ShowMobileButton ~= false then
+            if not GaphopUI.OpenButton then CreateOpenButton() end
+            if GaphopUI.OpenButton then GaphopUI.OpenButton.Visible = true end
+        end
+    end
+end
+
+
+end
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+if not gpe and input.KeyCode == GaphopUI.ToggleKey then
+GaphopUI:ToggleUI()
+end
+end)
+
+local function RegisterElement(entry)
+if entry then table.insert(GaphopUI.Elements, entry) end
+end
+
+-- STREAMING_CHUNK:Binding UI Component Engine with Spring & Ripple Animations...
+local function BindElementMethods(TabObj, page, theme)
+TabObj = TabObj or {}
+
+function TabObj:makeButton(cfg)
+    cfg = cfg or {}
+    local btnName = cfg.Name or "Button"
+    local callback = cfg.Callback or function() end
+
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, -6, 0, 42)
+    card.BackgroundColor3 = theme.Card
+    card.BackgroundTransparency = 0.3
+    card.ClipsDescendants = true
+    card.Parent = page
+
+    local stroke = CreateStroke(card, theme.Border, 1, 0.6)
+    CreateCorner(card, 8)
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = btnName
+    btn.TextColor3 = theme.Text
+    btn.TextSize = 13
+    btn.Font = Enum.Font.GothamMedium
+    btn.Parent = card
+
+    btn.MouseEnter:Connect(function()
+        SpringTween(card, 0.2, {BackgroundColor3 = theme.CardHover})
+    end)
+    btn.MouseLeave:Connect(function()
+        SpringTween(card, 0.2, {BackgroundColor3 = theme.Card})
+    end)
+    btn.MouseButton1Click:Connect(function(input)
+        CreateRipple(card, input)
+        SpringTween(card, 0.1, {Size = UDim2.new(1, -12, 0, 38)}).Completed:Connect(function()
+            SpringTween(card, 0.15, {Size = UDim2.new(1, -6, 0, 42)})
+        end)
+        callback()
+    end)
+
+    RegisterElement({Type = "button", Card = card, Stroke = stroke, Button = btn, SearchText = btnName, Page = page})
+end
+TabObj.CreateButton = TabObj.makeButton
+TabObj.AddButton = TabObj.makeButton
+
+function TabObj:makeToggle(cfg)
+    cfg = cfg or {}
+    local name = cfg.Name or "Toggle"
+    local state = cfg.CurrentValue or false
+    local flag = cfg.Flag
+    local callback = cfg.Callback or function() end
+
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, -6, 0, 42)
+    card.BackgroundColor3 = theme.Card
+    card.BackgroundTransparency = 0.3
+    card.ClipsDescendants = true
+    card.Parent = page
+
+    local stroke = CreateStroke(card, theme.Border, 1, 0.6)
+    CreateCorner(card, 8)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -60, 1, 0)
+    label.Position = UDim2.new(0, 12, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = theme.Text
+    label.TextSize = 13
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = card
+
+    local switchBg = Instance.new("TextButton")
+    switchBg.Size = UDim2.new(0, 44, 0, 22)
+    switchBg.Position = UDim2.new(1, -54, 0.5, -11)
+    switchBg.BackgroundColor3 = state and theme.ToggleOn or theme.ToggleOff
+    switchBg.Text = ""
+    switchBg.Parent = card
+    CreateCorner(switchBg, 12)
+
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 16, 0, 16)
+    knob.Position = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.Parent = switchBg
+    CreateCorner(knob, 10)
+
+    local function SetToggleState(newState)
+        state = newState
+        if flag then GaphopUI.Flags[flag] = state end
+        SpringTween(switchBg, 0.25, {BackgroundColor3 = state and theme.ToggleOn or theme.ToggleOff})
+        SpringTween(knob, 0.25, {Position = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)}, Enum.EasingStyle.Back)
+        callback(state)
+    end
+
+    switchBg.MouseButton1Click:Connect(function(input)
+        CreateRipple(card, input)
+        SetToggleState(not state)
+    end)
+    if flag then GaphopUI.Flags[flag] = state end
+
+    RegisterElement({Type = "toggle", Card = card, Stroke = stroke, Label = label, ToggleBg = switchBg, ToggleKnob = knob, ToggleState = state, SearchText = name, Page = page})
+end
+TabObj.CreateToggle = TabObj.makeToggle
+TabObj.AddToggle = TabObj.makeToggle
+
+function TabObj:makeSlider(cfg)
+    cfg = cfg or {}
+    local name = cfg.Name or "Slider"
+    local range = cfg.Range or {0, 100}
+    local minVal, maxVal = range[1] or 0, range[2] or 100
+    local val = cfg.CurrentValue or minVal
+    local suffix = cfg.Suffix or ""
+    local flag = cfg.Flag
+    local callback = cfg.Callback or function() end
+
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, -6, 0, 56)
+    card.BackgroundColor3 = theme.Card
+    card.BackgroundTransparency = 0.3
+    card.ClipsDescendants = false
+    card.Parent = page
+
+    local stroke = CreateStroke(card, theme.Border, 1, 0.6)
+    CreateCorner(card, 8)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -80, 0, 24)
+    label.Position = UDim2.new(0, 12, 0, 4)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = theme.Text
+    label.TextSize = 13
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = card
+
+    local valLabel = Instance.new("TextLabel")
+    valLabel.Size = UDim2.new(0, 60, 0, 24)
+    valLabel.Position = UDim2.new(1, -72, 0, 4)
+    valLabel.BackgroundTransparency = 1
+    valLabel.Text = tostring(val) .. suffix
+    valLabel.TextColor3 = theme.Accent
+    valLabel.TextSize = 12
+    valLabel.Font = Enum.Font.GothamBold
+    valLabel.TextXAlignment = Enum.TextXAlignment.Right
+    valLabel.Parent = card
+
+    local sliderTrack = Instance.new("Frame")
+    sliderTrack.Size = UDim2.new(1, -24, 0, 6)
+    sliderTrack.Position = UDim2.new(0, 12, 0, 38)
+    sliderTrack.BackgroundColor3 = theme.SliderBar
+    sliderTrack.Parent = card
+    CreateCorner(sliderTrack, 3)
+
+    local initPercent = (val - minVal) / (maxVal - minVal)
+    local sliderFill = Instance.new("Frame")
+    sliderFill.Size = UDim2.new(math.clamp(initPercent, 0, 1), 0, 1, 0)
+    sliderFill.BackgroundColor3 = theme.Accent
+    sliderFill.Parent = sliderTrack
+    CreateCorner(sliderFill, 3)
+
+    local tooltip = Instance.new("Frame")
+    tooltip.Size = UDim2.new(0, 38, 0, 20)
+    tooltip.AnchorPoint = Vector2.new(0.5, 1)
+    tooltip.Position = UDim2.new(initPercent, 0, 0, -6)
+    tooltip.BackgroundColor3 = theme.Header
+    tooltip.Visible = false
+    tooltip.ZIndex = 20
+    tooltip.Parent = sliderTrack
+    CreateCorner(tooltip, 4)
+    CreateStroke(tooltip, theme.Accent, 1, 0.4)
+
+    local tooltipText
