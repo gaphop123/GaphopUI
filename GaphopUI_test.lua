@@ -7,6 +7,7 @@ local CoreGui = game:GetService("CoreGui")
 local HttpService = game:GetService("HttpService")
 
 warn("This UI may have bugs. Please report any issues you find.")
+warn ("This is a GaphopUI test build. It is not intended for use.")
 
 wait(2)
 
