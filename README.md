@@ -1,4 +1,4 @@
-# GaphopUI_V2
+# GaphopUI
 ---
 ![GaphopUI](https://raw.githubusercontent.com/gaphop123/GaphopUI_V2/main/img.png)
 ---
