@@ -21,7 +21,7 @@
 ## Loading the libary
 ---
 ```lua
-local GaphopUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/gaphop123/GaphopUI_V2/refs/heads/main/main.lua"))()
+local GaphopUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/gaphop123/GaphopUI/refs/heads/main/main.lua"))()
 
 ```
 ---
