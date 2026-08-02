@@ -20,8 +20,8 @@
 ---
 ## Website
 ---
-> **Note:** srry for using AI to make website
----
+> srry for using AI to make website
+
 https://gaphopui.netlify.app/
 
 ## Loading the libary
