@@ -20,9 +20,9 @@
 ---
 ## Website
 
-> sry for using AI to build this website cuz i've been busy making GaphopUI, so i was too tired and didn't have time to make the website myself.
+> Sorry for using AI to build this website. I've been busy developing GaphopUI, so I was too tired and didn't have enough time to build the website myself.
 
-https://gaphopui.netlify.app/
+[GaphopUI] https://gaphopui.netlify.app/
 
 ## Loading the libary
 ---
