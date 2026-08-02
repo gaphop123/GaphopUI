@@ -20,7 +20,7 @@
 ---
 ## Website
 
-> srry for using AI to make website
+> sry for using AI to build this website cuz i've been busy making GaphopUI, so i was too tired and didn't have time to make the website myself.
 
 https://gaphopui.netlify.app/
 
