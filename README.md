@@ -22,7 +22,7 @@
 
 > Sorry for using AI to build this website. I've been busy developing GaphopUI, so I was too tired and didn't have enough time to build the website myself.
 
-🌐 **Website:** [GaphopUI](https://gaphopui.netlify.app/)
+🌐 **Website:** [GaphopUI](https://gaphopui.netlify.app/) [GaphopUI](https://gaphop123.github.io/GPWST)
 
 ## Loading the libary
 ---
