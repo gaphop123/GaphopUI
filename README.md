@@ -43,7 +43,29 @@ local Window = GaphopUI:CreateWindow({
 })
 ```
 
+## Key system
+---
+```lua
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/gaphop123/GaphopUI/refs/heads/main/Keysystem.lua"))()
+local Keysys = Library:KeySystem()
 
+Keysys:Key({
+    Title = "Key System",
+    Description = "No method for key",
+    ShowGetKey = false,       
+    GetKeyFromSite = false,    
+    Link = "",
+    KeyPass = "MY_KEY_123",    -- put key
+    Callback = function(success)
+    if success then
+        print("Key Correct!")
+        -- Chạy load script
+    else
+        print("Wrong Key!")
+    end
+end
+})
+```
 
 
 ---
