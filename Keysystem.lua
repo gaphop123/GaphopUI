@@ -1,6 +1,7 @@
 -- STREAMING_CHUNK:Initializing Services and Core Variables...
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 
@@ -35,11 +36,56 @@ if setclipboard then
 pcall(function() setclipboard(text); success = true end)
 elseif toclipboard then
 pcall(function() toclipboard(text); success = true end)
-else
--- Fallback if no clipboard functions exist
-return false
+elseif syn and syn.write_clipboard then
+pcall(function() syn.write_clipboard(text); success = true end)
 end
 return success
+end
+
+-- Function to format remaining time
+local function FormatTimeLeft(expiryTime)
+local diff = expiryTime - os.time()
+if diff <= 0 then return "Expired" end
+
+local days = math.floor(diff / 86400)
+local hours = math.floor((diff % 86400) / 3600)
+local mins = math.floor((diff % 3600) / 60)
+
+local timeString = ""
+if days > 0 then timeString = timeString .. days .. " day(s) " end
+if hours > 0 or days > 0 then timeString = timeString .. hours .. " hr " end
+timeString = timeString .. mins .. " min"
+
+return timeString
+
+
+end
+
+-- File System Functions (For saving/loading Keys)
+local FolderName = "FluentKeySystemData"
+local function SaveKeyData(fileName, keyStr, durationSeconds)
+if not writefile then return false end
+pcall(function()
+if makefolder and not isfolder(FolderName) then
+makefolder(FolderName)
+end
+local data = {
+Key = keyStr,
+Expiry = os.time() + durationSeconds
+}
+writefile(FolderName .. "/" .. fileName .. ".json", HttpService:JSONEncode(data))
+end)
+end
+
+local function LoadKeyData(fileName)
+if not (readfile and isfile) then return nil end
+local success, data = pcall(function()
+local path = FolderName .. "/" .. fileName .. ".json"
+if isfile(path) then
+return HttpService:JSONDecode(readfile(path))
+end
+end)
+return success and data or nil
 end
 
 -- STREAMING_CHUNK:Building the Notify System...
@@ -49,7 +95,6 @@ local Title = Config.Title or "Notification"
 local Content = Config.Content or "This is a notification."
 local Duration = Config.Duration or 3
 
--- Create or find NotifyScreen
 local NotifyScreen = SafeParent:FindFirstChild("FluentNotifyUI")
 if not NotifyScreen then
     NotifyScreen = Instance.new("ScreenGui")
@@ -73,7 +118,6 @@ end
 
 local NotifyList = NotifyScreen.NotifyList
 
--- Create Notification Frame
 local NotifFrame = Instance.new("CanvasGroup")
 NotifFrame.Size = UDim2.new(1, 0, 0, 80)
 NotifFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
@@ -113,10 +157,8 @@ ContentLabel.TextYAlignment = Enum.TextYAlignment.Top
 ContentLabel.TextWrapped = true
 ContentLabel.Parent = NotifFrame
 
--- Animate In
 Utility:Tween(NotifFrame, {GroupTransparency = 0}, 0.3)
 
--- Animate Out and Destroy
 task.spawn(function()
     task.wait(Duration)
     local fadeOut = Utility:Tween(NotifFrame, {GroupTransparency = 1}, 0.3)
@@ -135,6 +177,9 @@ function KeysysObj:Key(Config)
     Config = Config or {}
     local TitleText = Config.Title or "Key System"
     local DescText = Config.Description or "Please enter your access key."
+    
+    local FileName = Config.FileName or TitleText:gsub("%s+", "") .. "_Key"
+    
     local ShowGetKey = Config.ShowGetKey
     if ShowGetKey == nil then ShowGetKey = true end
     
@@ -145,11 +190,26 @@ function KeysysObj:Key(Config)
     local KeyPass = Config.KeyPass or ""
     local Callback = Config.Callback or function() end
 
-    -- Remove existing UI if exists
+    -- CHỨC NĂNG LƯU KEY & KIỂM TRA HẠN
+    local SavedData = LoadKeyData(FileName)
+    if SavedData and SavedData.Key and SavedData.Expiry then
+        if os.time() < SavedData.Expiry then
+            -- Key vẫn còn hạn, chạy luôn script
+            local TimeLeftStr = FormatTimeLeft(SavedData.Expiry)
+            Library:Notify({
+                Title = TitleText .. " - Verified",
+                Content = "Key is loaded! " .. TimeLeftStr .. " left.",
+                Duration = 5
+            })
+            pcall(function() Callback(true) end)
+            return -- Dừng hàm, không tạo UI nữa
+        end
+    end
+
+    -- Nếu không có key hoặc hết hạn, tạo giao diện UI
     local existingUI = SafeParent:FindFirstChild("FluentKeySystemUI")
     if existingUI then existingUI:Destroy() end
 
-    -- Main GUI
     local MainGui = Instance.new("ScreenGui")
     MainGui.Name = "FluentKeySystemUI"
     MainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -162,14 +222,18 @@ function KeysysObj:Key(Config)
     Backdrop.BorderSizePixel = 0
     Backdrop.Parent = MainGui
 
-    -- The Main UI Container (MUST BE CanvasGroup for GroupTransparency)
     local MainFrame = Instance.new("CanvasGroup")
     MainFrame.Size = UDim2.new(0, 420, 0, 260)
-    MainFrame.Position = UDim2.new(0.5, -210, 0.5, -110) -- Starts slightly lower for animation
+    MainFrame.Position = UDim2.new(0.5, -210, 0.5, -110)
     MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
     MainFrame.BorderSizePixel = 0
     MainFrame.GroupTransparency = 1
     MainFrame.Parent = Backdrop
+    
+    local UISizeConstraint = Instance.new("UISizeConstraint")
+    UISizeConstraint.MaxSize = Vector2.new(420, 260)
+    UISizeConstraint.MinSize = Vector2.new(300, 260)
+    UISizeConstraint.Parent = MainFrame
 
     local MainCorner = Instance.new("UICorner")
     MainCorner.CornerRadius = UDim.new(0, 10)
@@ -263,7 +327,7 @@ function KeysysObj:Key(Config)
     SubmitBtn.TextSize = 14
     SubmitBtn.Font = Enum.Font.GothamBold
     SubmitBtn.Parent = ButtonContainer
-
+    
     local SubmitCorner = Instance.new("UICorner")
     SubmitCorner.CornerRadius = UDim.new(0, 6)
     SubmitCorner.Parent = SubmitBtn
@@ -280,11 +344,9 @@ function KeysysObj:Key(Config)
     GetKeyCorner.CornerRadius = UDim.new(0, 6)
     GetKeyCorner.Parent = GetKeyBtn
 
-    -- Layout Logic based on ShowGetKey
-    if ShowGetKey then
+    if ShowGetKey and GetKeyFromSite then
         SubmitBtn.Size = UDim2.new(0.5, -5, 1, 0)
         SubmitBtn.Position = UDim2.new(0.5, 5, 0, 0)
-        
         GetKeyBtn.Size = UDim2.new(0.5, -5, 1, 0)
         GetKeyBtn.Position = UDim2.new(0, 0, 0, 0)
         GetKeyBtn.Visible = true
@@ -294,12 +356,10 @@ function KeysysObj:Key(Config)
         GetKeyBtn.Visible = false
     end
 
-    -- STREAMING_CHUNK:Adding Animations and Dragging...
-    -- Opening Animation
+    -- STREAMING_CHUNK:Animations and Dragging...
     Utility:Tween(Backdrop, {BackgroundTransparency = 0.4}, 0.3)
     Utility:Tween(MainFrame, {Position = UDim2.new(0.5, -210, 0.5, -130), GroupTransparency = 0}, 0.4, Enum.EasingStyle.Back)
 
-    -- Close Animation Function
     local function CloseUI()
         Utility:Tween(Backdrop, {BackgroundTransparency = 1}, 0.3)
         local closeTween = Utility:Tween(MainFrame, {Position = UDim2.new(0.5, -210, 0.5, -110), GroupTransparency = 1}, 0.3)
@@ -309,7 +369,6 @@ function KeysysObj:Key(Config)
 
     CloseBtn.MouseButton1Click:Connect(CloseUI)
 
-    -- Error Shake Animation
     local function ShakeUI()
         local originalPos = MainFrame.Position
         for i = 1, 5 do
@@ -319,14 +378,12 @@ function KeysysObj:Key(Config)
         MainFrame.Position = originalPos
     end
 
-    -- Dragging Logic
     local dragging, dragInput, dragStart, startPos
     TopBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = MainFrame.Position
-            
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
@@ -351,12 +408,15 @@ function KeysysObj:Key(Config)
     -- STREAMING_CHUNK:Key Verification Logic...
     local isChecking = false
 
-    -- Placeholder for website verification
+    -- API giả lập nâng cấp, chuẩn bị cho HTTP Request thật (HWID check)
     local function VerifyKeyFromSite(inputKey)
-        -- Replace this with your actual HTTP verification
-        -- Example: return game:HttpGet("https://yoursite.com/verify?key=" .. inputKey) == "true"
-        task.wait(1) -- Simulate network delay
-        return false
+        -- Đây là nơi Dev có thể chèn API kiểm tra Key thật:
+        -- local url = "https://your-api.com/check?key=" .. inputKey
+        -- local res = game:HttpGet(url)
+        -- return (res == "Valid")
+        
+        task.wait(1.5) -- Giả lập độ trễ mạng
+        return (string.len(inputKey) >= 5) -- Ví dụ: chấp nhận key nếu dài hơn 5 ký tự
     end
 
     local function CheckInput()
@@ -366,20 +426,27 @@ function KeysysObj:Key(Config)
         local inputText = KeyInput.Text
 
         local successResult = false
+        local expireDuration = 0
 
         if GetKeyFromSite then
-            -- Verify using Website logic
+            -- Kiểm tra qua API mạng
             successResult = VerifyKeyFromSite(inputText)
+            expireDuration = 86400 -- 24 Giờ (1 ngày)
         else
-            -- Verify directly using KeyPass string
+            -- Kiểm tra bằng KeyPass cố định
             if inputText == KeyPass and KeyPass ~= "" then
                 successResult = true
+                expireDuration = 2592000 -- 30 Ngày (1 tháng)
             end
         end
 
         if successResult then
             SubmitBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 60)
             SubmitBtn.Text = "Success!"
+            
+            -- Lưu cấu hình Key đã hoàn tất vào máy
+            SaveKeyData(FileName, inputText, expireDuration)
+            
             Library:Notify({
                 Title = "Success",
                 Content = "Key accepted. Loading script...",
@@ -388,7 +455,6 @@ function KeysysObj:Key(Config)
             task.wait(0.5)
             CloseUI()
             
-            -- Safely execute user callback
             pcall(function()
                 Callback(true)
             end)
