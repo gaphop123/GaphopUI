@@ -1,411 +1,437 @@
--- STREAMING_CHUNK:Initializing Services and Setup
+-- STREAMING_CHUNK:Initializing Core Services and Library...
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
-local TweenService = game:GetService("TweenService") local UserInputService = game:GetService("UserInputService") local CoreGui = game:GetService("CoreGui") local RunService = game:GetService("RunService")
+local Library = {}
 
--- Compatibility for Executor UI Parent (fallbacks for different environments) local TargetParent = (gethui and gethui()) or (RunService:IsStudio() and game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")) or CoreGui
-
--- Compatibility for Clipboard local set_clipboard = setclipboard or toclipboard or set_clipboard or function(text) warn("Clipboard not supported on this executor. Text: " .. tostring(text)) end
-
--- STREAMING_CHUNK:Defining Utility Functions... -- UI Utility Functions local Utility = {}
-
-function Utility:Create(className, properties) local instance = Instance.new(className) for k, v in pairs(properties or {}) do instance
-
-$$k$$
-
- = v end return instance end
-
-function Utility:Tween(instance, properties, duration, style, direction) style = style or Enum.EasingStyle.Quart direction = direction or Enum.EasingDirection.Out duration = duration or 0.5 local tween = TweenService:Create(instance, TweenInfo.new(duration, style, direction), properties) tween:Play() return tween end
-
-function Utility:MakeDraggable(topBar, frame) local dragging, dragInput, dragStart, startPos
-
-local function update(input)
-    local delta = input.Position - dragStart
-    Utility:Tween(frame, {Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)}, 0.15, Enum.EasingStyle.Sine)
+-- Lấy Parent an toàn nhất cho UI (Hỗ trợ mọi Executor)
+local function getParent()
+local success, parent = pcall(function()
+return (gethui and gethui()) or CoreGui
+end)
+if not success or not parent then
+parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+end
+return parent
 end
 
-topBar.InputBegan:Connect(function(input)
+local GuiParent = getParent()
+
+-- Hàm tiện ích tạo Animation mượt mà (Tween)
+local Utility = {}
+function Utility:Tween(instance, properties, duration)
+duration = duration or 0.3
+local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local tween = TweenService:Create(instance, tweenInfo, properties)
+tween:Play()
+return tween
+end
+
+-- Hàm Kéo thả mượt mà (Hỗ trợ PC & Mobile)
+function Utility:MakeDraggable(topbarobject, object)
+local Dragging = nil
+local DragInput = nil
+local DragStart = nil
+local StartPosition = nil
+
+local function Update(input)
+    local Delta = input.Position - DragStart
+    local pos = UDim2.new(StartPosition.X.Scale, StartPosition.X.Offset + Delta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + Delta.Y)
+    Utility:Tween(object, {Position = pos}, 0.15)
+end
+
+topbarobject.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
+        Dragging = true
+        DragStart = input.Position
+        StartPosition = object.Position
 
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
+                Dragging = false
             end
         end)
     end
 end)
 
-topBar.InputChanged:Connect(function(input)
+topbarobject.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
+        DragInput = input
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
+    if input == DragInput and Dragging then
+        Update(input)
     end
 end)
 
 
+end
+
+-- STREAMING_CHUNK:Building Global Notification System...
+-- Tạo GUI thông báo riêng biệt để không bị xoá khi đóng Key System
+local NotifyGui = GuiParent:FindFirstChild("FluentNotifications")
+if not NotifyGui then
+NotifyGui = Instance.new("ScreenGui")
+NotifyGui.Name = "FluentNotifications"
+NotifyGui.Parent = GuiParent
+NotifyGui.ResetOnSpawn = false
+
+local NotifyList = Instance.new("Frame")
+NotifyList.Name = "NotifyList"
+NotifyList.Size = UDim2.new(0, 300, 1, -20)
+NotifyList.Position = UDim2.new(1, -320, 0, 10)
+NotifyList.BackgroundTransparency = 1
+NotifyList.Parent = NotifyGui
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+ListLayout.Padding = UDim.new(0, 10)
+ListLayout.Parent = NotifyList
+
 
 end
 
--- STREAMING_CHUNK:Defining Verification Logic Placeholder... -- Placeholder for website verification API local function VerifyKeyPlaceholder(input) -- REPLACE THIS WITH YOUR OWN HTTP VERIFICATION LOGIC! -- Example: -- local req = request or http_request or syn.request -- local res = req({Url = "https://yourwebsite.com/api/verify?key=" .. input, Method = "GET"}) -- return res.Body == "valid"
+function Library:Notify(options)
+options = options or {}
+local title = options.Title or "Notification"
+local content = options.Content or ""
+local duration = options.Duration or 3.5
+local typeStr = options.Type or "info" -- info, success, error
 
-task.wait(0.8) -- Simulating network request delay
-return false -- Default to false for security; change this according to your logic.
+local NotifyList = NotifyGui:FindFirstChild("NotifyList")
+if not NotifyList then return end
 
+local colors = {
+    info = Color3.fromRGB(59, 130, 246),
+    success = Color3.fromRGB(34, 197, 94),
+    error = Color3.fromRGB(239, 68, 68)
+}
+local stripColor = colors[typeStr] or colors.info
+
+local Notification = Instance.new("Frame")
+Notification.Name = "Notification"
+Notification.Size = UDim2.new(1, 0, 0, 60)
+Notification.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+Notification.BackgroundTransparency = 1 -- Khởi tạo tàng hình
+Notification.BorderSizePixel = 0
+Notification.ClipsDescendants = true
+Notification.Parent = NotifyList
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = Notification
+
+local ColorStrip = Instance.new("Frame")
+ColorStrip.Size = UDim2.new(0, 4, 1, 0)
+ColorStrip.BackgroundColor3 = stripColor
+ColorStrip.BorderSizePixel = 0
+ColorStrip.Parent = Notification
+
+local StripCorner = Instance.new("UICorner")
+StripCorner.CornerRadius = UDim.new(0, 8)
+StripCorner.Parent = ColorStrip
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, -20, 0, 20)
+TitleLabel.Position = UDim2.new(0, 15, 0, 10)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = title
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 14
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.TextTransparency = 1
+TitleLabel.Parent = Notification
+
+local ContentLabel = Instance.new("TextLabel")
+ContentLabel.Size = UDim2.new(1, -20, 0, 20)
+ContentLabel.Position = UDim2.new(0, 15, 0, 30)
+ContentLabel.BackgroundTransparency = 1
+ContentLabel.Font = Enum.Font.Gotham
+ContentLabel.Text = content
+ContentLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+ContentLabel.TextSize = 13
+ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
+ContentLabel.TextTransparency = 1
+ContentLabel.Parent = Notification
+
+-- Hiệu ứng trượt và hiện ra
+Notification.Size = UDim2.new(1, 0, 0, 0)
+Utility:Tween(Notification, {Size = UDim2.new(1, 0, 0, 60), BackgroundTransparency = 0}, 0.3)
+Utility:Tween(TitleLabel, {TextTransparency = 0}, 0.3)
+Utility:Tween(ContentLabel, {TextTransparency = 0}, 0.3)
+
+-- Tự động dọn dẹp
+task.delay(duration, function()
+    Utility:Tween(TitleLabel, {TextTransparency = 1}, 0.3)
+    Utility:Tween(ContentLabel, {TextTransparency = 1}, 0.3)
+    local hideTween = Utility:Tween(Notification, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.3)
+    hideTween.Completed:Connect(function()
+        Notification:Destroy()
+    end)
+end)
 
 
 end
 
--- STREAMING_CHUNK:Initializing Library Structure... local Library = {}
+-- STREAMING_CHUNK:Constructing Key System Base...
+function Library:KeySystem()
+local KeysysObj = {}
 
-function Library:KeySystem() local KeysysObj = {}
+function KeysysObj:Notify(options)
+    Library:Notify(options)
+end
 
 function KeysysObj:Key(Config)
-    -- Setup Configuration Defaults
-    Config.Title = Config.Title or "Key System"
-    Config.Description = Config.Description or "Please enter your access key."
-    Config.ShowGetKey = Config.ShowGetKey == nil and true or Config.ShowGetKey
-    Config.GetKeyFromSite = Config.GetKeyFromSite == nil and true or Config.GetKeyFromSite
-    Config.Link = Config.Link or "https://example.com"
-    Config.KeyPass = Config.KeyPass or "DEFAULT_KEY"
-    Config.Callback = Config.Callback or function() end
+    Config = Config or {}
+    local Title = Config.Title or "Key System"
+    local Description = Config.Description or "Please enter your access key."
     
-    local isChecking = false
+    -- Fix triệt để logic boolean của ShowGetKey & GetKeyFromSite
+    local ShowGetKey = (Config.ShowGetKey ~= false) 
+    local GetKeyFromSite = (Config.GetKeyFromSite ~= false)
     
-    -- STREAMING_CHUNK:Constructing Main UI Containers...
-    -- Main ScreenGui
-    local ScreenGui = Utility:Create("ScreenGui", {
-        Name = "FluentKeySystem_" .. math.random(1000, 9999),
-        Parent = TargetParent,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-        IgnoreGuiInset = true,
-        ResetOnSpawn = false
-    })
-    
-    -- Center Alignment Container
-    local Container = Utility:Create("Frame", {
-        Name = "Container",
-        Parent = ScreenGui,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0)
-    })
+    local Link = Config.Link or ""
+    local KeyPass = Config.KeyPass or ""
+    local Callback = Config.Callback or function() end
 
-    -- CanvasGroup for Global Transparency Tweens (Fade In/Out)
-    local MainFrame = Utility:Create("CanvasGroup", {
-        Name = "MainFrame",
-        Parent = Container,
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(0, 420, 0, 260),
-        BackgroundColor3 = Color3.fromRGB(24, 24, 27), -- Zinc 900
-        BorderSizePixel = 0,
-        GroupTransparency = 1 -- Start hidden
-    })
-    
-    -- Main Rounded Corner
-    Utility:Create("UICorner", {
-        Parent = MainFrame,
-        CornerRadius = UDim.new(0, 12)
-    })
-    
-    -- Subtle Border (UIStroke)
-    Utility:Create("UIStroke", {
-        Parent = MainFrame,
-        Color = Color3.fromRGB(63, 63, 70), -- Zinc 700
-        Thickness = 1
-    })
-    
-    -- Drop Shadow
-    local Shadow = Utility:Create("ImageLabel", {
-        Name = "Shadow",
-        Parent = MainFrame,
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(1, 47, 1, 47),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://4743306766",
-        ImageColor3 = Color3.fromRGB(0, 0, 0),
-        ImageTransparency = 0.4,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(21, 21, 279, 279),
-        ZIndex = -1
-    })
-    
-    -- STREAMING_CHUNK:Constructing Top Bar & Typography...
-    -- Top Bar
-    local TopBar = Utility:Create("Frame", {
-        Name = "TopBar",
-        Parent = MainFrame,
-        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 40)
-    })
-    
-    local TitleText = Utility:Create("TextLabel", {
-        Name = "Title",
-        Parent = TopBar,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 15, 0, 0),
-        Size = UDim2.new(1, -55, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = Config.Title,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
-    
-    -- Close Button
-    local CloseBtn = Utility:Create("TextButton", {
-        Name = "CloseBtn",
-        Parent = TopBar,
-        AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -10, 0.5, 0),
-        Size = UDim2.new(0, 24, 0, 24),
-        BackgroundTransparency = 1,
-        Font = Enum.Font.Gotham,
-        Text = "X",
-        TextColor3 = Color3.fromRGB(161, 161, 170), -- Zinc 400
-        TextSize = 14
-    })
-    
-    CloseBtn.MouseEnter:Connect(function() Utility:Tween(CloseBtn, {TextColor3 = Color3.fromRGB(244, 63, 94)}, 0.2) end)
-    CloseBtn.MouseLeave:Connect(function() Utility:Tween(CloseBtn, {TextColor3 = Color3.fromRGB(161, 161, 170)}, 0.2) end)
-    CloseBtn.MouseButton1Click:Connect(function()
-        Utility:Tween(MainFrame, {GroupTransparency = 1, Size = UDim2.new(0, 380, 0, 240)}, 0.3)
-        task.wait(0.3)
-        ScreenGui:Destroy()
+    -- Xóa UI cũ nếu bị trùng lặp khi chạy lại script
+    local oldGui = GuiParent:FindFirstChild("FluentKeySystemUI")
+    if oldGui then oldGui:Destroy() end
+
+    local MainGui = Instance.new("ScreenGui")
+    MainGui.Name = "FluentKeySystemUI"
+    MainGui.Parent = GuiParent
+    MainGui.ResetOnSpawn = false
+
+    -- Lớp nền mờ tối
+    local Backdrop = Instance.new("Frame")
+    Backdrop.Size = UDim2.new(1, 0, 1, 0)
+    Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Backdrop.BackgroundTransparency = 1
+    Backdrop.BorderSizePixel = 0
+    Backdrop.Parent = MainGui
+
+    -- Khung UI Chính
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Size = UDim2.new(0, 400, 0, 240)
+    MainFrame.Position = UDim2.new(0.5, -200, 0.5, -120)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.ClipsDescendants = true
+    MainFrame.Parent = Backdrop
+
+    local MainCorner = Instance.new("UICorner")
+    MainCorner.CornerRadius = UDim.new(0, 10)
+    MainCorner.Parent = MainFrame
+
+    local MainStroke = Instance.new("UIStroke")
+    MainStroke.Color = Color3.fromRGB(50, 50, 60)
+    MainStroke.Thickness = 1
+    MainStroke.Parent = MainFrame
+
+    -- STREAMING_CHUNK:Adding UI Elements (Title, Input, Buttons)...
+    -- Topbar (Dùng để kéo thả)
+    local Topbar = Instance.new("Frame")
+    Topbar.Size = UDim2.new(1, 0, 0, 40)
+    Topbar.BackgroundTransparency = 1
+    Topbar.Parent = MainFrame
+    Utility:MakeDraggable(Topbar, MainFrame)
+
+    local TitleText = Instance.new("TextLabel")
+    TitleText.Size = UDim2.new(1, -30, 1, 0)
+    TitleText.Position = UDim2.new(0, 15, 0, 0)
+    TitleText.BackgroundTransparency = 1
+    TitleText.Font = Enum.Font.GothamBold
+    TitleText.Text = Title
+    TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleText.TextSize = 16
+    TitleText.TextXAlignment = Enum.TextXAlignment.Left
+    TitleText.Parent = Topbar
+
+    local DescText = Instance.new("TextLabel")
+    DescText.Size = UDim2.new(1, -30, 0, 20)
+    DescText.Position = UDim2.new(0, 15, 0, 50)
+    DescText.BackgroundTransparency = 1
+    DescText.Font = Enum.Font.Gotham
+    DescText.Text = Description
+    DescText.TextColor3 = Color3.fromRGB(180, 180, 180)
+    DescText.TextSize = 13
+    DescText.TextXAlignment = Enum.TextXAlignment.Left
+    DescText.Parent = MainFrame
+
+    local KeyInput = Instance.new("TextBox")
+    KeyInput.Size = UDim2.new(1, -30, 0, 40)
+    KeyInput.Position = UDim2.new(0, 15, 0, 85)
+    KeyInput.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+    KeyInput.PlaceholderText = "Enter Key Here..."
+    KeyInput.Text = ""
+    KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    KeyInput.Font = Enum.Font.Gotham
+    KeyInput.TextSize = 14
+    KeyInput.ClearTextOnFocus = false
+    KeyInput.Parent = MainFrame
+
+    local InputCorner = Instance.new("UICorner")
+    InputCorner.CornerRadius = UDim.new(0, 6)
+    InputCorner.Parent = KeyInput
+
+    local InputStroke = Instance.new("UIStroke")
+    InputStroke.Color = Color3.fromRGB(60, 60, 75)
+    InputStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    InputStroke.Parent = KeyInput
+
+    -- Container chứa 2 nút
+    local ButtonContainer = Instance.new("Frame")
+    ButtonContainer.Size = UDim2.new(1, -30, 0, 40)
+    ButtonContainer.Position = UDim2.new(0, 15, 0, 140)
+    ButtonContainer.BackgroundTransparency = 1
+    ButtonContainer.Parent = MainFrame
+
+    local UIListLayout = Instance.new("UIListLayout")
+    UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+    UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    UIListLayout.Padding = UDim.new(0, 10)
+    UIListLayout.Parent = ButtonContainer
+
+    -- STREAMING_CHUNK:Configuring Submit & Get Key Logic...
+    local GetKeyBtn = Instance.new("TextButton")
+    GetKeyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    GetKeyBtn.Font = Enum.Font.GothamSemibold
+    GetKeyBtn.Text = "Get Key"
+    GetKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    GetKeyBtn.TextSize = 14
+    GetKeyBtn.Parent = ButtonContainer
+
+    local GetKeyCorner = Instance.new("UICorner")
+    GetKeyCorner.CornerRadius = UDim.new(0, 6)
+    GetKeyCorner.Parent = GetKeyBtn
+
+    local SubmitBtn = Instance.new("TextButton")
+    SubmitBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+    SubmitBtn.Font = Enum.Font.GothamSemibold
+    SubmitBtn.Text = "Submit Key"
+    SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SubmitBtn.TextSize = 14
+    SubmitBtn.Parent = ButtonContainer
+
+    local SubmitCorner = Instance.new("UICorner")
+    SubmitCorner.CornerRadius = UDim.new(0, 6)
+    SubmitCorner.Parent = SubmitBtn
+
+    -- Xử lý độ rộng của nút dựa trên Config (Fix lỗi giao diện bị lệch)
+    if ShowGetKey == false then
+        GetKeyBtn.Visible = false
+        SubmitBtn.Size = UDim2.new(1, 0, 1, 0) -- Full width
+    else
+        GetKeyBtn.Visible = true
+        GetKeyBtn.Size = UDim2.new(0.5, -5, 1, 0)
+        SubmitBtn.Size = UDim2.new(0.5, -5, 1, 0)
+    end
+
+    -- Animation Hiện UI mượt mà
+    MainFrame.Position = UDim2.new(0.5, -200, 0.5, -100)
+    MainFrame.GroupTransparency = 1
+    Utility:Tween(Backdrop, {BackgroundTransparency = 0.5}, 0.3)
+    Utility:Tween(MainFrame, {Position = UDim2.new(0.5, -200, 0.5, -120), GroupTransparency = 0}, 0.4)
+
+    -- STREAMING_CHUNK:Executing Buttons Scripts...
+    -- Nút Get Key (Copy link)
+    GetKeyBtn.MouseButton1Click:Connect(function()
+        Utility:Tween(GetKeyBtn, {BackgroundColor3 = Color3.fromRGB(60, 60, 65)}, 0.1)
+        task.wait(0.1)
+        Utility:Tween(GetKeyBtn, {BackgroundColor3 = Color3.fromRGB(40, 40, 45)}, 0.1)
+        
+        local copied = false
+        pcall(function()
+            if setclipboard then setclipboard(Link) copied = true
+            elseif toclipboard then toclipboard(Link) copied = true
+            end
+        end)
+
+        if copied then
+            Library:Notify({Title = "Copied", Content = "Key link copied to clipboard!", Type = "success"})
+        else
+            Library:Notify({Title = "Error", Content = "Your executor does not support clipboard. Link: " .. Link, Type = "error"})
+        end
     end)
-    
-    Utility:MakeDraggable(TopBar, MainFrame)
-    
-    -- Description
-    local DescriptionText = Utility:Create("TextLabel", {
-        Name = "Description",
-        Parent = MainFrame,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 20, 0, 50),
-        Size = UDim2.new(1, -40, 0, 40),
-        Font = Enum.Font.Gotham,
-        Text = Config.Description,
-        TextColor3 = Color3.fromRGB(161, 161, 170),
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextWrapped = true,
-        TextYAlignment = Enum.TextYAlignment.Top
-    })
-    
-    -- STREAMING_CHUNK:Constructing Inputs & Buttons...
-    -- Input Field (TextBox)
-    local InputBg = Utility:Create("Frame", {
-        Name = "InputBg",
-        Parent = MainFrame,
-        BackgroundColor3 = Color3.fromRGB(39, 39, 42), -- Zinc 800
-        Position = UDim2.new(0, 20, 0, 110),
-        Size = UDim2.new(1, -40, 0, 42)
-    })
-    Utility:Create("UICorner", {Parent = InputBg, CornerRadius = UDim.new(0, 6)})
-    Utility:Create("UIStroke", {Parent = InputBg, Color = Color3.fromRGB(63, 63, 70), Thickness = 1})
-    
-    local KeyInput = Utility:Create("TextBox", {
-        Name = "KeyInput",
-        Parent = InputBg,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 15, 0, 0),
-        Size = UDim2.new(1, -30, 1, 0),
-        Font = Enum.Font.Gotham,
-        PlaceholderText = "Enter Key Here...",
-        PlaceholderColor3 = Color3.fromRGB(113, 113, 122),
-        Text = "",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ClearTextOnFocus = false
-    })
-    
-    -- Buttons Container
-    local ButtonContainer = Utility:Create("Frame", {
-        Name = "ButtonContainer",
-        Parent = MainFrame,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 20, 1, -70),
-        Size = UDim2.new(1, -40, 0, 42)
-    })
-    
-    Utility:Create("UIListLayout", {
-        Parent = ButtonContainer,
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Right,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 10)
-    })
-    
-    -- STREAMING_CHUNK:Button Functions & Configurations...
-    -- Helper function to create stylish buttons
-    local function CreateButton(name, text, layoutOrder, isPrimary)
-        local Btn = Utility:Create("TextButton", {
-            Name = name,
-            Parent = ButtonContainer,
-            BackgroundColor3 = isPrimary and Color3.fromRGB(59, 130, 246) or Color3.fromRGB(39, 39, 42), -- Blue 500 or Zinc 800
-            Size = UDim2.new(0.5, -5, 1, 0), -- Dynamic sizing
-            Font = Enum.Font.GothamBold,
-            Text = text,
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextSize = 14,
-            AutoButtonColor = false,
-            LayoutOrder = layoutOrder
-        })
-        Utility:Create("UICorner", {Parent = Btn, CornerRadius = UDim.new(0, 6)})
-        
-        if not isPrimary then
-            Utility:Create("UIStroke", {Parent = Btn, Color = Color3.fromRGB(63, 63, 70), Thickness = 1})
-        end
-        
-        -- Hover animations
-        Btn.MouseEnter:Connect(function()
-            if isChecking then return end
-            Utility:Tween(Btn, {BackgroundColor3 = isPrimary and Color3.fromRGB(96, 165, 250) or Color3.fromRGB(63, 63, 70)}, 0.2)
-        end)
-        Btn.MouseLeave:Connect(function()
-            if isChecking then return end
-            Utility:Tween(Btn, {BackgroundColor3 = isPrimary and Color3.fromRGB(59, 130, 246) or Color3.fromRGB(39, 39, 42)}, 0.2)
-        end)
-        
-        return Btn
-    end
-    
-    local GetKeyBtn = nil
-    if Config.ShowGetKey and Config.GetKeyFromSite then
-        GetKeyBtn = CreateButton("GetKeyBtn", "Get Key", 1, false)
-    end
-    
-    -- If GetKeyBtn exists, buttons are 50% width, else Submit is 100% width
-    local submitWidth = GetKeyBtn and UDim2.new(0.5, -5, 1, 0) or UDim2.new(1, 0, 1, 0)
-    local SubmitBtn = CreateButton("SubmitBtn", "Submit Key", 2, true)
-    SubmitBtn.Size = submitWidth
 
-    -- STREAMING_CHUNK:Implementing Notification System...
-    -- Notification System Setup
-    local function ShowNotification(message, isError)
-        local Notif = Utility:Create("Frame", {
-            Parent = ScreenGui,
-            AnchorPoint = Vector2.new(0.5, 0),
-            Position = UDim2.new(0.5, 0, 0, -50), -- Starts off-screen (top)
-            Size = UDim2.new(0, 250, 0, 40),
-            BackgroundColor3 = Color3.fromRGB(24, 24, 27),
-        })
-        Utility:Create("UICorner", {Parent = Notif, CornerRadius = UDim.new(0, 6)})
-        Utility:Create("UIStroke", {Parent = Notif, Color = isError and Color3.fromRGB(244, 63, 94) or Color3.fromRGB(34, 197, 94), Thickness = 1})
-        
-        Utility:Create("TextLabel", {
-            Parent = Notif,
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 1, 0),
-            Font = Enum.Font.GothamBold,
-            Text = message,
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextSize = 13
-        })
-        
-        -- Slide in
-        Utility:Tween(Notif, {Position = UDim2.new(0.5, 0, 0, 20)}, 0.4, Enum.EasingStyle.Back)
-        
-        -- Wait & Slide out
-        task.delay(2.5, function()
-            local outTween = Utility:Tween(Notif, {Position = UDim2.new(0.5, 0, 0, -50)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-            outTween.Completed:Wait()
-            Notif:Destroy()
-        end)
-    end
-    
-    -- Error Shake Animation
-    local function ShakeUI()
-        local originalPos = MainFrame.Position
-        local offset = 8
-        for i = 1, 4 do
-            Utility:Tween(MainFrame, {Position = UDim2.new(originalPos.X.Scale, originalPos.X.Offset + (i%2==0 and offset or -offset), originalPos.Y.Scale, originalPos.Y.Offset)}, 0.05).Completed:Wait()
-        end
-        Utility:Tween(MainFrame, {Position = originalPos}, 0.05)
-    end
-    
-    -- STREAMING_CHUNK:Binding Actions and Final Logic...
-    -- Verification Execution Logic
-    local function SubmitLogic()
+    -- Nút Submit (Kiểm tra Key)
+    local isChecking = false
+
+    local function SubmitAction()
         if isChecking then return end
         isChecking = true
         
-        local inputText = KeyInput.Text
         SubmitBtn.Text = "Checking..."
-        Utility:Tween(SubmitBtn, {BackgroundColor3 = Color3.fromRGB(71, 85, 105)}, 0.2)
+        Utility:Tween(SubmitBtn, {BackgroundColor3 = Color3.fromRGB(100, 100, 100)}, 0.2)
         
+        local inputText = KeyInput.Text
         local success = false
-        
-        if Config.GetKeyFromSite then
-            -- Delegate logic to the custom VerifyKey function
-            success = VerifyKeyPlaceholder(inputText)
+
+        -- Logic xác minh sửa theo đúng yêu cầu
+        if GetKeyFromSite == false then
+            -- So sánh trực tiếp với KeyPass
+            success = (inputText == KeyPass)
         else
-            -- Offline / Basic matching string
-            success = (inputText == Config.KeyPass)
-            task.wait(0.3) -- UX buffer
+            -- Gọi API Web từ dev nếu có
+            if Config.VerifyKey then
+                local pcallSuccess, verifyResult = pcall(function() return Config.VerifyKey(inputText) end)
+                success = pcallSuccess and verifyResult
+            end
         end
-        
+
         if success then
             SubmitBtn.Text = "Success!"
-            Utility:Tween(SubmitBtn, {BackgroundColor3 = Color3.fromRGB(34, 197, 94)}, 0.2) -- Green
-            ShowNotification("Key Validated. Loading...", false)
+            Utility:Tween(SubmitBtn, {BackgroundColor3 = Color3.fromRGB(34, 197, 94)}, 0.2)
+            Library:Notify({Title = "Success", Content = "Key correct! Loading script...", Type = "success"})
             
-            task.wait(0.8)
-            -- Fade out and close
-            Utility:Tween(MainFrame, {GroupTransparency = 1, Size = UDim2.new(0, 440, 0, 280)}, 0.4)
-            task.wait(0.4)
-            ScreenGui:Destroy()
+            -- Đóng UI
+            task.wait(0.5)
+            Utility:Tween(Backdrop, {BackgroundTransparency = 1}, 0.3)
+            local hideTween = Utility:Tween(MainFrame, {Position = UDim2.new(0.5, -200, 0.5, -140), GroupTransparency = 1}, 0.3)
             
-            -- Execute Callback
-            Config.Callback(true)
+            hideTween.Completed:Connect(function()
+                MainGui:Destroy()
+                -- Thực thi Script của bạn an toàn
+                pcall(function() Callback(true) end)
+            end)
         else
-            -- Fail
             SubmitBtn.Text = "Submit Key"
-            Utility:Tween(SubmitBtn, {BackgroundColor3 = Color3.fromRGB(59, 130, 246)}, 0.2)
-            ShowNotification("Invalid Key!", true)
-            ShakeUI()
-            Config.Callback(false)
+            Utility:Tween(SubmitBtn, {BackgroundColor3 = Color3.fromRGB(239, 68, 68)}, 0.15)
+            Library:Notify({Title = "Error", Content = "Invalid Key!", Type = "error"})
+            
+            -- Hiệu ứng rung khung nhập (Shake Error)
+            local startPos = KeyInput.Position
+            for i = 1, 4 do
+                Utility:Tween(KeyInput, {Position = startPos + UDim2.new(0, (i%2==0 and -5 or 5), 0, 0)}, 0.05)
+                task.wait(0.05)
+            end
+            Utility:Tween(KeyInput, {Position = startPos}, 0.05)
+            
+            task.wait(0.5)
+            Utility:Tween(SubmitBtn, {BackgroundColor3 = Color3.fromRGB(0, 120, 215)}, 0.2)
+            pcall(function() Callback(false) end)
+            isChecking = false
         end
-        
-        isChecking = false
     end
 
-    -- Events Binding
-    SubmitBtn.MouseButton1Click:Connect(SubmitLogic)
+    SubmitBtn.MouseButton1Click:Connect(SubmitAction)
     
-    -- Allow "Enter" Key submission
+    -- Nhấn Enter trong TextBox để Submit
     KeyInput.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            SubmitLogic()
-        end
+        if enterPressed then SubmitAction() end
     end)
-    
-    if GetKeyBtn then
-        GetKeyBtn.MouseButton1Click:Connect(function()
-            if isChecking then return end
-            set_clipboard(Config.Link)
-            ShowNotification("Link copied to clipboard!", false)
-        end)
-    end
-    
-    -- Startup Animation (Fade In)
-    MainFrame.Size = UDim2.new(0, 400, 0, 240)
-    Utility:Tween(MainFrame, {GroupTransparency = 0, Size = UDim2.new(0, 420, 0, 260)}, 0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
-    
 end
 
 return KeysysObj
-
 
 
 end
