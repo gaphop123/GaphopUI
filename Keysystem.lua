@@ -169,6 +169,96 @@ end)
 
 end
 
+function Library:WarnNotify(Config)
+	Config = Config or {}
+
+	local Title = Config.Title or "Warning"
+	local Content = Config.Content or "This is a warning."
+	local Duration = Config.Duration or 5
+
+	local NotifyScreen = SafeParent:FindFirstChild("FluentWarnNotifyUI")
+	if not NotifyScreen then
+		NotifyScreen = Instance.new("ScreenGui")
+		NotifyScreen.Name = "FluentWarnNotifyUI"
+		NotifyScreen.Parent = SafeParent
+		NotifyScreen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+		local NotifyList = Instance.new("Frame")
+		NotifyList.Name = "NotifyList"
+		NotifyList.Size = UDim2.new(0, 320, 1, -20)
+		NotifyList.Position = UDim2.new(1, -340, 0, 20)
+		NotifyList.BackgroundTransparency = 1
+		NotifyList.Parent = NotifyScreen
+
+		local UIListLayout = Instance.new("UIListLayout")
+		UIListLayout.Parent = NotifyList
+		UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+		UIListLayout.Padding = UDim.new(0, 10)
+	end
+
+	local NotifyList = NotifyScreen.NotifyList
+
+	local NotifFrame = Instance.new("CanvasGroup")
+	NotifFrame.Size = UDim2.new(1, 0, 0, 90)
+	NotifFrame.BackgroundColor3 = Color3.fromRGB(45, 30, 20)
+	NotifFrame.GroupTransparency = 1
+	NotifFrame.Parent = NotifyList
+
+	local UICorner = Instance.new("UICorner")
+	UICorner.CornerRadius = UDim.new(0, 8)
+	UICorner.Parent = NotifFrame
+
+	local UIStroke = Instance.new("UIStroke")
+	UIStroke.Color = Color3.fromRGB(255, 170, 0)
+	UIStroke.Thickness = 1.5
+	UIStroke.Parent = NotifFrame
+
+	local Icon = Instance.new("TextLabel")
+	Icon.Size = UDim2.new(0, 24, 0, 24)
+	Icon.Position = UDim2.new(0, 10, 0, 10)
+	Icon.BackgroundTransparency = 1
+	Icon.Text = "⚠"
+	Icon.TextColor3 = Color3.fromRGB(255, 200, 0)
+	Icon.Font = Enum.Font.GothamBold
+	Icon.TextSize = 22
+	Icon.Parent = NotifFrame
+
+	local TitleLabel = Instance.new("TextLabel")
+	TitleLabel.Size = UDim2.new(1, -50, 0, 24)
+	TitleLabel.Position = UDim2.new(0, 40, 0, 10)
+	TitleLabel.BackgroundTransparency = 1
+	TitleLabel.Text = Title
+	TitleLabel.TextColor3 = Color3.fromRGB(255, 220, 120)
+	TitleLabel.TextSize = 16
+	TitleLabel.Font = Enum.Font.GothamBold
+	TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	TitleLabel.Parent = NotifFrame
+
+	local ContentLabel = Instance.new("TextLabel")
+	ContentLabel.Size = UDim2.new(1, -20, 0, 45)
+	ContentLabel.Position = UDim2.new(0, 10, 0, 38)
+	ContentLabel.BackgroundTransparency = 1
+	ContentLabel.Text = Content
+	ContentLabel.TextColor3 = Color3.fromRGB(235, 235, 235)
+	ContentLabel.TextSize = 14
+	ContentLabel.Font = Enum.Font.Gotham
+	ContentLabel.TextWrapped = true
+	ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
+	ContentLabel.TextYAlignment = Enum.TextYAlignment.Top
+	ContentLabel.Parent = NotifFrame
+
+	Utility:Tween(NotifFrame, {GroupTransparency = 0}, 0.3)
+
+	task.spawn(function()
+		task.wait(Duration)
+		local fadeOut = Utility:Tween(NotifFrame, {GroupTransparency = 1}, 0.3)
+		fadeOut.Completed:Wait()
+		NotifFrame:Destroy()
+	end)
+end
+
+
 -- STREAMING_CHUNK:Building the Key System Structure...
 function Library:KeySystem()
 local KeysysObj = {}
