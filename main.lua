@@ -989,6 +989,191 @@ function GaphopUI:Notify(cfg)
     end)
 end
 
+```lua
+-- STREAMING_CHUNK: Constructing Animated Warning Notification Stack System...
+
+local WarnNotifyContainer = Instance.new("Frame")
+WarnNotifyContainer.Name = "WarnNotifyContainer"
+WarnNotifyContainer.Size = UDim2.new(0, 320, 1, -40)
+WarnNotifyContainer.Position = UDim2.new(1, -330, 0, 20)
+WarnNotifyContainer.BackgroundTransparency = 1
+WarnNotifyContainer.ZIndex = 1000
+WarnNotifyContainer.Parent = ScreenGui
+
+local WarnNotifyLayout = Instance.new("UIListLayout")
+WarnNotifyLayout.SortOrder = Enum.SortOrder.LayoutOrder
+WarnNotifyLayout.Padding = UDim.new(0, 10)
+WarnNotifyLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+WarnNotifyLayout.Parent = WarnNotifyContainer
+
+GaphopUI.WarnNotifyContainer = WarnNotifyContainer
+
+function GaphopUI:WarnNotify(cfg)
+	cfg = cfg or {}
+
+	local titleText = cfg.Title or "Warning"
+	local contentText = cfg.Content or ""
+	local duration = cfg.Duration or 4
+	local imgId = cfg.Image
+	local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
+
+	-- Warning colors
+	local warnAccent = cfg.Color or Color3.fromRGB(255, 180, 0)
+	local warnText = Color3.fromRGB(255, 220, 130)
+
+	local card = Instance.new("Frame")
+	card.Size = UDim2.new(1, 0, 0, 72)
+	card.BackgroundColor3 = theme.Card
+	card.BackgroundTransparency = 0.12
+	card.Position = UDim2.new(1, 360, 0, 0)
+	card.ClipsDescendants = true
+	card.Parent = WarnNotifyContainer
+
+	CreateCorner(card, 12)
+
+	local stroke = CreateStroke(
+		card,
+		warnAccent,
+		1.5,
+		0.25
+	)
+
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0, 16)
+	padding.PaddingRight = UDim.new(0, 12)
+	padding.PaddingTop = UDim.new(0, 10)
+	padding.PaddingBottom = UDim.new(0, 10)
+	padding.Parent = card
+
+	local iconOffset = 42
+
+	-- Warning icon
+	local iconImg = Instance.new("ImageLabel")
+	iconImg.Size = UDim2.new(0, 34, 0, 34)
+	iconImg.Position = UDim2.new(0, 0, 0.5, -17)
+	iconImg.BackgroundTransparency = 1
+
+	if imgId then
+		local resolvedNotify = ResolveIconValue(imgId, nil)
+
+		if type(resolvedNotify) == "table" then
+			iconImg.Image = "rbxassetid://" .. tostring(resolvedNotify[1])
+			iconImg.ImageRectSize = Vector2.new(
+				resolvedNotify[2][1],
+				resolvedNotify[2][2]
+			)
+			iconImg.ImageRectOffset = Vector2.new(
+				resolvedNotify[3][1],
+				resolvedNotify[3][2]
+			)
+			iconImg.ImageColor3 = warnAccent
+		else
+			iconImg.Image =
+				(type(resolvedNotify) == "number"
+				and "rbxassetid://" .. tostring(resolvedNotify))
+				or tostring(resolvedNotify)
+
+			iconImg.ImageColor3 = warnAccent
+		end
+	else
+		-- Default warning symbol
+		iconImg.Image = ""
+		iconImg.BackgroundTransparency = 1
+
+		local warningText = Instance.new("TextLabel")
+		warningText.Size = UDim2.new(1, 0, 1, 0)
+		warningText.BackgroundTransparency = 1
+		warningText.Text = "⚠"
+		warningText.TextColor3 = warnAccent
+		warningText.TextSize = 28
+		warningText.Font = Enum.Font.GothamBold
+		warningText.TextXAlignment = Enum.TextXAlignment.Center
+		warningText.TextYAlignment = Enum.TextYAlignment.Center
+		warningText.Parent = iconImg
+	end
+
+	iconImg.Parent = card
+	CreateCorner(iconImg, 8)
+
+	-- Warning title
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -iconOffset, 0, 20)
+	title.Position = UDim2.new(0, iconOffset, 0, 2)
+	title.BackgroundTransparency = 1
+	title.Text = titleText
+	title.TextColor3 = warnText
+	title.TextSize = 14
+	title.Font = Enum.Font.GothamBold
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Parent = card
+
+	-- Warning content
+	local content = Instance.new("TextLabel")
+	content.Size = UDim2.new(1, -iconOffset, 0, 28)
+	content.Position = UDim2.new(0, iconOffset, 0, 22)
+	content.BackgroundTransparency = 1
+	content.Text = contentText
+	content.TextColor3 = theme.SubText
+	content.TextSize = 12
+	content.Font = Enum.Font.Gotham
+	content.TextWrapped = true
+	content.TextXAlignment = Enum.TextXAlignment.Left
+	content.Parent = card
+
+	-- Slide in
+	SpringTween(
+		card,
+		0.45,
+		{
+			Position = UDim2.new(0, 0, 0, 0)
+		},
+		Enum.EasingStyle.Back
+	)
+
+	-- Warning timer bar
+	local timerBar = Instance.new("Frame")
+	timerBar.Size = UDim2.new(1, 0, 0, 3)
+	timerBar.Position = UDim2.new(0, 0, 1, -3)
+	timerBar.BackgroundColor3 = warnAccent
+	timerBar.BorderSizePixel = 0
+	timerBar.Parent = card
+
+	Tween(
+		timerBar,
+		TweenInfo.new(duration, Enum.EasingStyle.Linear),
+		{
+			Size = UDim2.new(0, 0, 0, 3)
+		}
+	)
+
+	-- Slide out
+	task.delay(duration, function()
+		if card and card.Parent then
+			local exitTween = SpringTween(
+				card,
+				0.35,
+				{
+					Position = UDim2.new(1, 360, 0, 0),
+					BackgroundTransparency = 1
+				},
+				Enum.EasingStyle.Quart
+			)
+
+			if exitTween then
+				exitTween.Completed:Connect(function()
+					if card then
+						card:Destroy()
+					end
+				end)
+			else
+				card:Destroy()
+			end
+		end
+	end)
+end
+```
+
+
 -- STREAMING_CHUNK:Building Floating Mobile Button & Window Toggle Logic...
 local function IsMobile()
     return UserInputService.TouchEnabled
