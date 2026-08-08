@@ -989,8 +989,8 @@ function GaphopUI:Notify(cfg)
     end)
 end
 
-```lua
--- STREAMING_CHUNK: Constructing Animated Warning Notification Stack System...
+
+-- STREAMING_CHUNK: Constructing Animated Warning Notification Stack System
 
 local WarnNotifyContainer = Instance.new("Frame")
 WarnNotifyContainer.Name = "WarnNotifyContainer"
@@ -1171,7 +1171,7 @@ function GaphopUI:WarnNotify(cfg)
 		end
 	end)
 end
-```
+
 
 
 -- STREAMING_CHUNK:Building Floating Mobile Button & Window Toggle Logic...
@@ -2531,7 +2531,6 @@ end)
 end
 
 GaphopUI.CreateWindow = GaphopUI.makeWindow
-
 
 
 return GaphopUI
