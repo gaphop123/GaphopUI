@@ -2401,6 +2401,11 @@ function GaphopUI:makeWindow(cfg)
         Name = "GitHub Link",
         Callback = function()
             setclipboard("https://github.com/gaphop123/GaphopUI_V2")
+            GaphopUI:Notify({
+                Title = "Github Link",
+                Content = "Copied to clipboard!",
+                Duration = 4
+            })
         end
     })
 
