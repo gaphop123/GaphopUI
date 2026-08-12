@@ -60,7 +60,7 @@ end
 
 -- STREAMING_CHUNK:Defining Ultimate Library Configurations & Color Palettes...
 local GaphopUI = {
-    Version = "3.0.0 Ultimate Acrylic",
+    Version = "3.1.0 Liquid Glass",
     Flags = {},
     Themes = {},
     CurrentTheme = "Dark",
@@ -99,7 +99,7 @@ local GaphopUI = {
         slider = "▭",
         layers = "☰",
         cog = "⚙",
-        chevron = "‌",
+        chevron = "▾",
         shield = "🛡",
         zap = "⚡",
         star = "★"
@@ -634,8 +634,12 @@ end
 
 local function SpringTween(instance, duration, properties, style)
     style = style or Enum.EasingStyle.Quart
-    local info = TweenInfo.new(duration or 0.3, style, Enum.EasingDirection.Out)
+    local info = TweenInfo.new(duration or 0.35, style, Enum.EasingDirection.Out)
     return Tween(instance, info, properties)
+end
+
+local function SoftSpring(instance, duration, properties)
+    return SpringTween(instance, duration or 0.4, properties, Enum.EasingStyle.Back)
 end
 
 local function CreateRipple(parent, inputPosition)
@@ -644,7 +648,7 @@ local function CreateRipple(parent, inputPosition)
     ripple.Name = "RippleEffect"
     ripple.AnchorPoint = Vector2.new(0.5, 0.5)
     ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ripple.BackgroundTransparency = 0.75
+    ripple.BackgroundTransparency = 0.82
     ripple.ZIndex = (parent.ZIndex or 1) + 10
     ripple.ClipsDescendants = true
 
@@ -661,20 +665,20 @@ local function CreateRipple(parent, inputPosition)
     ripple.Size = UDim2.fromOffset(0, 0)
     ripple.Parent = parent
 
-    local maxSize = math.max(parentAbsSize.X, parentAbsSize.Y) * 2.5
-    Tween(ripple, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+    local maxSize = math.max(parentAbsSize.X, parentAbsSize.Y) * 2.8
+    Tween(ripple, TweenInfo.new(0.55, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
         Size = UDim2.fromOffset(maxSize, maxSize),
         BackgroundTransparency = 1
     })
 
-    task.delay(0.5, function()
+    task.delay(0.6, function()
         if ripple and ripple.Parent then ripple:Destroy() end
     end)
 end
 
 local function CreateCorner(parent, radius)
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 10)
+    corner.CornerRadius = UDim.new(0, radius or 12)
     corner.Parent = parent
     return corner
 end
@@ -683,9 +687,21 @@ local function CreateStroke(parent, color, thickness, transparency)
     local stroke = Instance.new("UIStroke")
     stroke.Color = color or GaphopUI.Themes[GaphopUI.CurrentTheme].Border
     stroke.Thickness = thickness or 1
-    stroke.Transparency = transparency or 0.6
+    stroke.Transparency = transparency or 0.55
     stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     stroke.Parent = parent
+    return stroke
+end
+
+-- Liquid glass helper: soft frosted panel look
+local function ApplyGlass(frame, theme, opts)
+    opts = opts or {}
+    frame.BackgroundColor3 = opts.Color or theme.Card
+    frame.BackgroundTransparency = opts.Transparency or 0.28
+    local stroke = CreateStroke(frame, opts.BorderColor or theme.Border, opts.Thickness or 1.1, opts.StrokeTransparency or 0.45)
+    if opts.Corner ~= false then
+        CreateCorner(frame, opts.Radius or 12)
+    end
     return stroke
 end
 
@@ -897,15 +913,15 @@ function GaphopUI:Notify(cfg)
     local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
 
     local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 72)
+    card.Size = UDim2.new(1, 0, 0, 74)
     card.BackgroundColor3 = theme.Card
-    card.BackgroundTransparency = 0.12
+    card.BackgroundTransparency = 0.18
     card.Position = UDim2.new(1, 360, 0, 0)
     card.ClipsDescendants = true
     card.Parent = NotifyContainer
 
-    CreateCorner(card, 12)
-    local stroke = CreateStroke(card, theme.Accent, 1, 0.4)
+    CreateCorner(card, 14)
+    local stroke = CreateStroke(card, theme.Accent, 1.2, 0.35)
 
     local padding = Instance.new("UIPadding")
     padding.PaddingLeft = UDim.new(0, 16)
@@ -1217,17 +1233,17 @@ function GaphopUI:ToggleUI(forceState)
     if GaphopUI.WindowInstance then
         if GaphopUI.IsOpen then
             GaphopUI.WindowInstance.Visible = true
-            SpringTween(GaphopUI.WindowInstance, 0.4, {
-                Size = GaphopUI.WindowInstance:GetAttribute("NormalSize") or UDim2.new(0, 680, 0, 440),
-                BackgroundTransparency = 0.15
-            }, Enum.EasingStyle.Back)
+            SoftSpring(GaphopUI.WindowInstance, 0.45, {
+                Size = GaphopUI.WindowInstance:GetAttribute("NormalSize") or UDim2.new(0, 700, 0, 460),
+                BackgroundTransparency = 0.22
+            })
 
             if GaphopUI.OpenButton then GaphopUI.OpenButton.Visible = false end
         else
-            local tw = SpringTween(GaphopUI.WindowInstance, 0.3, {
-                Size = UDim2.new(0, 680, 0, 0),
+            local tw = SoftSpring(GaphopUI.WindowInstance, 0.35, {
+                Size = UDim2.new(0, 700, 0, 0),
                 BackgroundTransparency = 1
-            }, Enum.EasingStyle.Quart)
+            })
 
             if tw then
                 tw.Completed:Connect(function()
@@ -1425,14 +1441,14 @@ local function BindElementMethods(TabObj, page, theme)
         local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -6, 0, 42)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.3
+        card.BackgroundTransparency = 0.32
         card.ClipsDescendants = true
         card.Parent = page
 
-        local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-        CreateCorner(card, 8)
+        local stroke = CreateStroke(card, theme.Border, 1, 0.5)
+        CreateCorner(card, 11)
 
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, 0, 1, 0)
@@ -1444,15 +1460,17 @@ local function BindElementMethods(TabObj, page, theme)
         btn.Parent = card
 
         btn.MouseEnter:Connect(function()
-            SpringTween(card, 0.2, {BackgroundColor3 = theme.CardHover})
+            SoftSpring(card, 0.25, {BackgroundColor3 = theme.CardHover, BackgroundTransparency = 0.18})
+            SpringTween(stroke, 0.2, {Color = theme.Accent, Transparency = 0.35})
         end)
         btn.MouseLeave:Connect(function()
-            SpringTween(card, 0.2, {BackgroundColor3 = theme.Card})
+            SoftSpring(card, 0.25, {BackgroundColor3 = theme.Card, BackgroundTransparency = 0.32})
+            SpringTween(stroke, 0.2, {Color = theme.Border, Transparency = 0.5})
         end)
         btn.MouseButton1Click:Connect(function(input)
             CreateRipple(card, input)
-            SpringTween(card, 0.1, {Size = UDim2.new(1, -12, 0, 38)}).Completed:Connect(function()
-                SpringTween(card, 0.15, {Size = UDim2.new(1, -6, 0, 42)})
+            SoftSpring(card, 0.12, {Size = UDim2.new(1, -10, 0, 40)}).Completed:Connect(function()
+                SoftSpring(card, 0.2, {Size = UDim2.new(1, -6, 0, 44)})
             end)
             callback()
         end)
@@ -1470,14 +1488,14 @@ local function BindElementMethods(TabObj, page, theme)
         local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -6, 0, 42)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.3
+        card.BackgroundTransparency = 0.32
         card.ClipsDescendants = true
         card.Parent = page
 
-        local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-        CreateCorner(card, 8)
+        local stroke = CreateStroke(card, theme.Border, 1, 0.5)
+        CreateCorner(card, 11)
 
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(1, -60, 1, 0)
@@ -1535,18 +1553,18 @@ local function BindElementMethods(TabObj, page, theme)
         local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -6, 0, 56)
+        card.Size = UDim2.new(1, -6, 0, 58)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.3
+        card.BackgroundTransparency = 0.32
         card.ClipsDescendants = false
         card.Parent = page
 
-        local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-        CreateCorner(card, 8)
+        local stroke = CreateStroke(card, theme.Border, 1, 0.5)
+        CreateCorner(card, 11)
 
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(1, -80, 0, 24)
-        label.Position = UDim2.new(0, 12, 0, 4)
+        label.Position = UDim2.new(0, 14, 0, 6)
         label.BackgroundTransparency = 1
         label.Text = name
         label.TextColor3 = theme.Text
@@ -1557,7 +1575,7 @@ local function BindElementMethods(TabObj, page, theme)
 
         local valLabel = Instance.new("TextLabel")
         valLabel.Size = UDim2.new(0, 60, 0, 24)
-        valLabel.Position = UDim2.new(1, -72, 0, 4)
+        valLabel.Position = UDim2.new(1, -74, 0, 6)
         valLabel.BackgroundTransparency = 1
         valLabel.Text = tostring(val) .. suffix
         valLabel.TextColor3 = theme.Accent
@@ -1567,11 +1585,12 @@ local function BindElementMethods(TabObj, page, theme)
         valLabel.Parent = card
 
         local sliderTrack = Instance.new("Frame")
-        sliderTrack.Size = UDim2.new(1, -24, 0, 6)
-        sliderTrack.Position = UDim2.new(0, 12, 0, 38)
+        sliderTrack.Size = UDim2.new(1, -28, 0, 7)
+        sliderTrack.Position = UDim2.new(0, 14, 0, 38)
         sliderTrack.BackgroundColor3 = theme.SliderBar
+        sliderTrack.BackgroundTransparency = 0.15
         sliderTrack.Parent = card
-        CreateCorner(sliderTrack, 3)
+        CreateCorner(sliderTrack, 4)
 
         local initPercent = (val - minVal) / (maxVal - minVal)
         local sliderFill = Instance.new("Frame")
@@ -1645,14 +1664,14 @@ local function BindElementMethods(TabObj, page, theme)
         local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -6, 0, 42)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.3
+        card.BackgroundTransparency = 0.32
         card.ClipsDescendants = true
         card.Parent = page
 
-        local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-        CreateCorner(card, 8)
+        local stroke = CreateStroke(card, theme.Border, 1, 0.5)
+        CreateCorner(card, 11)
 
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(0, 150, 1, 0)
@@ -1701,14 +1720,14 @@ local function BindElementMethods(TabObj, page, theme)
         local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -6, 0, 42)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.3
+        card.BackgroundTransparency = 0.32
         card.ClipsDescendants = true
         card.Parent = page
 
-        local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-        CreateCorner(card, 8)
+        local stroke = CreateStroke(card, theme.Border, 1, 0.5)
+        CreateCorner(card, 11)
 
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(0, 150, 0, 42)
@@ -1736,15 +1755,15 @@ local function BindElementMethods(TabObj, page, theme)
         dropBtn.MouseButton1Click:Connect(function(input)
             CreateRipple(dropBtn, input)
             isOpen = not isOpen
-            SpringTween(card, 0.35, {
-                Size = UDim2.new(1, -6, 0, isOpen and (48 + #options * 28) or 42)
-            }, Enum.EasingStyle.Quart)
+            SoftSpring(card, 0.4, {
+                Size = UDim2.new(1, -6, 0, isOpen and (50 + #options * 30) or 44)
+            })
         end)
 
         for i, opt in ipairs(options) do
             local optBtn = Instance.new("TextButton")
-            optBtn.Size = UDim2.new(1, -24, 0, 24)
-            optBtn.Position = UDim2.new(0, 12, 0, 42 + (i - 1) * 28)
+            optBtn.Size = UDim2.new(1, -24, 0, 26)
+            optBtn.Position = UDim2.new(0, 12, 0, 46 + (i - 1) * 30)
             optBtn.BackgroundColor3 = theme.InputBackground
             optBtn.Text = tostring(opt)
             optBtn.TextColor3 = theme.SubText
@@ -1764,7 +1783,7 @@ local function BindElementMethods(TabObj, page, theme)
                 current = opt
                 dropBtn.Text = tostring(current) .. "   " .. GaphopUI.Icons.chevron
                 isOpen = false
-                SpringTween(card, 0.3, {Size = UDim2.new(1, -6, 0, 42)})
+                SoftSpring(card, 0.3, {Size = UDim2.new(1, -6, 0, 44)})
                 if flag then GaphopUI.Flags[flag] = current end
                 callback(current)
             end)
@@ -1783,13 +1802,13 @@ local function BindElementMethods(TabObj, page, theme)
         local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -6, 0, 42)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.3
+        card.BackgroundTransparency = 0.32
         card.Parent = page
 
-        local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-        CreateCorner(card, 8)
+        local stroke = CreateStroke(card, theme.Border, 1, 0.5)
+        CreateCorner(card, 11)
 
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(0, 150, 1, 0)
@@ -1844,13 +1863,13 @@ local function BindElementMethods(TabObj, page, theme)
         local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -6, 0, 42)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.3
+        card.BackgroundTransparency = 0.32
         card.Parent = page
 
-        local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-        CreateCorner(card, 8)
+        local stroke = CreateStroke(card, theme.Border, 1, 0.5)
+        CreateCorner(card, 11)
 
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(0, 150, 1, 0)
@@ -1892,124 +1911,164 @@ local function BindElementMethods(TabObj, page, theme)
             hexInput.Text = Color3ToHex(currentColor)
         end)
 
-            RegisterElement({Type = "colorpicker", Card = card, Stroke = stroke, Label = label, Input = hexInput, ColorDisplay = colorDisplay, ColorValue = currentColor, SearchText = name, Page = page})
+        RegisterElement({Type = "colorpicker", Card = card, Stroke = stroke, Label = label, Input = hexInput, ColorDisplay = colorDisplay, ColorValue = currentColor, SearchText = name, Page = page})
     end
-    TabObj.CreateLabel = TabObj.makeLabel
-TabObj.AddLabel = TabObj.makeLabel
-
-function TabObj:makeLabel(cfg)
-    cfg = cfg or {}
-
-    local title = cfg.Name or "Label"
-    local description = cfg.Label or cfg.Description or ""
-
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, -6, 0, description ~= "" and 56 or 42)
-    card.BackgroundColor3 = theme.Card
-    card.BackgroundTransparency = 0.3
-    card.Parent = page
-
-    local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-    CreateCorner(card, 8)
-
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Position = UDim2.new(0, 12, 0, description ~= "" and 5 or 0)
-    titleLabel.Size = UDim2.new(1, -24, 0, description ~= "" and 20 or 42)
-    titleLabel.Font = Enum.Font.Gotham
-    titleLabel.Text = title
-    titleLabel.TextColor3 = theme.Text
-    titleLabel.TextSize = 13
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    titleLabel.TextYAlignment = description ~= "" and Enum.TextYAlignment.Bottom or Enum.TextYAlignment.Center
-    titleLabel.Parent = card
-
-    local descLabel
-
-    if description ~= "" then
-        descLabel = Instance.new("TextLabel")
-        descLabel.BackgroundTransparency = 1
-        descLabel.Position = UDim2.new(0, 12, 0, 27)
-        descLabel.Size = UDim2.new(1, -24, 0, 15)
-        descLabel.Font = Enum.Font.Gotham
-        descLabel.Text = description
-        descLabel.TextColor3 = theme.SubText or Color3.fromRGB(170, 170, 170)
-        descLabel.TextSize = 11
-        descLabel.TextXAlignment = Enum.TextXAlignment.Left
-        descLabel.TextYAlignment = Enum.TextYAlignment.Top
-        descLabel.Parent = card
-    end
-
-    RegisterElement({
-        Type = "label",
-        Card = card,
-        Stroke = stroke,
-        Label = titleLabel,
-        Description = descLabel,
-        SearchText = title,
-        Page = page
-    })
-
-    local LabelObj = {}
-
-    function LabelObj:Set(text)
-        titleLabel.Text = text
-    end
-
-    function LabelObj:SetDescription(text)
-        description = text or ""
-
-        if description == "" then
-            if descLabel then
-                descLabel:Destroy()
-                descLabel = nil
-            end
-
-            card.Size = UDim2.new(1, -6, 0, 42)
-            titleLabel.Position = UDim2.new(0, 12, 0, 0)
-            titleLabel.Size = UDim2.new(1, -24, 1, 0)
-            titleLabel.TextYAlignment = Enum.TextYAlignment.Center
-        else
-            if not descLabel then
-                descLabel = Instance.new("TextLabel")
-                descLabel.BackgroundTransparency = 1
-                descLabel.Font = Enum.Font.Gotham
-                descLabel.TextColor3 = theme.SubText or Color3.fromRGB(170,170,170)
-                descLabel.TextSize = 11
-                descLabel.TextXAlignment = Enum.TextXAlignment.Left
-                descLabel.TextYAlignment = Enum.TextYAlignment.Top
-                descLabel.Parent = card
-            end
-
-            card.Size = UDim2.new(1, -6, 0, 56)
-
-            titleLabel.Position = UDim2.new(0, 12, 0, 5)
-            titleLabel.Size = UDim2.new(1, -24, 0, 20)
-            titleLabel.TextYAlignment = Enum.TextYAlignment.Bottom
-
-            descLabel.Position = UDim2.new(0, 12, 0, 27)
-            descLabel.Size = UDim2.new(1, -24, 0, 15)
-            descLabel.Text = description
-        end
-    end
-
-    return LabelObj
-end
     TabObj.CreateColorPicker = TabObj.makeColorPicker
     TabObj.AddColorPicker = TabObj.makeColorPicker
 
+    function TabObj:makeLabel(cfg)
+        cfg = cfg or {}
+
+        local title = cfg.Name or "Label"
+        local description = cfg.Label or cfg.Description or ""
+
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(1, -6, 0, description ~= "" and 56 or 42)
+        card.BackgroundColor3 = theme.Card
+        card.BackgroundTransparency = 0.32
+        card.Parent = page
+
+        local stroke = CreateStroke(card, theme.Border, 1, 0.55)
+        CreateCorner(card, 10)
+
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Position = UDim2.new(0, 14, 0, description ~= "" and 6 or 0)
+        titleLabel.Size = UDim2.new(1, -28, 0, description ~= "" and 20 or 42)
+        titleLabel.Font = Enum.Font.GothamMedium
+        titleLabel.Text = title
+        titleLabel.TextColor3 = theme.Text
+        titleLabel.TextSize = 13
+        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        titleLabel.TextYAlignment = description ~= "" and Enum.TextYAlignment.Bottom or Enum.TextYAlignment.Center
+        titleLabel.Parent = card
+
+        local descLabel
+
+        if description ~= "" then
+            descLabel = Instance.new("TextLabel")
+            descLabel.BackgroundTransparency = 1
+            descLabel.Position = UDim2.new(0, 14, 0, 28)
+            descLabel.Size = UDim2.new(1, -28, 0, 16)
+            descLabel.Font = Enum.Font.Gotham
+            descLabel.Text = description
+            descLabel.TextColor3 = theme.SubText or Color3.fromRGB(170, 170, 170)
+            descLabel.TextSize = 11
+            descLabel.TextXAlignment = Enum.TextXAlignment.Left
+            descLabel.TextYAlignment = Enum.TextYAlignment.Top
+            descLabel.Parent = card
+        end
+
+        RegisterElement({
+            Type = "label",
+            Card = card,
+            Stroke = stroke,
+            Label = titleLabel,
+            Description = descLabel,
+            SearchText = title,
+            Page = page
+        })
+
+        local LabelObj = {}
+
+        function LabelObj:Set(text)
+            titleLabel.Text = text
+        end
+
+        function LabelObj:SetDescription(text)
+            description = text or ""
+
+            if description == "" then
+                if descLabel then
+                    descLabel:Destroy()
+                    descLabel = nil
+                end
+
+                card.Size = UDim2.new(1, -6, 0, 42)
+                titleLabel.Position = UDim2.new(0, 14, 0, 0)
+                titleLabel.Size = UDim2.new(1, -28, 1, 0)
+                titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+            else
+                if not descLabel then
+                    descLabel = Instance.new("TextLabel")
+                    descLabel.BackgroundTransparency = 1
+                    descLabel.Font = Enum.Font.Gotham
+                    descLabel.TextColor3 = theme.SubText or Color3.fromRGB(170, 170, 170)
+                    descLabel.TextSize = 11
+                    descLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    descLabel.TextYAlignment = Enum.TextYAlignment.Top
+                    descLabel.Parent = card
+                end
+
+                card.Size = UDim2.new(1, -6, 0, 56)
+                titleLabel.Position = UDim2.new(0, 14, 0, 6)
+                titleLabel.Size = UDim2.new(1, -28, 0, 20)
+                titleLabel.TextYAlignment = Enum.TextYAlignment.Bottom
+                descLabel.Position = UDim2.new(0, 14, 0, 28)
+                descLabel.Size = UDim2.new(1, -28, 0, 16)
+                descLabel.Text = description
+            end
+        end
+
+        return LabelObj
+    end
+    TabObj.CreateLabel = TabObj.makeLabel
+    TabObj.AddLabel = TabObj.makeLabel
+
     function TabObj:CreateSection(text)
         local secName = type(text) == "table" and (text.Name or text.Title) or tostring(text or "Section")
+
+        local container = Instance.new("Frame")
+        container.Size = UDim2.new(1, -6, 0, 34)
+        container.BackgroundTransparency = 1
+        container.ClipsDescendants = true
+        container.Parent = page
+
+        -- Accent bar (liquid glass accent)
+        local accentBar = Instance.new("Frame")
+        accentBar.Size = UDim2.new(0, 3, 0, 16)
+        accentBar.Position = UDim2.new(0, 2, 0.5, -8)
+        accentBar.BackgroundColor3 = theme.Accent
+        accentBar.BackgroundTransparency = 0.15
+        accentBar.BorderSizePixel = 0
+        accentBar.Parent = container
+        CreateCorner(accentBar, 2)
+
         local secLabel = Instance.new("TextLabel")
-        secLabel.Size = UDim2.new(1, -6, 0, 26)
+        secLabel.Size = UDim2.new(1, -48, 1, 0)
+        secLabel.Position = UDim2.new(0, 14, 0, 0)
         secLabel.BackgroundTransparency = 1
         secLabel.Text = secName:upper()
         secLabel.TextColor3 = theme.Accent
         secLabel.TextSize = 11
         secLabel.Font = Enum.Font.GothamBold
         secLabel.TextXAlignment = Enum.TextXAlignment.Left
-        secLabel.Parent = page
-        RegisterElement({Type = "section", Card = secLabel, Label = secLabel, SearchText = secName, Page = page})
+        secLabel.TextYAlignment = Enum.TextYAlignment.Center
+        secLabel.Parent = container
+
+        -- Soft glass divider line
+        local divider = Instance.new("Frame")
+        divider.Size = UDim2.new(1, -20, 0, 1)
+        divider.Position = UDim2.new(0, 10, 1, -1)
+        divider.BackgroundColor3 = theme.Border
+        divider.BackgroundTransparency = 0.55
+        divider.BorderSizePixel = 0
+        divider.Parent = container
+
+        -- Subtle entrance
+        container.BackgroundTransparency = 1
+        SoftSpring(accentBar, 0.45, {BackgroundTransparency = 0.15})
+
+        RegisterElement({
+            Type = "section",
+            Card = container,
+            Label = secLabel,
+            Accent = accentBar,
+            SearchText = secName,
+            Page = page
+        })
+
+        return container
     end
     TabObj.makeSection = TabObj.CreateSection
     TabObj.AddSection = TabObj.CreateSection
@@ -2020,13 +2079,13 @@ end
         local contentText = cfg.Content or ""
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -6, 0, 60)
+        card.Size = UDim2.new(1, -6, 0, 64)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.4
+        card.BackgroundTransparency = 0.38
         card.Parent = page
 
-        local stroke = CreateStroke(card, theme.Border, 1, 0.6)
-        CreateCorner(card, 8)
+        local stroke = CreateStroke(card, theme.Border, 1, 0.5)
+        CreateCorner(card, 11)
 
         local pTitle = Instance.new("TextLabel")
         pTitle.Size = UDim2.new(1, -20, 0, 22)
@@ -2059,53 +2118,121 @@ end
     return TabObj
 end
 
--- STREAMING_CHUNK:Building Animated Loading Splash Screen Engine...
+-- STREAMING_CHUNK:Building Animated Loading Splash Screen Engine (Liquid Glass)...
 local function CreateLoadingScreen(titleText, subtitleText, callback)
     local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
 
+    -- Dim backdrop
+    local backdrop = Instance.new("Frame")
+    backdrop.Name = "GaphopLoadingBackdrop"
+    backdrop.Size = UDim2.fromScale(1, 1)
+    backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    backdrop.BackgroundTransparency = 1
+    backdrop.ZIndex = 99
+    backdrop.Parent = ScreenGui
+    Tween(backdrop, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {BackgroundTransparency = 0.45})
+
     local splash = Instance.new("Frame")
     splash.Name = "GaphopLoadingSplash"
-    splash.Size = UDim2.new(0, 380, 0, 190)
-    splash.Position = UDim2.new(0.5, -190, 0.5, -95)
+    splash.Size = UDim2.new(0, 0, 0, 0)
+    splash.AnchorPoint = Vector2.new(0.5, 0.5)
+    splash.Position = UDim2.fromScale(0.5, 0.5)
     splash.BackgroundColor3 = theme.Background
-    splash.BackgroundTransparency = 0.05
+    splash.BackgroundTransparency = 0.22
     splash.ClipsDescendants = true
     splash.ZIndex = 100
     splash.Parent = ScreenGui
 
-    CreateCorner(splash, 16)
-    CreateStroke(splash, theme.Accent, 1.5, 0.3)
+    CreateCorner(splash, 20)
+    local glassStroke = CreateStroke(splash, theme.Accent, 1.6, 0.35)
+
+    -- Soft inner glow layer (liquid glass feel)
+    local innerGlow = Instance.new("Frame")
+    innerGlow.Size = UDim2.new(1, -16, 1, -16)
+    innerGlow.Position = UDim2.new(0, 8, 0, 8)
+    innerGlow.BackgroundColor3 = theme.Card
+    innerGlow.BackgroundTransparency = 0.72
+    innerGlow.ZIndex = 100
+    innerGlow.Parent = splash
+    CreateCorner(innerGlow, 14)
+
+    -- Animated orb / pulse
+    local orb = Instance.new("Frame")
+    orb.Size = UDim2.fromOffset(48, 48)
+    orb.AnchorPoint = Vector2.new(0.5, 0)
+    orb.Position = UDim2.new(0.5, 0, 0, 28)
+    orb.BackgroundColor3 = theme.Accent
+    orb.BackgroundTransparency = 0.35
+    orb.ZIndex = 101
+    orb.Parent = splash
+    CreateCorner(orb, 24)
+
+    local orbCore = Instance.new("Frame")
+    orbCore.Size = UDim2.fromOffset(22, 22)
+    orbCore.AnchorPoint = Vector2.new(0.5, 0.5)
+    orbCore.Position = UDim2.fromScale(0.5, 0.5)
+    orbCore.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    orbCore.BackgroundTransparency = 0.55
+    orbCore.ZIndex = 102
+    orbCore.Parent = orb
+    CreateCorner(orbCore, 12)
+
+    -- Pulse animation
+    local pulseConn
+    pulseConn = RunService.RenderStepped:Connect(function()
+        if not orb or not orb.Parent then
+            if pulseConn then pulseConn:Disconnect() end
+            return
+        end
+        local t = tick()
+        local scale = 1 + math.sin(t * 3.2) * 0.08
+        orb.Size = UDim2.fromOffset(48 * scale, 48 * scale)
+        orb.BackgroundTransparency = 0.28 + math.sin(t * 2.4) * 0.12
+    end)
 
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 30)
-    title.Position = UDim2.new(0, 0, 0, 35)
+    title.Size = UDim2.new(1, -24, 0, 28)
+    title.Position = UDim2.new(0, 12, 0, 88)
     title.BackgroundTransparency = 1
     title.Text = titleText or "GaphopUI Engine"
     title.TextColor3 = theme.Text
-    title.TextSize = 20
+    title.TextSize = 18
     title.Font = Enum.Font.GothamBold
     title.ZIndex = 101
     title.Parent = splash
 
     local sub = Instance.new("TextLabel")
-    sub.Size = UDim2.new(1, 0, 0, 20)
-    sub.Position = UDim2.new(0, 0, 0, 68)
+    sub.Size = UDim2.new(1, -24, 0, 20)
+    sub.Position = UDim2.new(0, 12, 0, 116)
     sub.BackgroundTransparency = 1
     sub.Text = subtitleText or "Loading modules..."
     sub.TextColor3 = theme.SubText
-    sub.TextSize = 13
+    sub.TextSize = 12
     sub.Font = Enum.Font.Gotham
     sub.ZIndex = 101
     sub.Parent = splash
 
+    local status = Instance.new("TextLabel")
+    status.Size = UDim2.new(1, -24, 0, 16)
+    status.Position = UDim2.new(0, 12, 0, 138)
+    status.BackgroundTransparency = 1
+    status.Text = "Initializing..."
+    status.TextColor3 = theme.Accent
+    status.TextSize = 11
+    status.Font = Enum.Font.GothamMedium
+    status.ZIndex = 101
+    status.Parent = splash
+
     local barBg = Instance.new("Frame")
-    barBg.Size = UDim2.new(0.75, 0, 0, 4)
-    barBg.Position = UDim2.new(0.125, 0, 0, 125)
-    barBg.BackgroundColor3 = theme.Card
+    barBg.Size = UDim2.new(0.78, 0, 0, 6)
+    barBg.AnchorPoint = Vector2.new(0.5, 0)
+    barBg.Position = UDim2.new(0.5, 0, 0, 168)
+    barBg.BackgroundColor3 = theme.SliderBar
+    barBg.BackgroundTransparency = 0.25
     barBg.BorderSizePixel = 0
     barBg.ZIndex = 101
     barBg.Parent = splash
-    CreateCorner(barBg, 2)
+    CreateCorner(barBg, 3)
 
     local barFill = Instance.new("Frame")
     barFill.Size = UDim2.new(0, 0, 1, 0)
@@ -2113,31 +2240,74 @@ local function CreateLoadingScreen(titleText, subtitleText, callback)
     barFill.BorderSizePixel = 0
     barFill.ZIndex = 102
     barFill.Parent = barBg
-    CreateCorner(barFill, 2)
+    CreateCorner(barFill, 3)
 
-    local fillTween = SpringTween(barFill, 0.8, {
+    -- Shimmer on progress
+    local shimmer = Instance.new("Frame")
+    shimmer.Size = UDim2.new(0.25, 0, 1, 0)
+    shimmer.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    shimmer.BackgroundTransparency = 0.7
+    shimmer.ZIndex = 103
+    shimmer.Parent = barFill
+    CreateCorner(shimmer, 3)
+
+    -- Entrance scale pop
+    SoftSpring(splash, 0.55, {
+        Size = UDim2.new(0, 360, 0, 210)
+    })
+
+    local statuses = {
+        "Initializing core...",
+        "Loading themes...",
+        "Preparing glass layers...",
+        "Almost ready..."
+    }
+    local statusIdx = 1
+    task.spawn(function()
+        while splash and splash.Parent and statusIdx <= #statuses do
+            status.Text = statuses[statusIdx]
+            statusIdx = statusIdx + 1
+            task.wait(0.28)
+        end
+    end)
+
+    local fillTween = SpringTween(barFill, 1.15, {
         Size = UDim2.new(1, 0, 1, 0)
-    }, Enum.EasingStyle.Quart)
+    }, Enum.EasingStyle.Quint)
+
+    Tween(shimmer, TweenInfo.new(1.0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        Position = UDim2.new(0.75, 0, 0, 0)
+    })
 
     local cleanedUp = false
     local function FinishLoading()
         if cleanedUp then return end
         cleanedUp = true
+        if pulseConn then pulseConn:Disconnect() end
+        status.Text = "Ready"
+
         if splash and splash.Parent then
-            SpringTween(splash, 0.3, {Size = UDim2.new(0, 400, 0, 0), BackgroundTransparency = 1}).Completed:Connect(function()
-                splash:Destroy()
+            SoftSpring(splash, 0.4, {
+                Size = UDim2.new(0, 380, 0, 0),
+                BackgroundTransparency = 1
+            })
+            Tween(backdrop, TweenInfo.new(0.35), {BackgroundTransparency = 1}).Completed:Connect(function()
+                if backdrop then backdrop:Destroy() end
+                if splash then splash:Destroy() end
             end)
         end
-        if callback then callback() end
+        if callback then
+            task.delay(0.15, callback)
+        end
     end
 
     if fillTween then
         fillTween.Completed:Connect(function()
-            task.wait(0.1)
+            task.wait(0.18)
             FinishLoading()
         end)
     end
-    task.delay(1.0, FinishLoading)
+    task.delay(1.55, FinishLoading)
 end
 
 -- STREAMING_CHUNK:Constructing Main Window and Dynamic Sliding Tab Indicator...
@@ -2147,7 +2317,7 @@ function GaphopUI:makeWindow(cfg)
 
     if GaphopUI.WindowInstance then
         GaphopUI.WindowInstance.Visible = true
-        GaphopUI.WindowInstance.BackgroundTransparency = 0.15
+        GaphopUI.WindowInstance.BackgroundTransparency = 0.22
         return GaphopUI.WindowInstance
     end
 
@@ -2170,29 +2340,38 @@ function GaphopUI:makeWindow(cfg)
     local WindowObj = {}
     local WindowFrame = Instance.new("Frame")
     WindowFrame.Name = "MainWindow"
-    WindowFrame.Size = UDim2.new(0, 680, 0, 440)
-    WindowFrame.Position = UDim2.new(0.5, -340, 0.5, -220)
+    WindowFrame.Size = UDim2.new(0, 700, 0, 460)
+    WindowFrame.Position = UDim2.new(0.5, -350, 0.5, -230)
     WindowFrame.BackgroundColor3 = theme.Background
-    WindowFrame.BackgroundTransparency = 0.15
+    WindowFrame.BackgroundTransparency = 0.22
     WindowFrame.ClipsDescendants = true
     WindowFrame.Visible = true
     WindowFrame.Parent = ScreenGui
 
-    WindowFrame:SetAttribute("NormalSize", UDim2.new(0, 680, 0, 440))
+    WindowFrame:SetAttribute("NormalSize", UDim2.new(0, 700, 0, 460))
     WindowFrame:SetAttribute("IsMaximized", false)
-    CreateCorner(WindowFrame, 14)
-    CreateStroke(WindowFrame, theme.Border, 1.2, 0.5)
+    CreateCorner(WindowFrame, 18)
+    local windowStroke = CreateStroke(WindowFrame, theme.Border, 1.4, 0.42)
+
+    -- Soft glass highlight strip at top
+    local glassHighlight = Instance.new("Frame")
+    glassHighlight.Size = UDim2.new(1, 0, 0, 1)
+    glassHighlight.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    glassHighlight.BackgroundTransparency = 0.82
+    glassHighlight.BorderSizePixel = 0
+    glassHighlight.ZIndex = 5
+    glassHighlight.Parent = WindowFrame
 
     GaphopUI.WindowInstance = WindowFrame
 
-    -- TopBar Header
+    -- TopBar Header (liquid glass)
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
-    TopBar.Size = UDim2.new(1, 0, 0, 48)
+    TopBar.Size = UDim2.new(1, 0, 0, 52)
     TopBar.BackgroundColor3 = theme.Header
-    TopBar.BackgroundTransparency = 0.3
+    TopBar.BackgroundTransparency = 0.38
     TopBar.Parent = WindowFrame
-    CreateCorner(TopBar, 14)
+    CreateCorner(TopBar, 18)
     MakeDraggable(WindowFrame, TopBar)
 
     local titleText = Instance.new("TextLabel")
@@ -2255,15 +2434,16 @@ function GaphopUI:makeWindow(cfg)
         return btn
     end
 
-    -- SideBar & Content Container
+    -- SideBar & Content Container (liquid glass)
     local SideBar = Instance.new("Frame")
     SideBar.Name = "SideBar"
-    SideBar.Size = UDim2.new(0, 160, 1, -58)
-    SideBar.Position = UDim2.new(0, 10, 0, 52)
+    SideBar.Size = UDim2.new(0, 168, 1, -64)
+    SideBar.Position = UDim2.new(0, 12, 0, 56)
     SideBar.BackgroundColor3 = theme.Card
-    SideBar.BackgroundTransparency = 0.5
+    SideBar.BackgroundTransparency = 0.42
     SideBar.Parent = WindowFrame
-    CreateCorner(SideBar, 10)
+    CreateCorner(SideBar, 14)
+    CreateStroke(SideBar, theme.Border, 1, 0.55)
 
     local tabList = Instance.new("ScrollingFrame")
     tabList.Size = UDim2.new(1, -12, 1, -12)
@@ -2279,17 +2459,17 @@ function GaphopUI:makeWindow(cfg)
     tabLayout.Padding = UDim.new(0, 5)
     tabLayout.Parent = tabList
 
-    -- Dynamic Sliding Tab Indicator Bar
+    -- Dynamic Sliding Tab Indicator Bar (glass accent)
     local TabIndicator = Instance.new("Frame")
     TabIndicator.Name = "TabIndicator"
-    TabIndicator.Size = UDim2.new(1, 0, 0, 36)
+    TabIndicator.Size = UDim2.new(1, 0, 0, 38)
     TabIndicator.BackgroundColor3 = theme.Accent
-    TabIndicator.BackgroundTransparency = 0.8
+    TabIndicator.BackgroundTransparency = 0.78
     TabIndicator.ZIndex = 2
     TabIndicator.Visible = false
     TabIndicator.Parent = tabList
-    CreateCorner(TabIndicator, 8)
-    CreateStroke(TabIndicator, theme.Accent, 1, 0.5)
+    CreateCorner(TabIndicator, 10)
+    CreateStroke(TabIndicator, theme.Accent, 1.2, 0.4)
 
     tabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         tabList.CanvasSize = UDim2.fromOffset(0, tabLayout.AbsoluteContentSize.Y + 10)
@@ -2297,8 +2477,8 @@ function GaphopUI:makeWindow(cfg)
 
     local ContentArea = Instance.new("Frame")
     ContentArea.Name = "ContentArea"
-    ContentArea.Size = UDim2.new(1, -190, 1, -58)
-    ContentArea.Position = UDim2.new(0, 180, 0, 52)
+    ContentArea.Size = UDim2.new(1, -198, 1, -64)
+    ContentArea.Position = UDim2.new(0, 190, 0, 56)
     ContentArea.BackgroundTransparency = 1
     ContentArea.Parent = WindowFrame
 
@@ -2348,7 +2528,7 @@ function GaphopUI:makeWindow(cfg)
             }, Enum.EasingStyle.Quart)
         else
             WindowFrame:SetAttribute("IsMaximized", false)
-            local norm = WindowFrame:GetAttribute("NormalSize") or UDim2.new(0, 680, 0, 440)
+            local norm = WindowFrame:GetAttribute("NormalSize") or UDim2.new(0, 700, 0, 460)
             SpringTween(WindowFrame, 0.35, {
                 Size = norm,
                 Position = UDim2.new(0.5, -norm.X.Offset/2, 0.5, -norm.Y.Offset/2)
@@ -2394,9 +2574,8 @@ function GaphopUI:makeWindow(cfg)
 
     SettingsEngine:CreateParagraph({
         Title = "About GaphopUI",
-        Content = [[GaphopUI Made by Gaphop Copyright © 2026 Gaphop Features: • Smooth Animations • Theme Engine • Mobile Support • Fluent Design
-    ]]
-})
+        Content = "GaphopUI v3.1 Liquid Glass · by Gaphop · © 2026 · Smooth springs · Theme engine · Mobile · Acrylic glass"
+    })
     SettingsEngine:CreateButton({
         Name = "GitHub Link",
         Callback = function()
@@ -2414,12 +2593,12 @@ function GaphopUI:makeWindow(cfg)
     function WindowObj:CreateTab(tabName, iconId)
         tabName = tabName or "Tab"
         local tabBtn = Instance.new("TextButton")
-        tabBtn.Size = UDim2.new(1, 0, 0, 36)
+        tabBtn.Size = UDim2.new(1, 0, 0, 38)
         tabBtn.BackgroundTransparency = 1
         tabBtn.Text = ""
         tabBtn.ZIndex = 5
         tabBtn.Parent = tabList
-        CreateCorner(tabBtn, 8)
+        CreateCorner(tabBtn, 10)
 
         local tabIcon = GaphopUI:CreateIcon(tabBtn, iconId, UDim2.new(0, 18, 0, 18), theme.SubText, {
             Theme = theme,
