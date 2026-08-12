@@ -84,9 +84,7 @@ local GeneralTab = Window:CreateTab("General", "home")
 
 # Section
 
-## Create Section ⚠️
-
-> **Note:** This feature currently has a bug.
+## Create Section
 
 Creates a labeled section to organize UI elements.
 
@@ -346,3 +344,13 @@ GaphopUI:CreatePrompt({
     end
 })
 ```
+
+# About
+
+## GaphopUI V2.4
+
+* Fixed the Section bug
+* Added more Lucide icons
+* Improved animations
+
+
