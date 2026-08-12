@@ -2,7 +2,7 @@
 ---
 ![GaphopUI](https://raw.githubusercontent.com/gaphop123/GaphopUI_V2/main/main.png)
 ---
-# About
+# changelog
 
 ## GaphopUI V2.4
 
