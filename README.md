@@ -2,6 +2,15 @@
 ---
 ![GaphopUI](https://raw.githubusercontent.com/gaphop123/GaphopUI_V2/main/main.png)
 ---
+# About
+
+## GaphopUI V2.4
+
+* Fixed the Section bug
+* Added more Lucide icons
+* Improved animations
+
+
 # Creator
 ---
 ## Roblox820kchg
@@ -344,13 +353,3 @@ GaphopUI:CreatePrompt({
     end
 })
 ```
-
-# About
-
-## GaphopUI V2.4
-
-* Fixed the Section bug
-* Added more Lucide icons
-* Improved animations
-
-
