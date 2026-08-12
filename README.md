@@ -68,7 +68,7 @@ Keysys:Key({
     Callback = function(success)
     if success then
         print("Key Correct!")
-        -- Chạy load script
+        -- load script
     else
         print("Wrong Key!")
     end
