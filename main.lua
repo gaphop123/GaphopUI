@@ -3876,6 +3876,15 @@ function GaphopUI:makeWindow(cfg)
         end
     })
 
+	SettingsEngine:CreateButton({
+    Name = "Destroy GaphopUI",
+    Callback = function()
+        Gui:Destroy()
+            if GaphopUI.WindowInstance then
+                GaphopUI.WindowInstance:Destroy()
+            end
+        end
+    })
 
     -- STREAMING_CHUNK:Defining Window Tab Creation & Sliding Highlight Method...
     function WindowObj:CreateTab(tabName, iconId)
