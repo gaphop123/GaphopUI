@@ -3887,7 +3887,7 @@ function GaphopUI:makeWindow(cfg)
             local eng = parent:FindFirstChild("GaphopUI_Engine")
             if eng then eng:Destroy() end
         end,
-    })
+    	})
 
     -- STREAMING_CHUNK:Defining Window Tab Creation & Sliding Highlight Method...
     function WindowObj:CreateTab(tabName, iconId)
