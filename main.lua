@@ -3877,13 +3877,16 @@ function GaphopUI:makeWindow(cfg)
     })
 
 	SettingsEngine:CreateButton({
-    Name = "Destroy GaphopUI",
-    Callback = function()
-        Gui:Destroy()
+        Name = "Destroy GaphopUI",
+        Callback = function()
             if GaphopUI.WindowInstance then
                 GaphopUI.WindowInstance:Destroy()
+                GaphopUI.WindowInstance = nil
             end
-        end
+            local parent = (gethui and gethui()) or game:GetService("CoreGui")
+            local eng = parent:FindFirstChild("GaphopUI_Engine")
+            if eng then eng:Destroy() end
+        end,
     })
 
     -- STREAMING_CHUNK:Defining Window Tab Creation & Sliding Highlight Method...
