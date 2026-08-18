@@ -4017,7 +4017,7 @@ end
 if GaphopUI.CreateWindow then
     GaphopUI.CreateWindow = GaphopUI.makeWindow
 else
-    warn("Loading this Libary Without Window, the UI will never show UI")
+    warn("Library loaded without a Window. The UI will not be displayed.")
 end
 
 return GaphopUI
