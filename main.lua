@@ -4014,12 +4014,11 @@ end)
     return WindowObj
 end
 
-if GaphopUI and type(GaphopUI.makeWindow) == "function" then
+-- MakeWindow phải tồn tại trước
+if type(GaphopUI.makeWindow) == "function" then
     GaphopUI.CreateWindow = GaphopUI.makeWindow
-end
-
-if type(GaphopUI.CreateWindow) ~= "function" then
-    warn("Library loaded without a Window. The UI will not be displayed.")
+else
+    warn("[GaphopUI] Library loaded without a Window. The UI will not be displayed.")
 end
 
 return GaphopUI
