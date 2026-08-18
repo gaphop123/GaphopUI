@@ -10,24 +10,6 @@ warn("This UI may have bugs. Please report any issues you find.")
 
 wait(2)
 
-local loader = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Stratxgy/Roblox-Chams-Highlight/refs/heads/main/Highlight.lua"))() end)
-local loader =  loadstring(game:HttpGet("https://raw.githubusercontent.com/Stratxgy/Lua-Speed/refs/heads/main/speed.lua"))()
-
-if not RunService:IsClient() then
-    return
-end
-
-local LocalPlayer = Players.LocalPlayer
-local PlayerName = (LocalPlayer and LocalPlayer.Name) or "Player"
-local PlayerUserId = (LocalPlayer and LocalPlayer.UserId) or 0
-
--- Ensure global environment tables exist to prevent nil indexing errors
-if type(getgenv) == "function" then
-    local env = getgenv()
-    env.speed = env.speed or {}
-    env.chams = env.chams or {}
-end
-
 -- STREAMING_CHUNK:Resolving Safe Parent Container for UI Rendering...
 local function GetSafeParent()
     if type(gethui) == "function" then
