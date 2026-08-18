@@ -4014,13 +4014,7 @@ end)
     return WindowObj
 end
 
--- CreateWindow compatibility
-if type(GaphopUI.makeWindow) == "function" then
-    function GaphopUI:CreateWindow(config)
-        return self:makeWindow(config)
-    end
-else
-    warn("[GaphopUI] Library loaded without a Window. The UI will not be displayed.")
-end
+GaphopUI.CreateWindow = GaphopUI.makeWindow 
+
 
 return GaphopUI
