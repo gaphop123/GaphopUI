@@ -29,9 +29,7 @@
 ---
 ## Website
 
-> Sorry for using AI to build this website. I've been busy developing GaphopUI, so I was too tired and didn't have enough time to build the website myself.
-
-🌐 **Website:** [GaphopUI](https://gaphopui.netlify.app/) [GaphopUI](https://gaphop123.github.io/GPWST) [Get Key System](https://gaphop123.github.io/Ksgt/)
+🌐 **Website:** https://gaphop123.github.io/GPWST [Get Key System](https://gaphop123.github.io/Ksgt/)
 
 ## Loading the libary
 ---
