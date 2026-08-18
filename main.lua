@@ -4014,7 +4014,10 @@ end)
     return WindowObj
 end
 
-GaphopUI.CreateWindow = GaphopUI.makeWindow
-
+if GaphopUI.CreateWindow then
+    GaphopUI.CreateWindow = GaphopUI.makeWindow
+else
+    warn("Loading this Libary Without Window, the UI will never show UI")
+end
 
 return GaphopUI
