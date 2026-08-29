@@ -50,7 +50,7 @@ local Window = GaphopUI:CreateWindow({
 })
 ```
 
-## Key system
+## Key system (DO NOT USE IT)
 ---
 ```lua
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/gaphop123/GaphopUI/refs/heads/main/Keysystem.lua"))()
