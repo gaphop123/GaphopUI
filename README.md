@@ -9,6 +9,22 @@
 * Fixed the Section bug
 * Added more Lucide icons
 * Improved animations
+---
+# ⚠️ Caution
+
+GaphopUI already displays a **"Loaded successfully!"** notification automatically when the UI is loaded.
+
+If the script shows the same notification again, for example:
+
+```lua
+GaphopUI:Notify({
+    Title = "Script Hub",
+    Content = "Loaded successfully! Enjoy ✨",
+    Duration = 5
+})
+```
+
+nothing will break, but **two "Loaded successfully!" notifications will be displayed**.
 
 
 # Creator
