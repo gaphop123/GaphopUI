@@ -3966,17 +3966,19 @@ function GaphopUI:makeWindow(cfg)
         CreateLoadingScreen(loadingTitle, loadingSub, function()
     WindowFrame.Visible = true
 
-local image
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
-if PlayerUserId and tonumber(PlayerUserId) and tonumber(PlayerUserId) > 0 then
-    image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(PlayerUserId) .. "&w=150&h=150"
-end
+local PlayerName = LocalPlayer and LocalPlayer.Name or "Player"
+local PlayerUserId = LocalPlayer and LocalPlayer.UserId or 0
 
 GaphopUI:Notify({
-    Title = "Welcome, " .. tostring(PlayerName),
+    Title = "Welcome, " .. PlayerName,
     Content = "GaphopUI Loaded Successfully!",
     Duration = 4,
-    Image = image
+    Image = PlayerUserId > 0
+        and ("rbxthumb://type=AvatarHeadShot&id=" .. tostring(PlayerUserId) .. "&w=150&h=150")
+        or nil
 })
     task.spawn(function()
         while GaphopUI.WindowInstance and GaphopUI.WindowInstance.Parent do
