@@ -4,11 +4,10 @@
 ---
 # changelog
 
-## GaphopUI V2.4
+## GaphopUI V2.5
 
-* Fixed the Section bug
-* Added more Lucide icons
-* Improved animations
+* Added Liquid glass effect
+* Improved more animations
 ---
 # ⚠️ Caution
 
