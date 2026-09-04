@@ -1,368 +1,274 @@
-# GaphopUI
+# 🚀 GaphopUI (V2.5)
+
 ---
 ![GaphopUI](https://raw.githubusercontent.com/gaphop123/GaphopUI_V2/main/main.png)
 ---
-# changelog
 
-## GaphopUI V2.5
-
-* Added Liquid glass effect
-* Improved more animations
----
-# ⚠️ Caution
-
-GaphopUI already displays a **"Loaded successfully!"** notification automatically when the UI is loaded.
-
-If the script shows the same notification again, for example:
-
-```lua
-GaphopUI:Notify({
-    Title = "Script Hub",
-    Content = "Loaded successfully! Enjoy ✨",
-    Duration = 5
-})
-```
-
-nothing will break, but **two "Loaded successfully!" notifications will be displayed**.
-
-
-# Creator
----
-## Roblox820kchg
-
-🔗 **Profile:** https://www.roblox.com/users/4156564022/profile
-
-![Roblox820kchg](https://raw.githubusercontent.com/gaphop123/GaphopUI/main/820.png)
+**GaphopUI** is a modern, feature-packed UI Library built for Roblox scripts. Powered by **Liquid Glass Treatment**, **Spring Physics Animations**, 1500+ Lucide icons, automatic mobile scaling, and built-in configuration management.
 
 ---
 
-## Roblox810kchg
+## 📌 Key Features
 
-🔗 **Profile:** https://www.roblox.com/users/1523725321/profile
+* 🎨 **Liquid Glass Treatment**: Glossy glassmorphism aesthetics with dynamic edge highlights.
+* ⚡ **Spring Animations**: Ultra-smooth motion physics powered by soft springs.
+* 🔍 **Global Search & Filter**: Instant element filtering across all tabs (`GaphopUI:FilterElements`).
+* 🎨 **25+ Built-in Themes**: Dynamic runtime theme switching and rainbow RGB mode.
+* 📱 **Mobile Auto-Scale**: Smart responsive scaling (`MobileScale = 0.82`) with a floating toggle button.
+* 📁 **Config System**: Automatically saves theme, keybinds, RGB state, and toggle states to `GaphopUI/config.json`.
+* 🎯 **1500+ Lucide Icons**: Full support for Lucide icon names and `rbxassetid://` asset IDs.
 
-![Roblox810kchg](https://raw.githubusercontent.com/gaphop123/GaphopUI/main/810.webp)
 ---
-## Website
 
-🌐 **Website:** https://gaphop123.github.io/GPWST [Get Key System](https://gaphop123.github.io/Ksgt/)
+## ⚡ Bootstrapping
 
-## Loading the libary
----
 ```lua
 local GaphopUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/gaphop123/GaphopUI/refs/heads/main/main.lua"))()
 
-```
----
-## Window 
----
-```lua
-local Window = GaphopUI:CreateWindow({
-    Name = "GaphopUI",
-    ShowText = "V2", -- Remove this if you don't want it
-    Icon = "eye", -- Remove this if you don't want it
+-- Create Window
+local Window = GaphopUI:makeWindow({ -- Alias: CreateWindow
+    Name = "My Script Hub",
+    Icon = "sparkles",              -- Lucide icon name or rbxassetid
+    ShowText = "v2.5",              -- Optional subtitle next to title
+    ToggleUIKeybind = "K",          -- Keybind to hide/show UI
+    NoLoading = false,              -- Set to true to skip splash screen
     LoadingTitle = "GaphopUI Engine",
-    LoadingSubtitle = "GaphopUI is loaded!"
+    LoadingSubtitle = "by Gaphop"
 })
+
+-- Create Tab
+local MainTab = Window:CreateTab("Main", "home") -- Aliases: AddTab, makeTab
 ```
 
-## Key system (DO NOT USE IT)
 ---
-```lua
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/gaphop123/GaphopUI/refs/heads/main/Keysystem.lua"))()
-local Keysys = Library:KeySystem()
 
-Keysys:Key({
-    Title = "Key System",
-    Description = "No method for key",
-    ShowGetKey = false,       
-    GetKeyFromSite = false,    
-    Link = "",
-    KeyPass = "MY_KEY_123",    -- put key
-    Callback = function(success)
-    if success then
-        print("Key Correct!")
-        -- load script
-    else
-        print("Wrong Key!")
+## 🛠️ Components API
+
+### 1. Button
+```lua
+MainTab:makeButton({ -- Aliases: CreateButton, AddButton
+    Name = "Execute Script",
+    Callback = function()
+        print("Button Clicked!")
     end
-end
 })
 ```
 
-
----
-
-# Tab
-
-## Create Tab
-
-Creates a new tab inside the window.
-
+### 2. Toggle
 ```lua
-local GeneralTab = Window:CreateTab("General", "home")
+MainTab:makeToggle({ -- Aliases: CreateToggle, AddToggle
+    Name = "Auto Farm",
+    CurrentValue = false,
+    Flag = "AutoFarmFlag",      -- Optional config key
+    Callback = function(state)  -- boolean
+        print("Toggle State:", state)
+    end
+})
+```
+
+### 3. Slider
+```lua
+MainTab:makeSlider({ -- Aliases: CreateSlider, AddSlider
+    Name = "WalkSpeed",
+    Range = {16, 250},
+    CurrentValue = 16,
+    Suffix = " WS",             -- Optional suffix
+    Flag = "SpeedFlag",
+    Callback = function(value)  -- number
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
+    end
+})
+```
+
+### 4. Input (TextBox)
+```lua
+MainTab:makeInput({ -- Aliases: CreateInput, AddInput
+    Name = "Target Player",
+    PlaceholderText = "Type username...",
+    Callback = function(text)   -- string (fires on FocusLost)
+        print("Input Text:", text)
+    end
+})
+```
+
+### 5. Dropdown
+```lua
+MainTab:makeDropdown({ -- Aliases: CreateDropdown, AddDropdown
+    Name = "Target Part",
+    Options = {"Head", "HumanoidRootPart", "Torso"},
+    CurrentOption = "Head",
+    Flag = "AimbotPart",
+    Callback = function(option) -- string
+        print("Selected:", option)
+    end
+})
+```
+
+### 6. Keybind
+```lua
+MainTab:makeKeybind({ -- Aliases: CreateKeybind, AddKeybind
+    Name = "Aimbot Key",
+    CurrentKeybind = Enum.KeyCode.E,
+    Flag = "AimbotKeybind",
+    Callback = function(keycode) -- Enum.KeyCode
+        print("Bound Key:", keycode)
+    end
+})
+```
+
+### 7. Color Picker
+```lua
+MainTab:makeColorPicker({ -- Aliases: CreateColorPicker, AddColorPicker
+    Name = "ESP Color",
+    Color = Color3.fromRGB(0, 162, 255),
+    Flag = "ESPColor",
+    Callback = function(color)  -- Color3
+        print("Selected Color:", color)
+    end
+})
+```
+
+### 8. Prompt (Modal Dialog)
+```lua
+GaphopUI:CreatePrompt({
+    Title = "Confirmation",
+    Content = "Are you sure you want to proceed?",
+    ConfirmText = "Confirm",
+    CancelText = "Cancel",
+    OnConfirm = function()
+        print("Confirmed")
+    end,
+    OnCancel = function()
+        print("Cancelled")
+    end
+})
 ```
 
 ---
 
-# Section
-
-## Create Section
-
-Creates a labeled section to organize UI elements.
+## 🎨 Static & Display Elements
 
 ```lua
-GeneralTab:CreateSection("Smooth Animation Controls")
+-- Section Header
+MainTab:CreateSection("Combat Settings") -- Aliases: AddSection (Accepts string or table {Name/Title})
+
+-- Static Paragraph
+MainTab:CreateParagraph("Information", "This script is running version 2.5.") -- Aliases: AddParagraph
+
+-- Interactive Label
+local MyLabel = MainTab:CreateLabel("Current Status: Idle") -- Aliases: makeLabel
+MyLabel:Set("Current Status: Active")
+MyLabel:SetDescription("Updated 5 seconds ago")
 ```
 
 ---
 
-# Notification
-
-## Notify
-
-Displays a notification.
+## 🔔 Notifications
 
 ```lua
+-- Standard Notification
 GaphopUI:Notify({
     Title = "Success",
-    Content = "GaphopUI loaded successfully!"
+    Content = "Settings saved successfully!",
+    Duration = 4,
+    Image = "check" -- Lucide icon name, rbxassetid, or player headshot
+})
+
+-- Warning Notification
+GaphopUI:WarnNotify({
+    Title = "Caution",
+    Content = "High risk feature enabled!",
+    Duration = 5,
+    Color = Color3.fromRGB(255, 180, 0), -- Optional custom accent color
+    Image = "alert-triangle"
 })
 ```
 
 ---
 
-# Prompt
+## ⚙️ Utility APIs
 
-## Create Prompt
-
-Displays a confirmation dialog.
-
-```lua
-GaphopUI:CreatePrompt({
-    Title = "Execute Script?",
-    Content = "Are you sure you want to run this module?",
-    OnConfirm = function()
-        print("Confirmed!")
-    end
-})
-```
+| API Method | Description |
+| :--- | :--- |
+| `GaphopUI:ApplyTheme("CyberNeon")` | Changes the UI theme live (25+ built-in presets). |
+| `GaphopUI:ToggleRGB(true)` | Enables or disables live RGB cycling. |
+| `GaphopUI:ToggleUI(state)` | Manually shows or hides the main UI frame. |
+| `GaphopUI:FilterElements(query)` | Filters UI components across all tabs matching the query string. |
 
 ---
 
-# Button
-
-## Create Button
-
-Creates a clickable button.
+## 📜 Complete Minimal Example
 
 ```lua
-GeneralTab:CreateButton({
-    Name = "Modal Prompt Test",
-    Callback = function()
+local GaphopUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/gaphop123/GaphopUI/refs/heads/main/main.lua"))()
 
-    end
-})
-```
-
----
-
-# Toggle
-
-## Create Toggle
-
-Creates an ON/OFF toggle.
-
-```lua
-GeneralTab:CreateToggle({
-    Name = "Sample Toggle",
-    CurrentValue = true,
-    Callback = function(state)
-
-    end
-})
-```
-
----
-
-# Slider
-
-## Create Slider
-
-Creates a slider.
-
-```lua
-GeneralTab:CreateSlider({
-    Name = "Sample Slider",
-    Range = {0, 100},
-    CurrentValue = 50,
-    Suffix = "%",
-    Callback = function(value)
-
-    end
-})
-```
-
----
-
-# Input
-
-## Create Input
-
-Creates a text input box.
-
-```lua
-GeneralTab:CreateInput({
-    Name = "Player Name",
-    PlaceholderText = "Type here...",
-    Callback = function(text)
-
-    end
-})
-```
-
----
-
-# Dropdown
-
-## Create Dropdown
-
-Creates a dropdown menu.
-
-```lua
-GeneralTab:CreateDropdown({
-    Name = "Aimbot Part",
-    Options = {
-        "Head",
-        "HumanoidRootPart",
-        "Torso"
-    },
-    CurrentOption = "Head",
-    Callback = function(option)
-
-    end
-})
-```
-
----
-
-# Color Picker
-
-## Create Color Picker
-
-Creates a color picker.
-
-```lua
-GeneralTab:CreateColorPicker({
-    Name = "ESP Color",
-    Color = Color3.fromRGB(0, 162, 255),
-    Callback = function(color)
-
-    end
-})
-```
-
----
-
-# Keybind
-
-## Create Keybind
-
-Creates a keybind selector.
-
-```lua
-GeneralTab:CreateKeybind({
-    Name = "Quick Action",
-    CurrentKeybind = Enum.KeyCode.Q,
-    Callback = function(key)
-
-    end
-})
-```
-
----
-
-# Complete Example
-
-```lua
 local Window = GaphopUI:CreateWindow({
-    Name = "Ultimate Animation",
+    Name = "Ultimate Hub",
     Icon = "sparkles",
-    LoadingTitle = "Loading...",
-    LoadingSubtitle = "Please wait"
+    ShowText = "v2.5",
+    LoadingTitle = "GaphopUI Engine",
+    LoadingSubtitle = "Loading modules..."
 })
 
-local DemoTab1 = Window:CreateTab("General", "home")
+-- Tab 1: General
+local MainTab = Window:CreateTab("General", "home")
+MainTab:CreateSection("Movement Controls")
 
-DemoTab1:CreateSection("Smooth Animation Controls")
-
-DemoTab1:CreateButton({
-    Name = "Modal Prompt Test",
-    Callback = function()
-
-    end
-})
-
-DemoTab1:CreateToggle({
-    Name = "Sample Toggle",
-    CurrentValue = true,
+MainTab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 200},
+    CurrentValue = 16,
+    Suffix = " WS",
     Callback = function(val)
-
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = val
+        end
     end
 })
 
-DemoTab1:CreateSlider({
-    Name = "Sample Slider",
-    Range = {0, 100},
-    CurrentValue = 50,
-    Suffix = "%",
-    Callback = function(val)
-
+MainTab:CreateToggle({
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Callback = function(state)
+        _G.InfJump = state
     end
 })
 
-local DemoTab2 = Window:CreateTab("Components", "sparkles")
+-- Tab 2: Visuals
+local VisualTab = Window:CreateTab("Visuals", "eye")
+VisualTab:CreateSection("ESP Options")
 
-DemoTab2:CreateSection("Inputs & Selectors")
-
-DemoTab2:CreateInput({
-    Name = "Speed Multiplier",
-    PlaceholderText = "Enter value...",
-    Callback = function(text)
-
-    end
-})
-
-DemoTab2:CreateDropdown({
-    Name = "Aimbot Part",
-    Options = {
-        "Head",
-        "HumanoidRootPart",
-        "Torso"
-    },
-    CurrentOption = "Head",
-    Callback = function(selected)
-
-    end
-})
-
-DemoTab2:CreateColorPicker({
-    Name = "ESP Color",
-    Color = Color3.fromRGB(0, 162, 255),
+VisualTab:CreateColorPicker({
+    Name = "Box Color",
+    Color = Color3.fromRGB(255, 0, 0),
     Callback = function(color)
-
+        -- Custom ESP color logic
     end
 })
 
+VisualTab:CreateDropdown({
+    Name = "Target Type",
+    Options = {"All", "Enemies", "Team"},
+    CurrentOption = "Enemies",
+    Callback = function(selected)
+        print("Targeting:", selected)
+    end
+})
+
+-- Show Initialization Notification
 GaphopUI:Notify({
-    Title = "Ultimate Animation",
-    Content = "GaphopUI Ripple & Spring Physics active!"
-})
-
-GaphopUI:CreatePrompt({
-    Title = "Execute Script?",
-    Content = "Are you sure you want to run this module?",
-    OnConfirm = function()
-
-    end
+    Title = "GaphopUI V2.5",
+    Content = "Loaded with Liquid Glass effects & Spring Physics!",
+    Duration = 5,
+    Image = "sparkles"
 })
 ```
+
+---
+
+## 👨‍💻 Authors & Credits
+
+* **Roblox820kchg**: [Roblox Profile](https://www.roblox.com/users/4156564022/profile)
+* **Roblox810kchg**: [Roblox Profile](https://www.roblox.com/users/1523725321/profile)
+* 🌐 **Website Key System**: [Gaphop Key System](https://gaphop123.github.io/GPWST)
