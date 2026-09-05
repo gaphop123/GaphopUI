@@ -2392,36 +2392,93 @@ function GaphopUI:ToggleRGB(enabled)
 end
 
 -- STREAMING_CHUNK:Config File & Persistence Management...
+-- Structure:
+--   GaphopUI/
+--     <Window Name>/          e.g. "TrollFun Hub"
+--       config.gpui.json
+--     <Another Hub Name>/
+--       config.gpui.json
+GaphopUI.WindowName = nil
+GaphopUI.ConfigPath = nil
+
 local function EnsureFolder(folderName)
     if type(makefolder) == "function" then
         pcall(function() makefolder(folderName) end)
     end
 end
 
+-- Keep folder names readable while stripping filesystem-hostile characters
+local function SanitizeHubName(name)
+    name = tostring(name or "GaphopUI")
+    name = name:gsub("[%c%z]", "")
+    name = name:gsub('[<>:"/\\|%?%*]', "")
+    name = name:gsub("^%s+", ""):gsub("%s+$", "")
+    if name == "" then name = "GaphopUI" end
+    -- Cap length for safer paths on some executors
+    if #name > 64 then name = name:sub(1, 64) end
+    return name
+end
+
+local function GetConfigPath(hubName)
+    local safe = SanitizeHubName(hubName or GaphopUI.WindowName or "GaphopUI")
+    return "GaphopUI/" .. safe .. "/config.gpui.json", "GaphopUI/" .. safe
+end
+
 local function SafeWriteFile(path, content)
     pcall(function()
-        EnsureFolder("GaphopUI")
+        local folder = path:match("(.+)/[^/]+$")
+        if folder then
+            -- Create nested folders: GaphopUI then GaphopUI/<Hub>
+            local root = folder:match("^([^/]+)")
+            if root then EnsureFolder(root) end
+            EnsureFolder(folder)
+        else
+            EnsureFolder("GaphopUI")
+        end
         writefile(path, content)
     end)
 end
 
 local function SaveConfig()
+    local path = GaphopUI.ConfigPath
+    if not path then
+        path = select(1, GetConfigPath(GaphopUI.WindowName or "GaphopUI"))
+        GaphopUI.ConfigPath = path
+    end
+
     local payload = {
+        hubName = GaphopUI.WindowName or "GaphopUI",
         theme = GaphopUI.CurrentTheme,
         toggleKey = GaphopUI.ToggleKey and GaphopUI.ToggleKey.Name or "K",
         showMobileButton = GaphopUI.Flags.ShowMobileButton ~= false,
         isOpen = GaphopUI.IsOpen,
         rgbEnabled = GaphopUI.RGBEnabled,
-        version = GaphopUI.Version
+        version = GaphopUI.Version,
+        flags = GaphopUI.Flags,
+        savedAt = os.time and os.time() or nil
     }
-    SafeWriteFile("GaphopUI/config.json", HttpService:JSONEncode(payload))
+    SafeWriteFile(path, HttpService:JSONEncode(payload))
 end
 
-local function LoadConfig()
+local function LoadConfig(hubName)
     pcall(function()
         if type(readfile) ~= "function" or type(isfile) ~= "function" then return end
-        if not isfile("GaphopUI/config.json") then return end
-        local raw = readfile("GaphopUI/config.json")
+
+        local path, folder = GetConfigPath(hubName)
+        GaphopUI.ConfigPath = path
+        EnsureFolder("GaphopUI")
+        EnsureFolder(folder)
+
+        -- Prefer per-hub config; fall back to legacy global path once
+        local raw
+        if isfile(path) then
+            raw = readfile(path)
+        elseif isfile("GaphopUI/config.json") then
+            raw = readfile("GaphopUI/config.json")
+        else
+            return
+        end
+
         if not raw or raw == "" then return end
         local data = HttpService:JSONDecode(raw)
         if type(data) ~= "table" then return end
@@ -2441,11 +2498,13 @@ local function LoadConfig()
         if data.isOpen ~= nil then
             GaphopUI.IsOpen = data.isOpen
         end
+        if type(data.flags) == "table" then
+            for k, v in pairs(data.flags) do
+                GaphopUI.Flags[k] = v
+            end
+        end
     end)
 end
-
--- Attempt to restore previous session settings
-LoadConfig()
 
 local function HexToColor3(hex)
     hex = hex:gsub("#", "")
@@ -2864,33 +2923,85 @@ function GaphopUI:ToggleUI(forceState)
     GaphopUI.IsOpen = shouldOpen
 
     if GaphopUI.WindowInstance then
-        local normalSize = GaphopUI.WindowInstance:GetAttribute("NormalSize") or UDim2.new(0, 720, 0, 480)
+        local win = GaphopUI.WindowInstance
+        local normalSize = win:GetAttribute("NormalSize") or UDim2.new(0, 720, 0, 480)
+        local theme = GaphopUI.Themes[GaphopUI.CurrentTheme] or GaphopUI.Themes.Dark
+        local centerPos = win:GetAttribute("CenterPos") or win.Position
+
         if GaphopUI.IsOpen then
-            GaphopUI.WindowInstance.Visible = true
-            SoftSpring(GaphopUI.WindowInstance, 0.48, {
+            -- Open: scale + fade + slight overshoot spring
+            win.Visible = true
+            win.Size = UDim2.new(normalSize.X.Scale, math.floor(normalSize.X.Offset * 0.88), normalSize.Y.Scale, math.floor(normalSize.Y.Offset * 0.88))
+            win.BackgroundTransparency = 1
+            SoftSpring(win, 0.42, {
                 Size = normalSize,
-                BackgroundTransparency = (GaphopUI.Themes[GaphopUI.CurrentTheme].Glass or 0.18)
+                BackgroundTransparency = (theme.Glass or 0.18),
+                Position = centerPos
             })
 
-            if GaphopUI.OpenButton then GaphopUI.OpenButton.Visible = false end
+            -- Soft pulse on window stroke
+            local stroke = win:FindFirstChildOfClass("UIStroke")
+            if stroke then
+                local prevT = stroke.Transparency
+                stroke.Transparency = 0.05
+                SpringTween(stroke, 0.55, { Transparency = prevT }, Enum.EasingStyle.Sine)
+            end
+
+            if GaphopUI.OpenButton then
+                SoftSpring(GaphopUI.OpenButton, 0.25, {
+                    Size = UDim2.new(0, 0, 0, 0),
+                    BackgroundTransparency = 1
+                })
+                task.delay(0.28, function()
+                    if GaphopUI.OpenButton then GaphopUI.OpenButton.Visible = false end
+                end)
+            end
         else
-            local collapsed = UDim2.new(normalSize.X.Scale, normalSize.X.Offset, 0, 0)
-            local tw = SoftSpring(GaphopUI.WindowInstance, 0.38, {
+            -- Hide: shrink toward center + fade out
+            if not win:GetAttribute("CenterPos") then
+                win:SetAttribute("CenterPos", win.Position)
+            end
+            local collapsed = UDim2.new(
+                normalSize.X.Scale,
+                math.floor(normalSize.X.Offset * 0.72),
+                normalSize.Y.Scale,
+                math.floor(normalSize.Y.Offset * 0.72)
+            )
+            local tw = SpringTween(win, 0.36, {
                 Size = collapsed,
                 BackgroundTransparency = 1
-            })
+            }, Enum.EasingStyle.Quart)
 
             if tw then
                 tw.Completed:Connect(function()
-                    if not GaphopUI.IsOpen then GaphopUI.WindowInstance.Visible = false end
+                    if not GaphopUI.IsOpen and win then
+                        win.Visible = false
+                        win.Size = normalSize
+                    end
                 end)
             else
-                GaphopUI.WindowInstance.Visible = false
+                win.Visible = false
             end
 
             if IsMobile() and GaphopUI.Flags.ShowMobileButton ~= false then
                 if not GaphopUI.OpenButton then CreateOpenButton() end
-                if GaphopUI.OpenButton then GaphopUI.OpenButton.Visible = true end
+                if GaphopUI.OpenButton then
+                    GaphopUI.OpenButton.Visible = true
+                    GaphopUI.OpenButton.Size = UDim2.new(0, 0, 0, 0)
+                    SoftSpring(GaphopUI.OpenButton, 0.35, {
+                        Size = UDim2.new(0, 150, 0, 42),
+                        BackgroundTransparency = 0.15
+                    })
+                end
+            else
+                -- PC only: remind user of the toggle keybind when UI is hidden
+                local keyName = (GaphopUI.ToggleKey and GaphopUI.ToggleKey.Name) or "K"
+                GaphopUI:Notify({
+                    Title = "UI Hidden",
+                    Content = "Press [" .. keyName .. "] to show UI",
+                    Duration = 3.5,
+                    Image = "keyboard"
+                })
             end
         end
     end
@@ -4003,16 +4114,25 @@ function GaphopUI:makeWindow(cfg)
     end
 
     local winName = cfg.Name or "GaphopUI"
+    GaphopUI.WindowName = winName
+
+    -- Per-hub config: GaphopUI/<Window Name>/config.gpui.json
+    local configPath, hubFolder = GetConfigPath(winName)
+    GaphopUI.ConfigPath = configPath
+    EnsureFolder("GaphopUI")
+    EnsureFolder(hubFolder)
+    LoadConfig(winName)
+
     local windowIcon = cfg.Icon or "sparkles"
     local showText = cfg.ShowText
     local noLoading = cfg.NoLoading or false
     local loadingTitle = cfg.LoadingTitle or "GaphopUI Engine"
     local loadingSub = cfg.LoadingSubtitle or "by Gaphop"
 
-    local toggleKeyStr = cfg.ToggleUIKeybind or "K"
-    if Enum.KeyCode[toggleKeyStr] then
-        GaphopUI.ToggleKey = Enum.KeyCode[toggleKeyStr]
-    else
+    -- Explicit keybind in makeWindow overrides saved config; otherwise keep restored / default
+    if cfg.ToggleUIKeybind and Enum.KeyCode[cfg.ToggleUIKeybind] then
+        GaphopUI.ToggleKey = Enum.KeyCode[cfg.ToggleUIKeybind]
+    elseif not GaphopUI.ToggleKey then
         GaphopUI.ToggleKey = Enum.KeyCode.K
     end
 
@@ -4039,6 +4159,8 @@ function GaphopUI:makeWindow(cfg)
     WindowFrame.Parent = ScreenGui
 
     WindowFrame:SetAttribute("NormalSize", UDim2.new(0, winW, 0, winH))
+    WindowFrame:SetAttribute("RestoreSize", UDim2.new(0, winW, 0, winH))
+    WindowFrame:SetAttribute("CenterPos", UDim2.new(0.5, -winW/2, 0.5, -winH/2))
     WindowFrame:SetAttribute("IsMaximized", false)
 
     -- Full liquid glass treatment for main window
@@ -4232,17 +4354,24 @@ function GaphopUI:makeWindow(cfg)
             WindowFrame:SetAttribute("IsMaximized", true)
             local targetWidth = math.min(860, vpSize.X - 40)
             local targetHeight = math.min(560, vpSize.Y - 40)
-            SpringTween(WindowFrame, 0.35, {
-                Size = UDim2.new(0, targetWidth, 0, targetHeight),
-                Position = UDim2.new(0.5, -targetWidth/2, 0.5, -targetHeight/2)
+            local maxSize = UDim2.new(0, targetWidth, 0, targetHeight)
+            local maxPos = UDim2.new(0.5, -targetWidth/2, 0.5, -targetHeight/2)
+            SoftSpring(WindowFrame, 0.4, {
+                Size = maxSize,
+                Position = maxPos
             }, Enum.EasingStyle.Quart)
+            WindowFrame:SetAttribute("CenterPos", maxPos)
+            WindowFrame:SetAttribute("NormalSize", maxSize)
         else
             WindowFrame:SetAttribute("IsMaximized", false)
-            local norm = WindowFrame:GetAttribute("NormalSize") or UDim2.new(0, 700, 0, 460)
-            SpringTween(WindowFrame, 0.35, {
+            local norm = WindowFrame:GetAttribute("RestoreSize") or UDim2.new(0, winW, 0, winH)
+            local restPos = UDim2.new(0.5, -norm.X.Offset/2, 0.5, -norm.Y.Offset/2)
+            SoftSpring(WindowFrame, 0.4, {
                 Size = norm,
-                Position = UDim2.new(0.5, -norm.X.Offset/2, 0.5, -norm.Y.Offset/2)
+                Position = restPos
             }, Enum.EasingStyle.Quart)
+            WindowFrame:SetAttribute("CenterPos", restPos)
+            WindowFrame:SetAttribute("NormalSize", norm)
         end
     end)
 
@@ -4260,6 +4389,7 @@ function GaphopUI:makeWindow(cfg)
         CurrentOption = GaphopUI.CurrentTheme,
         Callback = function(selected)
             GaphopUI:ApplyTheme(selected)
+            SaveConfig()
             GaphopUI:Notify({Title = "Theme Updated", Content = "Applied " .. selected .. " theme.", Duration = 3})
         end
     })
@@ -4269,6 +4399,7 @@ function GaphopUI:makeWindow(cfg)
         CurrentValue = GaphopUI.RGBEnabled,
         Callback = function(enabled)
             GaphopUI:ToggleRGB(enabled)
+            SaveConfig()
         end
     })
 
@@ -4284,7 +4415,7 @@ function GaphopUI:makeWindow(cfg)
 
     SettingsEngine:CreateParagraph({
         Title = "About GaphopUI",
-        Content = "GaphopUI v3.3.0 Liquid Glass Pro · by Gaphop · © 2026 · Enhanced liquid glass · Mobile adaptive scale · Smoother springs & animations"
+        Content = "GaphopUI v3.3.0 Liquid Glass Pro · by Gaphop · © 2026 · Per-hub config (GaphopUI/<Name>/config.gpui.json) · Enhanced liquid glass · Mobile adaptive · Smoother springs"
     })
     SettingsEngine:CreateButton({
         Name = "GitHub Link",
@@ -4368,22 +4499,30 @@ function GaphopUI:makeWindow(cfg)
 
         local function SwitchToThisTab()
             for _, t in pairs(Tabs) do
-                SpringTween(t.Label, 0.2, {TextColor3 = theme.SubText})
+                SpringTween(t.Label, 0.22, {TextColor3 = theme.SubText})
+                if t.Icon and t.Icon.ImageColor3 then
+                    SpringTween(t.Icon, 0.22, {ImageColor3 = theme.SubText})
+                end
                 t.Page.Visible = false
             end
             settingsPage.Visible = false
 
             TabIndicator.Visible = true
-            SpringTween(TabIndicator, 0.3, {
+            SoftSpring(TabIndicator, 0.34, {
                 Position = UDim2.new(0, tabBtn.Position.X.Offset, 0, tabBtn.Position.Y.Offset),
-                Size = tabBtn.Size
-            }, Enum.EasingStyle.Quart)
+                Size = tabBtn.Size,
+                BackgroundTransparency = 0.78
+            })
 
-            SpringTween(tabLabel, 0.2, {TextColor3 = theme.Text})
+            SpringTween(tabLabel, 0.22, {TextColor3 = theme.Text})
+            if tabIcon and tabIcon.ImageColor3 then
+                SpringTween(tabIcon, 0.22, {ImageColor3 = theme.Accent})
+            end
 
-            page.Position = UDim2.new(0, 20, 0, 5)
+            -- Slide + slight scale-in for content page
+            page.Position = UDim2.new(0, 28, 0, 5)
             page.Visible = true
-            SpringTween(page, 0.3, {Position = UDim2.new(0, 5, 0, 5)}, Enum.EasingStyle.Quart)
+            SpringTween(page, 0.36, {Position = UDim2.new(0, 5, 0, 5)}, Enum.EasingStyle.Quart)
         end
 
         tabBtn.MouseButton1Click:Connect(function(input)
