@@ -1,1522 +1,3569 @@
---[[
-    GaphopUI v4.0.0 – Liquid Glass Pro
-    Fully backward-compatible with v3.3.0 + Rayfield Gen2 shim.
-    Keep the original LucideSprites table from v3.3.0 exactly as-is below the header.
-]]
-
--- ============================================================
--- 1. SERVICES
--- ============================================================
-local TweenService     = game:GetService("TweenService")
+-- STREAMING_CHUNK:Initializing Core Roblox Services and Global Tables...
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local RunService       = game:GetService("RunService")
-local Players          = game:GetService("Players")
-local CoreGui          = game:GetService("CoreGui")
-local HttpService      = game:GetService("HttpService")
-local Lighting         = game:GetService("Lighting")
-local GuiService       = game:GetService("GuiService")
-local TextService      = game:GetService("TextService")
-local SoundService     = game:GetService("SoundService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 
-warn("[GaphopUI] v4.0.0 Liquid Glass Pro loading...")
+warn("[GaphopUI] v3.4.0 Liquid Glass Ultra loading...")
 
--- ============================================================
--- 2. SAFE PARENT + RE-EXEC CLEANUP
--- ============================================================
+task.wait(0.5)
+
+-- STREAMING_CHUNK:Resolving Safe Parent Container for UI Rendering...
 local function GetSafeParent()
     if type(gethui) == "function" then
         local ok, res = pcall(gethui)
         if ok and res then return res end
     end
+
     if LocalPlayer then
         local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-        if not pg then pcall(function() pg = LocalPlayer:WaitForChild("PlayerGui", 3) end) end
+        if not pg then
+            pcall(function() pg = LocalPlayer:WaitForChild("PlayerGui", 3) end)
+        end
         if pg then return pg end
     end
+
     if type(cloneref) == "function" then
         local ok, res = pcall(function() return cloneref(CoreGui) end)
         if ok and res then return res end
     end
+
     return CoreGui
 end
 
 local ParentUI = GetSafeParent()
 
--- Destroy previous instance completely (connections, blur, tasks)
-do
-    local old = ParentUI:FindFirstChild("GaphopUI_Engine")
-    if old then
-        pcall(function()
-            if old:GetAttribute("GaphopDestroy") then
-                -- already cleaned
-            end
-            old:Destroy()
-        end)
-    end
+-- Clean up any existing instance to prevent duplicates
+if ParentUI:FindFirstChild("GaphopUI_Engine") then
+    ParentUI:FindFirstChild("GaphopUI_Engine"):Destroy()
 end
 
--- ============================================================
--- 3. CORE TABLE
--- ============================================================
+-- STREAMING_CHUNK:Defining Ultimate Library Configurations & Color Palettes...
 local GaphopUI = {
-    Version          = "4.0.0 Liquid Glass Pro",
-    Flags            = {},
-    Themes           = {},
-    CurrentTheme     = "Dark",
-    ToggleKey        = Enum.KeyCode.K,
-    IsOpen           = true,
-    IsMinimized      = false,
-    Elements         = {},
-    Connections      = {},
-    WindowInstance   = nil,
-    OpenButton       = nil,
-    NotifyContainer  = nil,
+    Version = "3.4.0 Liquid Glass Ultra",
+    Flags = {},
+    Themes = {},
+    CurrentTheme = "Dark",
+    ToggleKey = Enum.KeyCode.K,
+    IsOpen = true,
+    Elements = {},
+    Connections = {},
+    WindowInstance = nil,
+    OpenButton = nil,
+    NotifyContainer = nil,
+    AssetFolder = nil,
     CallbackRegistry = {},
-    RGBEnabled       = false,
-    CurrentRGBColor  = Color3.fromRGB(0, 162, 255),
-    MobileScale      = 0.82,
-    UIScaleInstance  = nil,
-    ConfigPath       = nil,
-    WindowName       = "GaphopUI",
-    AnimationToken   = 0,
-    BlurEffect       = nil,
-    FlagChanged      = {},
-    HideNotifyShown  = false,
-    ActiveTweens     = {},          -- tween manager
-    DispatcherConn   = nil,
-    ParticlePool     = {},
-    RipplePool       = {},
-    NotificationQueue = {},
-    Settings = {
-        Effects        = true,
-        Blur           = true,
-        Sheen          = true,
-        Particles      = true,
-        GlassPreset    = "Frosted", -- Frosted | Clear | Crystal
-        AnimationSpeed = 1.0,
-        Sounds         = false,
-        ReducedMotion  = false,
-    },
-    Icons = { -- text fallback only
-        settings="⚙", search="⌕", home="⌂", close="x", x="x",
-        minimize="—", maximize="▢", refresh="↻", palette="◐",
-        keyboard="⌨", sparkles="✦", moon="☾", sun="☀", info="ⓘ",
-        bell="🔔", menu="☰", plus="+", minus="−", check="✓",
-        slider="▭", layers="☰", cog="⚙", chevron="▾", shield="🛡",
-        zap="⚡", star="★"
-    },
+    RGBEnabled = false,
+    RGBConnection = nil,
+    CurrentRGBColor = Color3.fromRGB(0, 162, 255),
+    MobileScale = 0.82, -- Scale factor for mobile (PC remains 1.0)
+    UIScaleInstance = nil,
+    Icons = {
+        settings = "⚙",
+        search = "⌕",
+        home = "⌂",
+        close = "x",
+        x = "x",
+        minimize = "—",
+        maximize = "▢",
+        refresh = "↻",
+        palette = "◐",
+        keyboard = "⌨",
+        sparkles = "✦",
+        moon = "☾",
+        sun = "☀",
+        info = "ⓘ",
+        bell = "🔔",
+        menu = "☰",
+        plus = "+",
+        minus = "−",
+        check = "✓",
+        slider = "▭",
+        layers = "☰",
+        cog = "⚙",
+        chevron = "▾",
+        shield = "🛡",
+        zap = "⚡",
+        star = "★"
+    }
 }
 
--- ============================================================
--- 4. LUCIDE SPRITES – KEEP THE ORIGINAL TABLE FROM v3.3.0 HERE
--- ============================================================
---[[
-    PASTE THE ENTIRE GaphopUI.LucideSprites = { ... } BLOCK
-    FROM THE ATTACHED main.lua (v3.3.0) RIGHT HERE.
-    Do not modify a single entry.
-]]
-GaphopUI.LucideSprites = GaphopUI.LucideSprites or {} -- placeholder; replace with full original table
+-- MAPPING TRỰC TIẾP LUCIDE ICONS BẰNG SPRITESHEET ĐỂ RENDER HD (FULL SET - 1573 icons)
+GaphopUI.LucideSprites = {
+    aarrowdown = {16898612629, {48, 48}, {771, 0}},
+    aarrowup = {16898612629, {48, 48}, {0, 771}},
+    accessibility = {16898612629, {48, 48}, {257, 771}},
+    activity = {16898612629, {48, 48}, {514, 771}},
+    activitysquare = {16898612629, {48, 48}, {771, 514}},
+    airplay = {16898612629, {48, 48}, {771, 49}},
+    airvent = {16898612629, {48, 48}, {820, 0}},
+    alargesmall = {16898612629, {48, 48}, {771, 257}},
+    alarmcheck = {16898612629, {48, 48}, {49, 771}},
+    alarmclock = {16898612629, {48, 48}, {257, 820}},
+    alarmclockcheck = {16898612629, {48, 48}, {0, 820}},
+    alarmclockminus = {16898612629, {48, 48}, {820, 257}},
+    alarmclockoff = {16898612629, {48, 48}, {771, 306}},
+    alarmclockplus = {16898612629, {48, 48}, {306, 771}},
+    alarmminus = {16898612629, {48, 48}, {820, 514}},
+    alarmplus = {16898612629, {48, 48}, {771, 563}},
+    alarmsmoke = {16898612629, {48, 48}, {563, 771}},
+    album = {16898612629, {48, 48}, {514, 820}},
+    alertcircle = {16898612629, {48, 48}, {869, 0}},
+    alertoctagon = {16898612629, {48, 48}, {820, 49}},
+    alerttriangle = {16898612629, {48, 48}, {771, 98}},
+    aligncenter = {16898612629, {48, 48}, {0, 869}},
+    aligncenterhorizontal = {16898612629, {48, 48}, {98, 771}},
+    aligncentervertical = {16898612629, {48, 48}, {49, 820}},
+    alignendhorizontal = {16898612629, {48, 48}, {869, 257}},
+    alignendvertical = {16898612629, {48, 48}, {820, 306}},
+    alignhorizontaldistributecenter = {16898612629, {48, 48}, {771, 355}},
+    alignhorizontaldistributeend = {16898612629, {48, 48}, {355, 771}},
+    alignhorizontaldistributestart = {16898612629, {48, 48}, {306, 820}},
+    alignhorizontaljustifycenter = {16898612629, {48, 48}, {257, 869}},
+    alignhorizontaljustifyend = {16898612629, {48, 48}, {869, 514}},
+    alignhorizontaljustifystart = {16898612629, {48, 48}, {820, 563}},
+    alignhorizontalspacearound = {16898612629, {48, 48}, {771, 612}},
+    alignhorizontalspacebetween = {16898612629, {48, 48}, {612, 771}},
+    alignjustify = {16898612629, {48, 48}, {563, 820}},
+    alignleft = {16898612629, {48, 48}, {514, 869}},
+    alignright = {16898612629, {48, 48}, {918, 0}},
+    alignstarthorizontal = {16898612629, {48, 48}, {869, 49}},
+    alignstartvertical = {16898612629, {48, 48}, {820, 98}},
+    alignverticaldistributecenter = {16898612629, {48, 48}, {771, 147}},
+    alignverticaldistributeend = {16898612629, {48, 48}, {147, 771}},
+    alignverticaldistributestart = {16898612629, {48, 48}, {98, 820}},
+    alignverticaljustifycenter = {16898612629, {48, 48}, {49, 869}},
+    alignverticaljustifyend = {16898612629, {48, 48}, {0, 918}},
+    alignverticaljustifystart = {16898612629, {48, 48}, {918, 257}},
+    alignverticalspacearound = {16898612629, {48, 48}, {869, 306}},
+    alignverticalspacebetween = {16898612629, {48, 48}, {820, 355}},
+    ambulance = {16898612629, {48, 48}, {771, 404}},
+    ampersand = {16898612629, {48, 48}, {404, 771}},
+    ampersands = {16898612629, {48, 48}, {355, 820}},
+    anchor = {16898612629, {48, 48}, {306, 869}},
+    angry = {16898612629, {48, 48}, {257, 918}},
+    annoyed = {16898612629, {48, 48}, {918, 514}},
+    antenna = {16898612629, {48, 48}, {869, 563}},
+    anvil = {16898612629, {48, 48}, {820, 612}},
+    aperture = {16898612629, {48, 48}, {771, 661}},
+    apple = {16898612629, {48, 48}, {563, 869}},
+    appwindow = {16898612629, {48, 48}, {612, 820}},
+    appwindowmac = {16898612629, {48, 48}, {661, 771}},
+    archive = {16898612629, {48, 48}, {918, 49}},
+    archiverestore = {16898612629, {48, 48}, {514, 918}},
+    archivex = {16898612629, {48, 48}, {967, 0}},
+    areachart = {16898612629, {48, 48}, {869, 98}},
+    armchair = {16898612629, {48, 48}, {820, 147}},
+    arrowbigdown = {16898612629, {48, 48}, {196, 771}},
+    arrowbigdowndash = {16898612629, {48, 48}, {771, 196}},
+    arrowbigleft = {16898612629, {48, 48}, {98, 869}},
+    arrowbigleftdash = {16898612629, {48, 48}, {147, 820}},
+    arrowbigright = {16898612629, {48, 48}, {0, 967}},
+    arrowbigrightdash = {16898612629, {48, 48}, {49, 918}},
+    arrowbigup = {16898612629, {48, 48}, {918, 306}},
+    arrowbigupdash = {16898612629, {48, 48}, {967, 257}},
+    arrowdown = {16898612629, {48, 48}, {967, 49}},
+    arrowdown01 = {16898612629, {48, 48}, {869, 355}},
+    arrowdown10 = {16898612629, {48, 48}, {820, 404}},
+    arrowdownaz = {16898612629, {48, 48}, {771, 453}},
+    arrowdowncircle = {16898612629, {48, 48}, {453, 771}},
+    arrowdownfromline = {16898612629, {48, 48}, {404, 820}},
+    arrowdownleft = {16898612629, {48, 48}, {257, 967}},
+    arrowdownleftfromcircle = {16898612629, {48, 48}, {355, 869}},
+    arrowdownleftsquare = {16898612629, {48, 48}, {306, 918}},
+    arrowdownnarrowwide = {16898612629, {48, 48}, {967, 514}},
+    arrowdownright = {16898612629, {48, 48}, {820, 661}},
+    arrowdownrightfromcircle = {16898612629, {48, 48}, {918, 563}},
+    arrowdownrightsquare = {16898612629, {48, 48}, {869, 612}},
+    arrowdownsquare = {16898612629, {48, 48}, {771, 710}},
+    arrowdowntodot = {16898612629, {48, 48}, {710, 771}},
+    arrowdowntoline = {16898612629, {48, 48}, {661, 820}},
+    arrowdownup = {16898612629, {48, 48}, {612, 869}},
+    arrowdownwidenarrow = {16898612629, {48, 48}, {563, 918}},
+    arrowdownza = {16898612629, {48, 48}, {514, 967}},
+    arrowleft = {16898612629, {48, 48}, {98, 918}},
+    arrowleftcircle = {16898612629, {48, 48}, {918, 98}},
+    arrowleftfromline = {16898612629, {48, 48}, {869, 147}},
+    arrowleftright = {16898612629, {48, 48}, {820, 196}},
+    arrowleftsquare = {16898612629, {48, 48}, {196, 820}},
+    arrowlefttoline = {16898612629, {48, 48}, {147, 869}},
+    arrowright = {16898612629, {48, 48}, {453, 820}},
+    arrowrightcircle = {16898612629, {48, 48}, {49, 967}},
+    arrowrightfromline = {16898612629, {48, 48}, {967, 306}},
+    arrowrightleft = {16898612629, {48, 48}, {918, 355}},
+    arrowrightsquare = {16898612629, {48, 48}, {869, 404}},
+    arrowrighttoline = {16898612629, {48, 48}, {820, 453}},
+    arrowsupfromline = {16898612629, {48, 48}, {918, 404}},
+    arrowup = {16898612629, {48, 48}, {967, 355}},
+    arrowup01 = {16898612629, {48, 48}, {404, 869}},
+    arrowup10 = {16898612629, {48, 48}, {355, 918}},
+    arrowupaz = {16898612629, {48, 48}, {306, 967}},
+    arrowupcircle = {16898612629, {48, 48}, {967, 563}},
+    arrowupdown = {16898612629, {48, 48}, {918, 612}},
+    arrowupfromdot = {16898612629, {48, 48}, {869, 661}},
+    arrowupfromline = {16898612629, {48, 48}, {820, 710}},
+    arrowupleft = {16898612629, {48, 48}, {661, 869}},
+    arrowupleftfromcircle = {16898612629, {48, 48}, {771, 759}},
+    arrowupleftsquare = {16898612629, {48, 48}, {710, 820}},
+    arrowupnarrowwide = {16898612629, {48, 48}, {612, 918}},
+    arrowupright = {16898612629, {48, 48}, {918, 147}},
+    arrowuprightfromcircle = {16898612629, {48, 48}, {563, 967}},
+    arrowuprightsquare = {16898612629, {48, 48}, {967, 98}},
+    arrowupsquare = {16898612629, {48, 48}, {869, 196}},
+    arrowuptoline = {16898612629, {48, 48}, {196, 869}},
+    arrowupwidenarrow = {16898612629, {48, 48}, {147, 918}},
+    arrowupza = {16898612629, {48, 48}, {98, 967}},
+    asterisk = {16898612629, {48, 48}, {869, 453}},
+    atom = {16898612629, {48, 48}, {404, 918}},
+    atsign = {16898612629, {48, 48}, {453, 869}},
+    audiolines = {16898612629, {48, 48}, {355, 967}},
+    audiowaveform = {16898612629, {48, 48}, {967, 612}},
+    award = {16898612629, {48, 48}, {918, 661}},
+    axe = {16898612629, {48, 48}, {869, 710}},
+    axis3d = {16898612629, {48, 48}, {820, 759}},
+    baby = {16898612629, {48, 48}, {771, 808}},
+    backpack = {16898612629, {48, 48}, {710, 869}},
+    badge = {16898612629, {48, 48}, {661, 967}},
+    badgealert = {16898612629, {48, 48}, {661, 918}},
+    badgecent = {16898612629, {48, 48}, {612, 967}},
+    badgecheck = {16898612629, {48, 48}, {967, 147}},
+    badgedollarsign = {16898612629, {48, 48}, {918, 196}},
+    badgeeuro = {16898612629, {48, 48}, {196, 918}},
+    badgehelp = {16898612629, {48, 48}, {147, 967}},
+    badgeindianrupee = {16898612629, {48, 48}, {967, 404}},
+    badgeinfo = {16898612629, {48, 48}, {918, 453}},
+    badgejapaneseyen = {16898612629, {48, 48}, {453, 918}},
+    badgeminus = {16898612629, {48, 48}, {404, 967}},
+    badgepercent = {16898612629, {48, 48}, {967, 661}},
+    badgeplus = {16898612629, {48, 48}, {918, 710}},
+    badgepoundsterling = {16898612629, {48, 48}, {869, 759}},
+    badgerussianruble = {16898612629, {48, 48}, {820, 808}},
+    badgeswissfranc = {16898612629, {48, 48}, {771, 857}},
+    badgex = {16898612629, {48, 48}, {710, 918}},
+    baggageclaim = {16898612629, {48, 48}, {967, 196}},
+    ban = {16898612629, {48, 48}, {196, 967}},
+    banana = {16898612629, {48, 48}, {967, 453}},
+    banknote = {16898612629, {48, 48}, {453, 967}},
+    barchart = {16898612629, {48, 48}, {967, 759}},
+    barchart2 = {16898612629, {48, 48}, {967, 710}},
+    barchart3 = {16898612629, {48, 48}, {918, 759}},
+    barchart4 = {16898612629, {48, 48}, {869, 808}},
+    barchartbig = {16898612629, {48, 48}, {820, 857}},
+    barcharthorizontal = {16898612629, {48, 48}, {710, 967}},
+    barcharthorizontalbig = {16898612629, {48, 48}, {771, 906}},
+    barcode = {16898612629, {48, 48}, {918, 808}},
+    baseline = {16898612629, {48, 48}, {869, 857}},
+    bath = {16898612629, {48, 48}, {820, 906}},
+    battery = {16898612629, {48, 48}, {967, 857}},
+    batterycharging = {16898612629, {48, 48}, {771, 955}},
+    batteryfull = {16898612629, {48, 48}, {967, 808}},
+    batterylow = {16898612629, {48, 48}, {918, 857}},
+    batterymedium = {16898612629, {48, 48}, {869, 906}},
+    batterywarning = {16898612629, {48, 48}, {820, 955}},
+    beaker = {16898612629, {48, 48}, {918, 906}},
+    bean = {16898612629, {48, 48}, {967, 906}},
+    beanoff = {16898612629, {48, 48}, {869, 955}},
+    bed = {16898612819, {48, 48}, {771, 0}},
+    beddouble = {16898612629, {48, 48}, {918, 955}},
+    bedsingle = {16898612629, {48, 48}, {967, 955}},
+    beef = {16898612819, {48, 48}, {0, 771}},
+    beer = {16898612819, {48, 48}, {257, 771}},
+    beeroff = {16898612819, {48, 48}, {771, 257}},
+    bell = {16898612819, {48, 48}, {820, 257}},
+    belldot = {16898612819, {48, 48}, {771, 514}},
+    bellelectric = {16898612819, {48, 48}, {514, 771}},
+    bellminus = {16898612819, {48, 48}, {820, 0}},
+    belloff = {16898612819, {48, 48}, {771, 49}},
+    bellplus = {16898612819, {48, 48}, {49, 771}},
+    bellring = {16898612819, {48, 48}, {0, 820}},
+    betweenhorizontalend = {16898612819, {48, 48}, {771, 306}},
+    betweenhorizontalstart = {16898612819, {48, 48}, {306, 771}},
+    betweenverticalend = {16898612819, {48, 48}, {257, 820}},
+    betweenverticalstart = {16898612819, {48, 48}, {820, 514}},
+    bike = {16898612819, {48, 48}, {771, 563}},
+    binary = {16898612819, {48, 48}, {563, 771}},
+    biohazard = {16898612819, {48, 48}, {514, 820}},
+    bird = {16898612819, {48, 48}, {869, 0}},
+    bitcoin = {16898612819, {48, 48}, {820, 49}},
+    blend = {16898612819, {48, 48}, {771, 98}},
+    blinds = {16898612819, {48, 48}, {98, 771}},
+    blocks = {16898612819, {48, 48}, {49, 820}},
+    bluetooth = {16898612819, {48, 48}, {771, 355}},
+    bluetoothconnected = {16898612819, {48, 48}, {0, 869}},
+    bluetoothoff = {16898612819, {48, 48}, {869, 257}},
+    bluetoothsearching = {16898612819, {48, 48}, {820, 306}},
+    bold = {16898612819, {48, 48}, {355, 771}},
+    bolt = {16898612819, {48, 48}, {306, 820}},
+    bomb = {16898612819, {48, 48}, {257, 869}},
+    bone = {16898612819, {48, 48}, {869, 514}},
+    book = {16898612819, {48, 48}, {820, 612}},
+    booka = {16898612819, {48, 48}, {820, 563}},
+    bookaudio = {16898612819, {48, 48}, {771, 612}},
+    bookcheck = {16898612819, {48, 48}, {612, 771}},
+    bookcopy = {16898612819, {48, 48}, {563, 820}},
+    bookdashed = {16898612819, {48, 48}, {514, 869}},
+    bookdown = {16898612819, {48, 48}, {918, 0}},
+    bookheadphones = {16898612819, {48, 48}, {869, 49}},
+    bookheart = {16898612819, {48, 48}, {820, 98}},
+    bookimage = {16898612819, {48, 48}, {771, 147}},
+    bookkey = {16898612819, {48, 48}, {147, 771}},
+    booklock = {16898612819, {48, 48}, {98, 820}},
+    bookmark = {16898612819, {48, 48}, {514, 918}},
+    bookmarkcheck = {16898612819, {48, 48}, {771, 661}},
+    bookmarked = {16898612819, {48, 48}, {49, 869}},
+    bookmarkminus = {16898612819, {48, 48}, {661, 771}},
+    bookmarkplus = {16898612819, {48, 48}, {612, 820}},
+    bookmarkx = {16898612819, {48, 48}, {563, 869}},
+    bookminus = {16898612819, {48, 48}, {0, 918}},
+    bookopen = {16898612819, {48, 48}, {820, 355}},
+    bookopencheck = {16898612819, {48, 48}, {918, 257}},
+    bookopentext = {16898612819, {48, 48}, {869, 306}},
+    bookplus = {16898612819, {48, 48}, {771, 404}},
+    booktext = {16898612819, {48, 48}, {404, 771}},
+    booktype = {16898612819, {48, 48}, {355, 820}},
+    bookup = {16898612819, {48, 48}, {257, 918}},
+    bookup2 = {16898612819, {48, 48}, {306, 869}},
+    bookuser = {16898612819, {48, 48}, {918, 514}},
+    bookx = {16898612819, {48, 48}, {869, 563}},
+    boombox = {16898612819, {48, 48}, {967, 0}},
+    bot = {16898612819, {48, 48}, {869, 98}},
+    botmessagesquare = {16898612819, {48, 48}, {918, 49}},
+    box = {16898612819, {48, 48}, {771, 196}},
+    boxes = {16898612819, {48, 48}, {196, 771}},
+    boxselect = {16898612819, {48, 48}, {820, 147}},
+    braces = {16898612819, {48, 48}, {147, 820}},
+    brackets = {16898612819, {48, 48}, {98, 869}},
+    brain = {16898612819, {48, 48}, {967, 257}},
+    braincircuit = {16898612819, {48, 48}, {49, 918}},
+    braincog = {16898612819, {48, 48}, {0, 967}},
+    brickwall = {16898612819, {48, 48}, {918, 306}},
+    briefcase = {16898612819, {48, 48}, {771, 453}},
+    briefcasebusiness = {16898612819, {48, 48}, {869, 355}},
+    briefcasemedical = {16898612819, {48, 48}, {820, 404}},
+    bringtofront = {16898612819, {48, 48}, {453, 771}},
+    brush = {16898612819, {48, 48}, {404, 820}},
+    bug = {16898612819, {48, 48}, {257, 967}},
+    bugoff = {16898612819, {48, 48}, {355, 869}},
+    bugplay = {16898612819, {48, 48}, {306, 918}},
+    building = {16898612819, {48, 48}, {918, 563}},
+    building2 = {16898612819, {48, 48}, {967, 514}},
+    bus = {16898612819, {48, 48}, {820, 661}},
+    busfront = {16898612819, {48, 48}, {869, 612}},
+    cable = {16898612819, {48, 48}, {710, 771}},
+    cablecar = {16898612819, {48, 48}, {771, 710}},
+    cake = {16898612819, {48, 48}, {612, 869}},
+    cakeslice = {16898612819, {48, 48}, {661, 820}},
+    calculator = {16898612819, {48, 48}, {563, 918}},
+    calendar = {16898612819, {48, 48}, {355, 918}},
+    calendarcheck = {16898612819, {48, 48}, {967, 49}},
+    calendarcheck2 = {16898612819, {48, 48}, {514, 967}},
+    calendarclock = {16898612819, {48, 48}, {918, 98}},
+    calendardays = {16898612819, {48, 48}, {869, 147}},
+    calendarfold = {16898612819, {48, 48}, {820, 196}},
+    calendarheart = {16898612819, {48, 48}, {196, 820}},
+    calendarminus = {16898612819, {48, 48}, {98, 918}},
+    calendarminus2 = {16898612819, {48, 48}, {147, 869}},
+    calendaroff = {16898612819, {48, 48}, {49, 967}},
+    calendarplus = {16898612819, {48, 48}, {918, 355}},
+    calendarplus2 = {16898612819, {48, 48}, {967, 306}},
+    calendarrange = {16898612819, {48, 48}, {869, 404}},
+    calendarsearch = {16898612819, {48, 48}, {820, 453}},
+    calendarx = {16898612819, {48, 48}, {404, 869}},
+    calendarx2 = {16898612819, {48, 48}, {453, 820}},
+    camera = {16898612819, {48, 48}, {967, 563}},
+    cameraoff = {16898612819, {48, 48}, {306, 967}},
+    candlestickchart = {16898612819, {48, 48}, {918, 612}},
+    candy = {16898612819, {48, 48}, {771, 759}},
+    candycane = {16898612819, {48, 48}, {869, 661}},
+    candyoff = {16898612819, {48, 48}, {820, 710}},
+    cannabis = {16898612819, {48, 48}, {710, 820}},
+    captions = {16898612819, {48, 48}, {612, 918}},
+    captionsoff = {16898612819, {48, 48}, {661, 869}},
+    car = {16898612819, {48, 48}, {918, 147}},
+    caravan = {16898612819, {48, 48}, {869, 196}},
+    carfront = {16898612819, {48, 48}, {563, 967}},
+    carrot = {16898612819, {48, 48}, {196, 869}},
+    cartaxifront = {16898612819, {48, 48}, {967, 98}},
+    caselower = {16898612819, {48, 48}, {147, 918}},
+    casesensitive = {16898612819, {48, 48}, {98, 967}},
+    caseupper = {16898612819, {48, 48}, {967, 355}},
+    cassettetape = {16898612819, {48, 48}, {918, 404}},
+    cast = {16898612819, {48, 48}, {869, 453}},
+    castle = {16898612819, {48, 48}, {453, 869}},
+    cat = {16898612819, {48, 48}, {404, 918}},
+    cctv = {16898612819, {48, 48}, {355, 967}},
+    check = {16898612819, {48, 48}, {710, 869}},
+    checkcheck = {16898612819, {48, 48}, {967, 612}},
+    checkcircle = {16898612819, {48, 48}, {869, 710}},
+    checkcircle2 = {16898612819, {48, 48}, {918, 661}},
+    checksquare = {16898612819, {48, 48}, {771, 808}},
+    checksquare2 = {16898612819, {48, 48}, {820, 759}},
+    chefhat = {16898612819, {48, 48}, {661, 918}},
+    cherry = {16898612819, {48, 48}, {612, 967}},
+    chevrondown = {16898612819, {48, 48}, {196, 918}},
+    chevrondowncircle = {16898612819, {48, 48}, {967, 147}},
+    chevrondownsquare = {16898612819, {48, 48}, {918, 196}},
+    chevronfirst = {16898612819, {48, 48}, {147, 967}},
+    chevronlast = {16898612819, {48, 48}, {967, 404}},
+    chevronleft = {16898612819, {48, 48}, {404, 967}},
+    chevronleftcircle = {16898612819, {48, 48}, {918, 453}},
+    chevronleftsquare = {16898612819, {48, 48}, {453, 918}},
+    chevronright = {16898612819, {48, 48}, {869, 759}},
+    chevronrightcircle = {16898612819, {48, 48}, {967, 661}},
+    chevronrightsquare = {16898612819, {48, 48}, {918, 710}},
+    chevronsdown = {16898612819, {48, 48}, {967, 196}},
+    chevronsdownup = {16898612819, {48, 48}, {661, 967}},
+    chevronsleft = {16898612819, {48, 48}, {967, 453}},
+    chevronsleftright = {16898612819, {48, 48}, {196, 967}},
+    chevronsright = {16898612819, {48, 48}, {967, 710}},
+    chevronsrightleft = {16898612819, {48, 48}, {453, 967}},
+    chevronsup = {16898612819, {48, 48}, {869, 808}},
+    chevronsupdown = {16898612819, {48, 48}, {918, 759}},
+    chevronup = {16898612819, {48, 48}, {710, 918}},
+    chevronupcircle = {16898612819, {48, 48}, {820, 808}},
+    chevronupsquare = {16898612819, {48, 48}, {771, 857}},
+    chrome = {16898612819, {48, 48}, {820, 857}},
+    church = {16898612819, {48, 48}, {771, 906}},
+    cigarette = {16898612819, {48, 48}, {967, 759}},
+    cigaretteoff = {16898612819, {48, 48}, {710, 967}},
+    circle = {16898613044, {48, 48}, {771, 355}},
+    circlealert = {16898612819, {48, 48}, {918, 808}},
+    circlearrowdown = {16898612819, {48, 48}, {869, 857}},
+    circlearrowleft = {16898612819, {48, 48}, {820, 906}},
+    circlearrowoutdownleft = {16898612819, {48, 48}, {771, 955}},
+    circlearrowoutdownright = {16898612819, {48, 48}, {967, 808}},
+    circlearrowoutupleft = {16898612819, {48, 48}, {918, 857}},
+    circlearrowoutupright = {16898612819, {48, 48}, {869, 906}},
+    circlearrowright = {16898612819, {48, 48}, {820, 955}},
+    circlearrowup = {16898612819, {48, 48}, {967, 857}},
+    circlecheck = {16898612819, {48, 48}, {869, 955}},
+    circlecheckbig = {16898612819, {48, 48}, {918, 906}},
+    circlechevrondown = {16898612819, {48, 48}, {967, 906}},
+    circlechevronleft = {16898612819, {48, 48}, {918, 955}},
+    circlechevronright = {16898612819, {48, 48}, {967, 955}},
+    circlechevronup = {16898613044, {48, 48}, {771, 0}},
+    circledashed = {16898613044, {48, 48}, {0, 771}},
+    circledivide = {16898613044, {48, 48}, {771, 257}},
+    circledollarsign = {16898613044, {48, 48}, {257, 771}},
+    circledot = {16898613044, {48, 48}, {514, 771}},
+    circledotdashed = {16898613044, {48, 48}, {771, 514}},
+    circleellipsis = {16898613044, {48, 48}, {820, 0}},
+    circleequal = {16898613044, {48, 48}, {771, 49}},
+    circlefadingplus = {16898613044, {48, 48}, {49, 771}},
+    circlegauge = {16898613044, {48, 48}, {0, 820}},
+    circlehelp = {16898613044, {48, 48}, {820, 257}},
+    circleminus = {16898613044, {48, 48}, {771, 306}},
+    circleoff = {16898613044, {48, 48}, {306, 771}},
+    circleparking = {16898613044, {48, 48}, {820, 514}},
+    circleparkingoff = {16898613044, {48, 48}, {257, 820}},
+    circlepause = {16898613044, {48, 48}, {771, 563}},
+    circlepercent = {16898613044, {48, 48}, {563, 771}},
+    circleplay = {16898613044, {48, 48}, {514, 820}},
+    circleplus = {16898613044, {48, 48}, {869, 0}},
+    circlepower = {16898613044, {48, 48}, {820, 49}},
+    circleslash = {16898613044, {48, 48}, {98, 771}},
+    circleslash2 = {16898613044, {48, 48}, {771, 98}},
+    circlestop = {16898613044, {48, 48}, {49, 820}},
+    circleuser = {16898613044, {48, 48}, {869, 257}},
+    circleuserround = {16898613044, {48, 48}, {0, 869}},
+    circlex = {16898613044, {48, 48}, {820, 306}},
+    circuitboard = {16898613044, {48, 48}, {355, 771}},
+    citrus = {16898613044, {48, 48}, {306, 820}},
+    clapperboard = {16898613044, {48, 48}, {257, 869}},
+    clipboard = {16898613044, {48, 48}, {49, 869}},
+    clipboardcheck = {16898613044, {48, 48}, {869, 514}},
+    clipboardcopy = {16898613044, {48, 48}, {820, 563}},
+    clipboardedit = {16898613044, {48, 48}, {771, 612}},
+    clipboardlist = {16898613044, {48, 48}, {612, 771}},
+    clipboardminus = {16898613044, {48, 48}, {563, 820}},
+    clipboardpaste = {16898613044, {48, 48}, {514, 869}},
+    clipboardpen = {16898613044, {48, 48}, {869, 49}},
+    clipboardpenline = {16898613044, {48, 48}, {918, 0}},
+    clipboardplus = {16898613044, {48, 48}, {820, 98}},
+    clipboardsignature = {16898613044, {48, 48}, {771, 147}},
+    clipboardtype = {16898613044, {48, 48}, {147, 771}},
+    clipboardx = {16898613044, {48, 48}, {98, 820}},
+    clock = {16898613044, {48, 48}, {771, 661}},
+    clock1 = {16898613044, {48, 48}, {0, 918}},
+    clock10 = {16898613044, {48, 48}, {918, 257}},
+    clock11 = {16898613044, {48, 48}, {869, 306}},
+    clock12 = {16898613044, {48, 48}, {820, 355}},
+    clock2 = {16898613044, {48, 48}, {771, 404}},
+    clock3 = {16898613044, {48, 48}, {404, 771}},
+    clock4 = {16898613044, {48, 48}, {355, 820}},
+    clock5 = {16898613044, {48, 48}, {306, 869}},
+    clock6 = {16898613044, {48, 48}, {257, 918}},
+    clock7 = {16898613044, {48, 48}, {918, 514}},
+    clock8 = {16898613044, {48, 48}, {869, 563}},
+    clock9 = {16898613044, {48, 48}, {820, 612}},
+    cloud = {16898613044, {48, 48}, {918, 306}},
+    cloudcog = {16898613044, {48, 48}, {661, 771}},
+    clouddownload = {16898613044, {48, 48}, {612, 820}},
+    clouddrizzle = {16898613044, {48, 48}, {563, 869}},
+    cloudfog = {16898613044, {48, 48}, {514, 918}},
+    cloudhail = {16898613044, {48, 48}, {967, 0}},
+    cloudlightning = {16898613044, {48, 48}, {918, 49}},
+    cloudmoon = {16898613044, {48, 48}, {820, 147}},
+    cloudmoonrain = {16898613044, {48, 48}, {869, 98}},
+    cloudoff = {16898613044, {48, 48}, {771, 196}},
+    cloudrain = {16898613044, {48, 48}, {147, 820}},
+    cloudrainwind = {16898613044, {48, 48}, {196, 771}},
+    cloudsnow = {16898613044, {48, 48}, {98, 869}},
+    cloudsun = {16898613044, {48, 48}, {0, 967}},
+    cloudsunrain = {16898613044, {48, 48}, {49, 918}},
+    cloudupload = {16898613044, {48, 48}, {967, 257}},
+    cloudy = {16898613044, {48, 48}, {869, 355}},
+    clover = {16898613044, {48, 48}, {820, 404}},
+    club = {16898613044, {48, 48}, {771, 453}},
+    code = {16898613044, {48, 48}, {355, 869}},
+    code2 = {16898613044, {48, 48}, {453, 771}},
+    codepen = {16898613044, {48, 48}, {306, 918}},
+    codesandbox = {16898613044, {48, 48}, {257, 967}},
+    codexml = {16898613044, {48, 48}, {404, 820}},
+    coffee = {16898613044, {48, 48}, {967, 514}},
+    cog = {16898613044, {48, 48}, {918, 563}},
+    coins = {16898613044, {48, 48}, {869, 612}},
+    columns = {16898613044, {48, 48}, {661, 820}},
+    columns2 = {16898613044, {48, 48}, {820, 661}},
+    columns3 = {16898613044, {48, 48}, {771, 710}},
+    columns4 = {16898613044, {48, 48}, {710, 771}},
+    combine = {16898613044, {48, 48}, {612, 869}},
+    command = {16898613044, {48, 48}, {563, 918}},
+    compass = {16898613044, {48, 48}, {514, 967}},
+    component = {16898613044, {48, 48}, {967, 49}},
+    computer = {16898613044, {48, 48}, {918, 98}},
+    conciergebell = {16898613044, {48, 48}, {869, 147}},
+    cone = {16898613044, {48, 48}, {820, 196}},
+    construction = {16898613044, {48, 48}, {196, 820}},
+    contact = {16898613044, {48, 48}, {49, 967}},
+    contact2 = {16898613044, {48, 48}, {147, 869}},
+    contactround = {16898613044, {48, 48}, {98, 918}},
+    container = {16898613044, {48, 48}, {967, 306}},
+    contrast = {16898613044, {48, 48}, {918, 355}},
+    cookie = {16898613044, {48, 48}, {869, 404}},
+    cookingpot = {16898613044, {48, 48}, {820, 453}},
+    copy = {16898613044, {48, 48}, {918, 612}},
+    copycheck = {16898613044, {48, 48}, {453, 820}},
+    copyleft = {16898613044, {48, 48}, {869, 661}},
+    copyminus = {16898613044, {48, 48}, {404, 869}},
+    copyplus = {16898613044, {48, 48}, {355, 918}},
+    copyright = {16898613044, {48, 48}, {820, 710}},
+    copyslash = {16898613044, {48, 48}, {306, 967}},
+    copyx = {16898613044, {48, 48}, {967, 563}},
+    cornerdownleft = {16898613044, {48, 48}, {771, 759}},
+    cornerdownright = {16898613044, {48, 48}, {710, 820}},
+    cornerleftdown = {16898613044, {48, 48}, {661, 869}},
+    cornerleftup = {16898613044, {48, 48}, {612, 918}},
+    cornerrightdown = {16898613044, {48, 48}, {563, 967}},
+    cornerrightup = {16898613044, {48, 48}, {967, 98}},
+    cornerupleft = {16898613044, {48, 48}, {918, 147}},
+    cornerupright = {16898613044, {48, 48}, {869, 196}},
+    cpu = {16898613044, {48, 48}, {196, 869}},
+    creativecommons = {16898613044, {48, 48}, {147, 918}},
+    creditcard = {16898613044, {48, 48}, {98, 967}},
+    croissant = {16898613044, {48, 48}, {967, 355}},
+    crop = {16898613044, {48, 48}, {918, 404}},
+    cross = {16898613044, {48, 48}, {869, 453}},
+    crosshair = {16898613044, {48, 48}, {453, 869}},
+    crown = {16898613044, {48, 48}, {404, 918}},
+    cuboid = {16898613044, {48, 48}, {355, 967}},
+    cupsoda = {16898613044, {48, 48}, {967, 612}},
+    currency = {16898613044, {48, 48}, {918, 661}},
+    cylinder = {16898613044, {48, 48}, {869, 710}},
+    database = {16898613044, {48, 48}, {710, 869}},
+    databasebackup = {16898613044, {48, 48}, {820, 759}},
+    databasezap = {16898613044, {48, 48}, {771, 808}},
+    delete = {16898613044, {48, 48}, {661, 918}},
+    dessert = {16898613044, {48, 48}, {612, 967}},
+    diameter = {16898613044, {48, 48}, {967, 147}},
+    diamond = {16898613044, {48, 48}, {196, 918}},
+    diamondpercent = {16898613044, {48, 48}, {918, 196}},
+    dice1 = {16898613044, {48, 48}, {147, 967}},
+    dice2 = {16898613044, {48, 48}, {967, 404}},
+    dice3 = {16898613044, {48, 48}, {918, 453}},
+    dice4 = {16898613044, {48, 48}, {453, 918}},
+    dice5 = {16898613044, {48, 48}, {404, 967}},
+    dice6 = {16898613044, {48, 48}, {967, 661}},
+    dices = {16898613044, {48, 48}, {918, 710}},
+    diff = {16898613044, {48, 48}, {869, 759}},
+    disc = {16898613044, {48, 48}, {661, 967}},
+    disc2 = {16898613044, {48, 48}, {820, 808}},
+    disc3 = {16898613044, {48, 48}, {771, 857}},
+    discalbum = {16898613044, {48, 48}, {710, 918}},
+    divide = {16898613044, {48, 48}, {967, 453}},
+    dividecircle = {16898613044, {48, 48}, {967, 196}},
+    dividesquare = {16898613044, {48, 48}, {196, 967}},
+    dna = {16898613044, {48, 48}, {967, 710}},
+    dnaoff = {16898613044, {48, 48}, {453, 967}},
+    dock = {16898613044, {48, 48}, {918, 759}},
+    dog = {16898613044, {48, 48}, {869, 808}},
+    dollarsign = {16898613044, {48, 48}, {820, 857}},
+    donut = {16898613044, {48, 48}, {771, 906}},
+    doorclosed = {16898613044, {48, 48}, {710, 967}},
+    dooropen = {16898613044, {48, 48}, {967, 759}},
+    dot = {16898613044, {48, 48}, {918, 808}},
+    download = {16898613044, {48, 48}, {820, 906}},
+    downloadcloud = {16898613044, {48, 48}, {869, 857}},
+    draftingcompass = {16898613044, {48, 48}, {771, 955}},
+    drama = {16898613044, {48, 48}, {967, 808}},
+    dribbble = {16898613044, {48, 48}, {918, 857}},
+    drill = {16898613044, {48, 48}, {869, 906}},
+    droplet = {16898613044, {48, 48}, {820, 955}},
+    droplets = {16898613044, {48, 48}, {967, 857}},
+    drum = {16898613044, {48, 48}, {918, 906}},
+    drumstick = {16898613044, {48, 48}, {869, 955}},
+    dumbbell = {16898613044, {48, 48}, {967, 906}},
+    ear = {16898613044, {48, 48}, {967, 955}},
+    earoff = {16898613044, {48, 48}, {918, 955}},
+    earth = {16898613353, {48, 48}, {0, 771}},
+    earthlock = {16898613353, {48, 48}, {771, 0}},
+    eclipse = {16898613353, {48, 48}, {771, 257}},
+    egg = {16898613353, {48, 48}, {514, 771}},
+    eggfried = {16898613353, {48, 48}, {257, 771}},
+    eggoff = {16898613353, {48, 48}, {771, 514}},
+    ellipsis = {16898613353, {48, 48}, {771, 49}},
+    ellipsisvertical = {16898613353, {48, 48}, {820, 0}},
+    equal = {16898613353, {48, 48}, {0, 820}},
+    equalnot = {16898613353, {48, 48}, {49, 771}},
+    eraser = {16898613353, {48, 48}, {820, 257}},
+    euro = {16898613353, {48, 48}, {771, 306}},
+    expand = {16898613353, {48, 48}, {306, 771}},
+    externallink = {16898613353, {48, 48}, {257, 820}},
+    eye = {16898613353, {48, 48}, {771, 563}},
+    eyeoff = {16898613353, {48, 48}, {820, 514}},
+    facebook = {16898613353, {48, 48}, {563, 771}},
+    factory = {16898613353, {48, 48}, {514, 820}},
+    fan = {16898613353, {48, 48}, {869, 0}},
+    fastforward = {16898613353, {48, 48}, {820, 49}},
+    feather = {16898613353, {48, 48}, {771, 98}},
+    fence = {16898613353, {48, 48}, {98, 771}},
+    ferriswheel = {16898613353, {48, 48}, {49, 820}},
+    figma = {16898613353, {48, 48}, {0, 869}},
+    file = {16898613353, {48, 48}, {820, 661}},
+    filearchive = {16898613353, {48, 48}, {869, 257}},
+    fileaudio = {16898613353, {48, 48}, {771, 355}},
+    fileaudio2 = {16898613353, {48, 48}, {820, 306}},
+    fileaxis3d = {16898613353, {48, 48}, {355, 771}},
+    filebadge = {16898613353, {48, 48}, {257, 869}},
+    filebadge2 = {16898613353, {48, 48}, {306, 820}},
+    filebarchart = {16898613353, {48, 48}, {820, 563}},
+    filebarchart2 = {16898613353, {48, 48}, {869, 514}},
+    filebox = {16898613353, {48, 48}, {771, 612}},
+    filecheck = {16898613353, {48, 48}, {563, 820}},
+    filecheck2 = {16898613353, {48, 48}, {612, 771}},
+    fileclock = {16898613353, {48, 48}, {514, 869}},
+    filecode = {16898613353, {48, 48}, {869, 49}},
+    filecode2 = {16898613353, {48, 48}, {918, 0}},
+    filecog = {16898613353, {48, 48}, {820, 98}},
+    filediff = {16898613353, {48, 48}, {771, 147}},
+    filedigit = {16898613353, {48, 48}, {147, 771}},
+    filedown = {16898613353, {48, 48}, {98, 820}},
+    fileedit = {16898613353, {48, 48}, {49, 869}},
+    fileheart = {16898613353, {48, 48}, {0, 918}},
+    fileimage = {16898613353, {48, 48}, {918, 257}},
+    fileinput = {16898613353, {48, 48}, {869, 306}},
+    filejson = {16898613353, {48, 48}, {771, 404}},
+    filejson2 = {16898613353, {48, 48}, {820, 355}},
+    filekey = {16898613353, {48, 48}, {355, 820}},
+    filekey2 = {16898613353, {48, 48}, {404, 771}},
+    filelinechart = {16898613353, {48, 48}, {306, 869}},
+    filelock = {16898613353, {48, 48}, {918, 514}},
+    filelock2 = {16898613353, {48, 48}, {257, 918}},
+    fileminus = {16898613353, {48, 48}, {820, 612}},
+    fileminus2 = {16898613353, {48, 48}, {869, 563}},
+    filemusic = {16898613353, {48, 48}, {771, 661}},
+    fileoutput = {16898613353, {48, 48}, {661, 771}},
+    filepen = {16898613353, {48, 48}, {563, 869}},
+    filepenline = {16898613353, {48, 48}, {612, 820}},
+    filepiechart = {16898613353, {48, 48}, {514, 918}},
+    fileplus = {16898613353, {48, 48}, {918, 49}},
+    fileplus2 = {16898613353, {48, 48}, {967, 0}},
+    filequestion = {16898613353, {48, 48}, {869, 98}},
+    files = {16898613353, {48, 48}, {771, 710}},
+    filescan = {16898613353, {48, 48}, {820, 147}},
+    filesearch = {16898613353, {48, 48}, {196, 771}},
+    filesearch2 = {16898613353, {48, 48}, {771, 196}},
+    filesignature = {16898613353, {48, 48}, {147, 820}},
+    filesliders = {16898613353, {48, 48}, {98, 869}},
+    filespreadsheet = {16898613353, {48, 48}, {49, 918}},
+    filestack = {16898613353, {48, 48}, {0, 967}},
+    filesymlink = {16898613353, {48, 48}, {967, 257}},
+    fileterminal = {16898613353, {48, 48}, {918, 306}},
+    filetext = {16898613353, {48, 48}, {869, 355}},
+    filetype = {16898613353, {48, 48}, {771, 453}},
+    filetype2 = {16898613353, {48, 48}, {820, 404}},
+    fileup = {16898613353, {48, 48}, {453, 771}},
+    filevideo = {16898613353, {48, 48}, {355, 869}},
+    filevideo2 = {16898613353, {48, 48}, {404, 820}},
+    filevolume = {16898613353, {48, 48}, {257, 967}},
+    filevolume2 = {16898613353, {48, 48}, {306, 918}},
+    filewarning = {16898613353, {48, 48}, {967, 514}},
+    filex = {16898613353, {48, 48}, {869, 612}},
+    filex2 = {16898613353, {48, 48}, {918, 563}},
+    film = {16898613353, {48, 48}, {710, 771}},
+    filter = {16898613353, {48, 48}, {612, 869}},
+    filterx = {16898613353, {48, 48}, {661, 820}},
+    fingerprint = {16898613353, {48, 48}, {563, 918}},
+    fireextinguisher = {16898613353, {48, 48}, {514, 967}},
+    fish = {16898613353, {48, 48}, {869, 147}},
+    fishoff = {16898613353, {48, 48}, {967, 49}},
+    fishsymbol = {16898613353, {48, 48}, {918, 98}},
+    flag = {16898613353, {48, 48}, {98, 918}},
+    flagoff = {16898613353, {48, 48}, {820, 196}},
+    flagtriangleleft = {16898613353, {48, 48}, {196, 820}},
+    flagtriangleright = {16898613353, {48, 48}, {147, 869}},
+    flame = {16898613353, {48, 48}, {967, 306}},
+    flamekindling = {16898613353, {48, 48}, {49, 967}},
+    flashlight = {16898613353, {48, 48}, {869, 404}},
+    flashlightoff = {16898613353, {48, 48}, {918, 355}},
+    flaskconical = {16898613353, {48, 48}, {453, 820}},
+    flaskconicaloff = {16898613353, {48, 48}, {820, 453}},
+    flaskround = {16898613353, {48, 48}, {404, 869}},
+    fliphorizontal = {16898613353, {48, 48}, {306, 967}},
+    fliphorizontal2 = {16898613353, {48, 48}, {355, 918}},
+    flipvertical = {16898613353, {48, 48}, {918, 612}},
+    flipvertical2 = {16898613353, {48, 48}, {967, 563}},
+    flower = {16898613353, {48, 48}, {820, 710}},
+    flower2 = {16898613353, {48, 48}, {869, 661}},
+    focus = {16898613353, {48, 48}, {771, 759}},
+    folder = {16898613353, {48, 48}, {404, 967}},
+    folderarchive = {16898613353, {48, 48}, {612, 918}},
+    foldercheck = {16898613353, {48, 48}, {563, 967}},
+    folderclock = {16898613353, {48, 48}, {967, 98}},
+    folderclosed = {16898613353, {48, 48}, {918, 147}},
+    foldercog = {16898613353, {48, 48}, {869, 196}},
+    folderdot = {16898613353, {48, 48}, {196, 869}},
+    folderdown = {16898613353, {48, 48}, {147, 918}},
+    folderedit = {16898613353, {48, 48}, {98, 967}},
+    foldergit = {16898613353, {48, 48}, {918, 404}},
+    foldergit2 = {16898613353, {48, 48}, {967, 355}},
+    folderheart = {16898613353, {48, 48}, {869, 453}},
+    folderinput = {16898613353, {48, 48}, {453, 869}},
+    folderkanban = {16898613353, {48, 48}, {404, 918}},
+    folderkey = {16898613353, {48, 48}, {355, 967}},
+    folderlock = {16898613353, {48, 48}, {967, 612}},
+    folderminus = {16898613353, {48, 48}, {918, 661}},
+    folderopen = {16898613353, {48, 48}, {820, 759}},
+    folderopendot = {16898613353, {48, 48}, {869, 710}},
+    folderoutput = {16898613353, {48, 48}, {771, 808}},
+    folderpen = {16898613353, {48, 48}, {710, 869}},
+    folderplus = {16898613353, {48, 48}, {661, 918}},
+    folderroot = {16898613353, {48, 48}, {612, 967}},
+    folders = {16898613353, {48, 48}, {967, 661}},
+    foldersearch = {16898613353, {48, 48}, {918, 196}},
+    foldersearch2 = {16898613353, {48, 48}, {967, 147}},
+    foldersymlink = {16898613353, {48, 48}, {196, 918}},
+    foldersync = {16898613353, {48, 48}, {147, 967}},
+    foldertree = {16898613353, {48, 48}, {967, 404}},
+    folderup = {16898613353, {48, 48}, {918, 453}},
+    folderx = {16898613353, {48, 48}, {453, 918}},
+    foldhorizontal = {16898613353, {48, 48}, {710, 820}},
+    foldvertical = {16898613353, {48, 48}, {661, 869}},
+    footprints = {16898613353, {48, 48}, {918, 710}},
+    forklift = {16898613353, {48, 48}, {869, 759}},
+    forminput = {16898613353, {48, 48}, {820, 808}},
+    forward = {16898613353, {48, 48}, {771, 857}},
+    frame = {16898613353, {48, 48}, {710, 918}},
+    framer = {16898613353, {48, 48}, {661, 967}},
+    frown = {16898613353, {48, 48}, {967, 196}},
+    fuel = {16898613353, {48, 48}, {196, 967}},
+    fullscreen = {16898613353, {48, 48}, {967, 453}},
+    functionsquare = {16898613353, {48, 48}, {453, 967}},
+    galleryhorizontal = {16898613353, {48, 48}, {918, 759}},
+    galleryhorizontalend = {16898613353, {48, 48}, {967, 710}},
+    gallerythumbnails = {16898613353, {48, 48}, {869, 808}},
+    galleryvertical = {16898613353, {48, 48}, {771, 906}},
+    galleryverticalend = {16898613353, {48, 48}, {820, 857}},
+    gamepad = {16898613353, {48, 48}, {967, 759}},
+    gamepad2 = {16898613353, {48, 48}, {710, 967}},
+    ganttchart = {16898613353, {48, 48}, {869, 857}},
+    ganttchartsquare = {16898613353, {48, 48}, {918, 808}},
+    gauge = {16898613353, {48, 48}, {771, 955}},
+    gaugecircle = {16898613353, {48, 48}, {820, 906}},
+    gavel = {16898613353, {48, 48}, {967, 808}},
+    gem = {16898613353, {48, 48}, {918, 857}},
+    ghost = {16898613353, {48, 48}, {869, 906}},
+    gift = {16898613353, {48, 48}, {820, 955}},
+    gitbranch = {16898613353, {48, 48}, {918, 906}},
+    gitbranchplus = {16898613353, {48, 48}, {967, 857}},
+    gitcommithorizontal = {16898613353, {48, 48}, {869, 955}},
+    gitcommitvertical = {16898613353, {48, 48}, {967, 906}},
+    gitcompare = {16898613353, {48, 48}, {967, 955}},
+    gitcomparearrows = {16898613353, {48, 48}, {918, 955}},
+    gitfork = {16898613509, {48, 48}, {771, 0}},
+    gitgraph = {16898613509, {48, 48}, {0, 771}},
+    github = {16898613509, {48, 48}, {0, 820}},
+    gitlab = {16898613509, {48, 48}, {820, 257}},
+    gitmerge = {16898613509, {48, 48}, {771, 257}},
+    gitpullrequest = {16898613509, {48, 48}, {49, 771}},
+    gitpullrequestarrow = {16898613509, {48, 48}, {257, 771}},
+    gitpullrequestclosed = {16898613509, {48, 48}, {771, 514}},
+    gitpullrequestcreate = {16898613509, {48, 48}, {820, 0}},
+    gitpullrequestcreatearrow = {16898613509, {48, 48}, {514, 771}},
+    gitpullrequestdraft = {16898613509, {48, 48}, {771, 49}},
+    glasses = {16898613509, {48, 48}, {306, 771}},
+    glasswater = {16898613509, {48, 48}, {771, 306}},
+    globe = {16898613509, {48, 48}, {771, 563}},
+    globe2 = {16898613509, {48, 48}, {257, 820}},
+    globelock = {16898613509, {48, 48}, {820, 514}},
+    goal = {16898613509, {48, 48}, {563, 771}},
+    grab = {16898613509, {48, 48}, {514, 820}},
+    graduationcap = {16898613509, {48, 48}, {869, 0}},
+    grape = {16898613509, {48, 48}, {820, 49}},
+    grid2x2 = {16898613509, {48, 48}, {771, 98}},
+    grid3x3 = {16898613509, {48, 48}, {98, 771}},
+    grip = {16898613509, {48, 48}, {869, 257}},
+    griphorizontal = {16898613509, {48, 48}, {49, 820}},
+    gripvertical = {16898613509, {48, 48}, {0, 869}},
+    group = {16898613509, {48, 48}, {820, 306}},
+    guitar = {16898613509, {48, 48}, {771, 355}},
+    ham = {16898613509, {48, 48}, {355, 771}},
+    hammer = {16898613509, {48, 48}, {306, 820}},
+    hand = {16898613509, {48, 48}, {563, 820}},
+    handcoins = {16898613509, {48, 48}, {257, 869}},
+    handheart = {16898613509, {48, 48}, {869, 514}},
+    handhelping = {16898613509, {48, 48}, {820, 563}},
+    handmetal = {16898613509, {48, 48}, {771, 612}},
+    handplatter = {16898613509, {48, 48}, {612, 771}},
+    handshake = {16898613509, {48, 48}, {514, 869}},
+    harddrive = {16898613509, {48, 48}, {820, 98}},
+    harddrivedownload = {16898613509, {48, 48}, {918, 0}},
+    harddriveupload = {16898613509, {48, 48}, {869, 49}},
+    hardhat = {16898613509, {48, 48}, {771, 147}},
+    hash = {16898613509, {48, 48}, {147, 771}},
+    haze = {16898613509, {48, 48}, {98, 820}},
+    hdmiport = {16898613509, {48, 48}, {49, 869}},
+    heading = {16898613509, {48, 48}, {355, 820}},
+    heading1 = {16898613509, {48, 48}, {0, 918}},
+    heading2 = {16898613509, {48, 48}, {918, 257}},
+    heading3 = {16898613509, {48, 48}, {869, 306}},
+    heading4 = {16898613509, {48, 48}, {820, 355}},
+    heading5 = {16898613509, {48, 48}, {771, 404}},
+    heading6 = {16898613509, {48, 48}, {404, 771}},
+    headphones = {16898613509, {48, 48}, {306, 869}},
+    headset = {16898613509, {48, 48}, {257, 918}},
+    heart = {16898613509, {48, 48}, {661, 771}},
+    heartcrack = {16898613509, {48, 48}, {918, 514}},
+    hearthandshake = {16898613509, {48, 48}, {869, 563}},
+    heartoff = {16898613509, {48, 48}, {820, 612}},
+    heartpulse = {16898613509, {48, 48}, {771, 661}},
+    heater = {16898613509, {48, 48}, {612, 820}},
+    helpcircle = {16898613509, {48, 48}, {563, 869}},
+    helpinghand = {16898613509, {48, 48}, {514, 918}},
+    hexagon = {16898613509, {48, 48}, {967, 0}},
+    highlighter = {16898613509, {48, 48}, {918, 49}},
+    history = {16898613509, {48, 48}, {869, 98}},
+    home = {16898613509, {48, 48}, {820, 147}},
+    hop = {16898613509, {48, 48}, {196, 771}},
+    hopoff = {16898613509, {48, 48}, {771, 196}},
+    hospital = {16898613509, {48, 48}, {147, 820}},
+    hotel = {16898613509, {48, 48}, {98, 869}},
+    hourglass = {16898613509, {48, 48}, {49, 918}},
+    icecream = {16898613509, {48, 48}, {869, 355}},
+    icecream2 = {16898613509, {48, 48}, {0, 967}},
+    icecreambowl = {16898613509, {48, 48}, {967, 257}},
+    icecreamcone = {16898613509, {48, 48}, {918, 306}},
+    image = {16898613509, {48, 48}, {306, 918}},
+    imagedown = {16898613509, {48, 48}, {820, 404}},
+    imageminus = {16898613509, {48, 48}, {771, 453}},
+    imageoff = {16898613509, {48, 48}, {453, 771}},
+    imageplus = {16898613509, {48, 48}, {404, 820}},
+    images = {16898613509, {48, 48}, {257, 967}},
+    imageup = {16898613509, {48, 48}, {355, 869}},
+    import = {16898613509, {48, 48}, {967, 514}},
+    inbox = {16898613509, {48, 48}, {918, 563}},
+    indent = {16898613509, {48, 48}, {771, 710}},
+    indentdecrease = {16898613509, {48, 48}, {869, 612}},
+    indentincrease = {16898613509, {48, 48}, {820, 661}},
+    indianrupee = {16898613509, {48, 48}, {710, 771}},
+    infinity = {16898613509, {48, 48}, {661, 820}},
+    info = {16898613509, {48, 48}, {612, 869}},
+    inspectionpanel = {16898613509, {48, 48}, {563, 918}},
+    instagram = {16898613509, {48, 48}, {514, 967}},
+    italic = {16898613509, {48, 48}, {967, 49}},
+    iterationccw = {16898613509, {48, 48}, {918, 98}},
+    iterationcw = {16898613509, {48, 48}, {869, 147}},
+    japaneseyen = {16898613509, {48, 48}, {820, 196}},
+    joystick = {16898613509, {48, 48}, {196, 820}},
+    kanban = {16898613509, {48, 48}, {49, 967}},
+    kanbansquare = {16898613509, {48, 48}, {98, 918}},
+    kanbansquaredashed = {16898613509, {48, 48}, {147, 869}},
+    key = {16898613509, {48, 48}, {869, 404}},
+    keyboard = {16898613509, {48, 48}, {453, 820}},
+    keyboardmusic = {16898613509, {48, 48}, {820, 453}},
+    keyround = {16898613509, {48, 48}, {967, 306}},
+    keysquare = {16898613509, {48, 48}, {918, 355}},
+    lamp = {16898613509, {48, 48}, {869, 661}},
+    lampceiling = {16898613509, {48, 48}, {404, 869}},
+    lampdesk = {16898613509, {48, 48}, {355, 918}},
+    lampfloor = {16898613509, {48, 48}, {306, 967}},
+    lampwalldown = {16898613509, {48, 48}, {967, 563}},
+    lampwallup = {16898613509, {48, 48}, {918, 612}},
+    landmark = {16898613509, {48, 48}, {771, 759}},
+    landplot = {16898613509, {48, 48}, {820, 710}},
+    languages = {16898613509, {48, 48}, {710, 820}},
+    laptop = {16898613509, {48, 48}, {563, 967}},
+    laptop2 = {16898613509, {48, 48}, {661, 869}},
+    laptopminimal = {16898613509, {48, 48}, {612, 918}},
+    lasso = {16898613509, {48, 48}, {918, 147}},
+    lassoselect = {16898613509, {48, 48}, {967, 98}},
+    laugh = {16898613509, {48, 48}, {869, 196}},
+    layers = {16898613509, {48, 48}, {98, 967}},
+    layers2 = {16898613509, {48, 48}, {196, 869}},
+    layers3 = {16898613509, {48, 48}, {147, 918}},
+    layout = {16898613509, {48, 48}, {967, 612}},
+    layoutdashboard = {16898613509, {48, 48}, {967, 355}},
+    layoutgrid = {16898613509, {48, 48}, {918, 404}},
+    layoutlist = {16898613509, {48, 48}, {869, 453}},
+    layoutpanelleft = {16898613509, {48, 48}, {453, 869}},
+    layoutpaneltop = {16898613509, {48, 48}, {404, 918}},
+    layouttemplate = {16898613509, {48, 48}, {355, 967}},
+    leaf = {16898613509, {48, 48}, {918, 661}},
+    leafygreen = {16898613509, {48, 48}, {869, 710}},
+    library = {16898613509, {48, 48}, {710, 869}},
+    librarybig = {16898613509, {48, 48}, {820, 759}},
+    librarysquare = {16898613509, {48, 48}, {771, 808}},
+    lifebuoy = {16898613509, {48, 48}, {661, 918}},
+    ligature = {16898613509, {48, 48}, {612, 967}},
+    lightbulb = {16898613509, {48, 48}, {918, 196}},
+    lightbulboff = {16898613509, {48, 48}, {967, 147}},
+    linechart = {16898613509, {48, 48}, {196, 918}},
+    link = {16898613509, {48, 48}, {918, 453}},
+    link2 = {16898613509, {48, 48}, {967, 404}},
+    link2off = {16898613509, {48, 48}, {147, 967}},
+    linkedin = {16898613509, {48, 48}, {453, 918}},
+    list = {16898613509, {48, 48}, {869, 808}},
+    listchecks = {16898613509, {48, 48}, {404, 967}},
+    listcollapse = {16898613509, {48, 48}, {967, 661}},
+    listend = {16898613509, {48, 48}, {918, 710}},
+    listfilter = {16898613509, {48, 48}, {869, 759}},
+    listminus = {16898613509, {48, 48}, {820, 808}},
+    listmusic = {16898613509, {48, 48}, {771, 857}},
+    listordered = {16898613509, {48, 48}, {710, 918}},
+    listplus = {16898613509, {48, 48}, {661, 967}},
+    listrestart = {16898613509, {48, 48}, {967, 196}},
+    liststart = {16898613509, {48, 48}, {196, 967}},
+    listtodo = {16898613509, {48, 48}, {967, 453}},
+    listtree = {16898613509, {48, 48}, {453, 967}},
+    listvideo = {16898613509, {48, 48}, {967, 710}},
+    listx = {16898613509, {48, 48}, {918, 759}},
+    loader = {16898613509, {48, 48}, {710, 967}},
+    loader2 = {16898613509, {48, 48}, {820, 857}},
+    loadercircle = {16898613509, {48, 48}, {771, 906}},
+    locate = {16898613509, {48, 48}, {869, 857}},
+    locatefixed = {16898613509, {48, 48}, {967, 759}},
+    locateoff = {16898613509, {48, 48}, {918, 808}},
+    lock = {16898613509, {48, 48}, {918, 857}},
+    lockkeyhole = {16898613509, {48, 48}, {771, 955}},
+    lockkeyholeopen = {16898613509, {48, 48}, {820, 906}},
+    lockopen = {16898613509, {48, 48}, {967, 808}},
+    login = {16898613509, {48, 48}, {869, 906}},
+    logout = {16898613509, {48, 48}, {820, 955}},
+    lollipop = {16898613509, {48, 48}, {967, 857}},
+    luggage = {16898613509, {48, 48}, {918, 906}},
+    magnet = {16898613509, {48, 48}, {967, 906}},
+    mail = {16898613613, {48, 48}, {820, 0}},
+    mailbox = {16898613613, {48, 48}, {771, 49}},
+    mailcheck = {16898613509, {48, 48}, {918, 955}},
+    mailminus = {16898613509, {48, 48}, {967, 955}},
+    mailopen = {16898613613, {48, 48}, {771, 0}},
+    mailplus = {16898613613, {48, 48}, {0, 771}},
+    mailquestion = {16898613613, {48, 48}, {771, 257}},
+    mails = {16898613613, {48, 48}, {49, 771}},
+    mailsearch = {16898613613, {48, 48}, {257, 771}},
+    mailwarning = {16898613613, {48, 48}, {771, 514}},
+    mailx = {16898613613, {48, 48}, {514, 771}},
+    map = {16898613613, {48, 48}, {306, 771}},
+    mappin = {16898613613, {48, 48}, {820, 257}},
+    mappinned = {16898613613, {48, 48}, {771, 306}},
+    mappinoff = {16898613613, {48, 48}, {0, 820}},
+    martini = {16898613613, {48, 48}, {257, 820}},
+    maximize = {16898613613, {48, 48}, {771, 563}},
+    maximize2 = {16898613613, {48, 48}, {820, 514}},
+    medal = {16898613613, {48, 48}, {563, 771}},
+    megaphone = {16898613613, {48, 48}, {869, 0}},
+    megaphoneoff = {16898613613, {48, 48}, {514, 820}},
+    meh = {16898613613, {48, 48}, {820, 49}},
+    memorystick = {16898613613, {48, 48}, {771, 98}},
+    menu = {16898613613, {48, 48}, {49, 820}},
+    menusquare = {16898613613, {48, 48}, {98, 771}},
+    merge = {16898613613, {48, 48}, {0, 869}},
+    messagecircle = {16898613613, {48, 48}, {563, 820}},
+    messagecirclecode = {16898613613, {48, 48}, {869, 257}},
+    messagecircledashed = {16898613613, {48, 48}, {820, 306}},
+    messagecircleheart = {16898613613, {48, 48}, {771, 355}},
+    messagecirclemore = {16898613613, {48, 48}, {355, 771}},
+    messagecircleoff = {16898613613, {48, 48}, {306, 820}},
+    messagecircleplus = {16898613613, {48, 48}, {257, 869}},
+    messagecirclequestion = {16898613613, {48, 48}, {869, 514}},
+    messagecirclereply = {16898613613, {48, 48}, {820, 563}},
+    messagecirclewarning = {16898613613, {48, 48}, {771, 612}},
+    messagecirclex = {16898613613, {48, 48}, {612, 771}},
+    messagesquare = {16898613613, {48, 48}, {355, 820}},
+    messagesquarecode = {16898613613, {48, 48}, {514, 869}},
+    messagesquaredashed = {16898613613, {48, 48}, {918, 0}},
+    messagesquarediff = {16898613613, {48, 48}, {869, 49}},
+    messagesquaredot = {16898613613, {48, 48}, {820, 98}},
+    messagesquareheart = {16898613613, {48, 48}, {771, 147}},
+    messagesquaremore = {16898613613, {48, 48}, {147, 771}},
+    messagesquareoff = {16898613613, {48, 48}, {98, 820}},
+    messagesquareplus = {16898613613, {48, 48}, {49, 869}},
+    messagesquarequote = {16898613613, {48, 48}, {0, 918}},
+    messagesquarereply = {16898613613, {48, 48}, {918, 257}},
+    messagesquareshare = {16898613613, {48, 48}, {869, 306}},
+    messagesquaretext = {16898613613, {48, 48}, {820, 355}},
+    messagesquarewarning = {16898613613, {48, 48}, {771, 404}},
+    messagesquarex = {16898613613, {48, 48}, {404, 771}},
+    messagessquare = {16898613613, {48, 48}, {306, 869}},
+    mic = {16898613613, {48, 48}, {820, 612}},
+    mic2 = {16898613613, {48, 48}, {257, 918}},
+    micoff = {16898613613, {48, 48}, {918, 514}},
+    microscope = {16898613613, {48, 48}, {771, 661}},
+    microwave = {16898613613, {48, 48}, {661, 771}},
+    micvocal = {16898613613, {48, 48}, {869, 563}},
+    milestone = {16898613613, {48, 48}, {612, 820}},
+    milk = {16898613613, {48, 48}, {514, 918}},
+    milkoff = {16898613613, {48, 48}, {563, 869}},
+    minimize = {16898613613, {48, 48}, {918, 49}},
+    minimize2 = {16898613613, {48, 48}, {967, 0}},
+    minus = {16898613613, {48, 48}, {771, 196}},
+    minuscircle = {16898613613, {48, 48}, {869, 98}},
+    minussquare = {16898613613, {48, 48}, {820, 147}},
+    monitor = {16898613613, {48, 48}, {404, 820}},
+    monitorcheck = {16898613613, {48, 48}, {196, 771}},
+    monitordot = {16898613613, {48, 48}, {147, 820}},
+    monitordown = {16898613613, {48, 48}, {98, 869}},
+    monitoroff = {16898613613, {48, 48}, {49, 918}},
+    monitorpause = {16898613613, {48, 48}, {0, 967}},
+    monitorplay = {16898613613, {48, 48}, {967, 257}},
+    monitorsmartphone = {16898613613, {48, 48}, {918, 306}},
+    monitorspeaker = {16898613613, {48, 48}, {869, 355}},
+    monitorstop = {16898613613, {48, 48}, {820, 404}},
+    monitorup = {16898613613, {48, 48}, {771, 453}},
+    monitorx = {16898613613, {48, 48}, {453, 771}},
+    moon = {16898613613, {48, 48}, {306, 918}},
+    moonstar = {16898613613, {48, 48}, {355, 869}},
+    morehorizontal = {16898613613, {48, 48}, {257, 967}},
+    morevertical = {16898613613, {48, 48}, {967, 514}},
+    mountain = {16898613613, {48, 48}, {869, 612}},
+    mountainsnow = {16898613613, {48, 48}, {918, 563}},
+    mouse = {16898613613, {48, 48}, {563, 918}},
+    mousepointer = {16898613613, {48, 48}, {612, 869}},
+    mousepointer2 = {16898613613, {48, 48}, {820, 661}},
+    mousepointerclick = {16898613613, {48, 48}, {771, 710}},
+    mousepointersquare = {16898613613, {48, 48}, {661, 820}},
+    mousepointersquaredashed = {16898613613, {48, 48}, {710, 771}},
+    move = {16898613613, {48, 48}, {453, 820}},
+    move3d = {16898613613, {48, 48}, {514, 967}},
+    movediagonal = {16898613613, {48, 48}, {918, 98}},
+    movediagonal2 = {16898613613, {48, 48}, {967, 49}},
+    movedown = {16898613613, {48, 48}, {196, 820}},
+    movedownleft = {16898613613, {48, 48}, {869, 147}},
+    movedownright = {16898613613, {48, 48}, {820, 196}},
+    movehorizontal = {16898613613, {48, 48}, {147, 869}},
+    moveleft = {16898613613, {48, 48}, {98, 918}},
+    moveright = {16898613613, {48, 48}, {49, 967}},
+    moveup = {16898613613, {48, 48}, {869, 404}},
+    moveupleft = {16898613613, {48, 48}, {967, 306}},
+    moveupright = {16898613613, {48, 48}, {918, 355}},
+    movevertical = {16898613613, {48, 48}, {820, 453}},
+    msquare = {16898613509, {48, 48}, {869, 955}},
+    music = {16898613613, {48, 48}, {967, 563}},
+    music2 = {16898613613, {48, 48}, {404, 869}},
+    music3 = {16898613613, {48, 48}, {355, 918}},
+    music4 = {16898613613, {48, 48}, {306, 967}},
+    navigation = {16898613613, {48, 48}, {771, 759}},
+    navigation2 = {16898613613, {48, 48}, {869, 661}},
+    navigation2off = {16898613613, {48, 48}, {918, 612}},
+    navigationoff = {16898613613, {48, 48}, {820, 710}},
+    network = {16898613613, {48, 48}, {710, 820}},
+    newspaper = {16898613613, {48, 48}, {661, 869}},
+    nfc = {16898613613, {48, 48}, {612, 918}},
+    notebook = {16898613613, {48, 48}, {869, 196}},
+    notebookpen = {16898613613, {48, 48}, {563, 967}},
+    notebooktabs = {16898613613, {48, 48}, {967, 98}},
+    notebooktext = {16898613613, {48, 48}, {918, 147}},
+    notepadtext = {16898613613, {48, 48}, {147, 918}},
+    notepadtextdashed = {16898613613, {48, 48}, {196, 869}},
+    nut = {16898613613, {48, 48}, {967, 355}},
+    nutoff = {16898613613, {48, 48}, {98, 967}},
+    octagon = {16898613613, {48, 48}, {404, 918}},
+    octagonalert = {16898613613, {48, 48}, {918, 404}},
+    octagonpause = {16898613613, {48, 48}, {869, 453}},
+    octagonx = {16898613613, {48, 48}, {453, 869}},
+    option = {16898613613, {48, 48}, {355, 967}},
+    orbit = {16898613613, {48, 48}, {967, 612}},
+    outdent = {16898613613, {48, 48}, {918, 661}},
+    package = {16898613613, {48, 48}, {918, 196}},
+    package2 = {16898613613, {48, 48}, {869, 710}},
+    packagecheck = {16898613613, {48, 48}, {820, 759}},
+    packageminus = {16898613613, {48, 48}, {771, 808}},
+    packageopen = {16898613613, {48, 48}, {710, 869}},
+    packageplus = {16898613613, {48, 48}, {661, 918}},
+    packagesearch = {16898613613, {48, 48}, {612, 967}},
+    packagex = {16898613613, {48, 48}, {967, 147}},
+    paintbrush = {16898613613, {48, 48}, {918, 453}},
+    paintbrush2 = {16898613613, {48, 48}, {967, 404}},
+    paintbucket = {16898613613, {48, 48}, {196, 918}},
+    paintroller = {16898613613, {48, 48}, {147, 967}},
+    palette = {16898613613, {48, 48}, {453, 918}},
+    palmtree = {16898613613, {48, 48}, {404, 967}},
+    panelbottom = {16898613613, {48, 48}, {771, 857}},
+    panelbottomclose = {16898613613, {48, 48}, {967, 661}},
+    panelbottomdashed = {16898613613, {48, 48}, {918, 710}},
+    panelbottominactive = {16898613613, {48, 48}, {869, 759}},
+    panelbottomopen = {16898613613, {48, 48}, {820, 808}},
+    panelleft = {16898613613, {48, 48}, {967, 453}},
+    panelleftclose = {16898613613, {48, 48}, {710, 918}},
+    panelleftdashed = {16898613613, {48, 48}, {661, 967}},
+    panelleftinactive = {16898613613, {48, 48}, {967, 196}},
+    panelleftopen = {16898613613, {48, 48}, {196, 967}},
+    panelright = {16898613613, {48, 48}, {820, 857}},
+    panelrightclose = {16898613613, {48, 48}, {453, 967}},
+    panelrightdashed = {16898613613, {48, 48}, {967, 710}},
+    panelrightinactive = {16898613613, {48, 48}, {918, 759}},
+    panelrightopen = {16898613613, {48, 48}, {869, 808}},
+    panelsleftbottom = {16898613613, {48, 48}, {820, 906}},
+    panelsrightbottom = {16898613613, {48, 48}, {771, 955}},
+    panelstopleft = {16898613613, {48, 48}, {967, 808}},
+    paneltop = {16898613613, {48, 48}, {869, 857}},
+    paneltopclose = {16898613613, {48, 48}, {771, 906}},
+    paneltopdashed = {16898613613, {48, 48}, {710, 967}},
+    paneltopinactive = {16898613613, {48, 48}, {967, 759}},
+    paneltopopen = {16898613613, {48, 48}, {918, 808}},
+    paperclip = {16898613613, {48, 48}, {918, 857}},
+    parentheses = {16898613613, {48, 48}, {869, 906}},
+    parkingcircle = {16898613613, {48, 48}, {967, 857}},
+    parkingcircleoff = {16898613613, {48, 48}, {820, 955}},
+    parkingmeter = {16898613613, {48, 48}, {918, 906}},
+    parkingsquare = {16898613613, {48, 48}, {967, 906}},
+    parkingsquareoff = {16898613613, {48, 48}, {869, 955}},
+    partypopper = {16898613613, {48, 48}, {918, 955}},
+    pause = {16898613699, {48, 48}, {0, 771}},
+    pausecircle = {16898613613, {48, 48}, {967, 955}},
+    pauseoctagon = {16898613699, {48, 48}, {771, 0}},
+    pawprint = {16898613699, {48, 48}, {771, 257}},
+    pccase = {16898613699, {48, 48}, {257, 771}},
+    pen = {16898613699, {48, 48}, {771, 49}},
+    pencil = {16898613699, {48, 48}, {820, 257}},
+    pencilline = {16898613699, {48, 48}, {49, 771}},
+    pencilruler = {16898613699, {48, 48}, {0, 820}},
+    penline = {16898613699, {48, 48}, {771, 514}},
+    pensquare = {16898613699, {48, 48}, {514, 771}},
+    pentagon = {16898613699, {48, 48}, {771, 306}},
+    pentool = {16898613699, {48, 48}, {820, 0}},
+    percent = {16898613699, {48, 48}, {771, 563}},
+    percentcircle = {16898613699, {48, 48}, {306, 771}},
+    percentdiamond = {16898613699, {48, 48}, {257, 820}},
+    percentsquare = {16898613699, {48, 48}, {820, 514}},
+    personstanding = {16898613699, {48, 48}, {563, 771}},
+    phone = {16898613699, {48, 48}, {0, 869}},
+    phonecall = {16898613699, {48, 48}, {514, 820}},
+    phoneforwarded = {16898613699, {48, 48}, {869, 0}},
+    phoneincoming = {16898613699, {48, 48}, {820, 49}},
+    phonemissed = {16898613699, {48, 48}, {771, 98}},
+    phoneoff = {16898613699, {48, 48}, {98, 771}},
+    phoneoutgoing = {16898613699, {48, 48}, {49, 820}},
+    pi = {16898613699, {48, 48}, {820, 306}},
+    piano = {16898613699, {48, 48}, {771, 355}},
+    pickaxe = {16898613699, {48, 48}, {355, 771}},
+    pictureinpicture = {16898613699, {48, 48}, {257, 869}},
+    pictureinpicture2 = {16898613699, {48, 48}, {306, 820}},
+    piechart = {16898613699, {48, 48}, {869, 514}},
+    piggybank = {16898613699, {48, 48}, {820, 563}},
+    pilcrow = {16898613699, {48, 48}, {612, 771}},
+    pilcrowsquare = {16898613699, {48, 48}, {771, 612}},
+    pill = {16898613699, {48, 48}, {563, 820}},
+    pin = {16898613699, {48, 48}, {918, 0}},
+    pinoff = {16898613699, {48, 48}, {514, 869}},
+    pipette = {16898613699, {48, 48}, {869, 49}},
+    pisquare = {16898613699, {48, 48}, {869, 257}},
+    pizza = {16898613699, {48, 48}, {820, 98}},
+    plane = {16898613699, {48, 48}, {98, 820}},
+    planelanding = {16898613699, {48, 48}, {771, 147}},
+    planetakeoff = {16898613699, {48, 48}, {147, 771}},
+    play = {16898613699, {48, 48}, {918, 257}},
+    playcircle = {16898613699, {48, 48}, {49, 869}},
+    playsquare = {16898613699, {48, 48}, {0, 918}},
+    plug = {16898613699, {48, 48}, {404, 771}},
+    plug2 = {16898613699, {48, 48}, {869, 306}},
+    plugzap = {16898613699, {48, 48}, {771, 404}},
+    plugzap2 = {16898613699, {48, 48}, {820, 355}},
+    plus = {16898613699, {48, 48}, {257, 918}},
+    pluscircle = {16898613699, {48, 48}, {355, 820}},
+    plussquare = {16898613699, {48, 48}, {306, 869}},
+    pocket = {16898613699, {48, 48}, {869, 563}},
+    pocketknife = {16898613699, {48, 48}, {918, 514}},
+    podcast = {16898613699, {48, 48}, {820, 612}},
+    pointer = {16898613699, {48, 48}, {661, 771}},
+    pointeroff = {16898613699, {48, 48}, {771, 661}},
+    popcorn = {16898613699, {48, 48}, {612, 820}},
+    popsicle = {16898613699, {48, 48}, {563, 869}},
+    poundsterling = {16898613699, {48, 48}, {514, 918}},
+    power = {16898613699, {48, 48}, {820, 147}},
+    powercircle = {16898613699, {48, 48}, {967, 0}},
+    poweroff = {16898613699, {48, 48}, {918, 49}},
+    powersquare = {16898613699, {48, 48}, {869, 98}},
+    presentation = {16898613699, {48, 48}, {771, 196}},
+    printer = {16898613699, {48, 48}, {196, 771}},
+    projector = {16898613699, {48, 48}, {147, 820}},
+    proportions = {16898613699, {48, 48}, {98, 869}},
+    puzzle = {16898613699, {48, 48}, {49, 918}},
+    pyramid = {16898613699, {48, 48}, {0, 967}},
+    qrcode = {16898613699, {48, 48}, {967, 257}},
+    quote = {16898613699, {48, 48}, {918, 306}},
+    rabbit = {16898613699, {48, 48}, {869, 355}},
+    radar = {16898613699, {48, 48}, {820, 404}},
+    radiation = {16898613699, {48, 48}, {771, 453}},
+    radical = {16898613699, {48, 48}, {453, 771}},
+    radio = {16898613699, {48, 48}, {306, 918}},
+    radioreceiver = {16898613699, {48, 48}, {404, 820}},
+    radiotower = {16898613699, {48, 48}, {355, 869}},
+    radius = {16898613699, {48, 48}, {257, 967}},
+    railsymbol = {16898613699, {48, 48}, {967, 514}},
+    rainbow = {16898613699, {48, 48}, {918, 563}},
+    rat = {16898613699, {48, 48}, {869, 612}},
+    ratio = {16898613699, {48, 48}, {820, 661}},
+    receipt = {16898613699, {48, 48}, {869, 147}},
+    receiptcent = {16898613699, {48, 48}, {771, 710}},
+    receipteuro = {16898613699, {48, 48}, {710, 771}},
+    receiptindianrupee = {16898613699, {48, 48}, {661, 820}},
+    receiptjapaneseyen = {16898613699, {48, 48}, {612, 869}},
+    receiptpoundsterling = {16898613699, {48, 48}, {563, 918}},
+    receiptrussianruble = {16898613699, {48, 48}, {514, 967}},
+    receiptswissfranc = {16898613699, {48, 48}, {967, 49}},
+    receipttext = {16898613699, {48, 48}, {918, 98}},
+    rectangleellipsis = {16898613699, {48, 48}, {820, 196}},
+    rectanglehorizontal = {16898613699, {48, 48}, {196, 820}},
+    rectanglevertical = {16898613699, {48, 48}, {147, 869}},
+    recycle = {16898613699, {48, 48}, {98, 918}},
+    redo = {16898613699, {48, 48}, {918, 355}},
+    redo2 = {16898613699, {48, 48}, {49, 967}},
+    redodot = {16898613699, {48, 48}, {967, 306}},
+    refreshccw = {16898613699, {48, 48}, {820, 453}},
+    refreshccwdot = {16898613699, {48, 48}, {869, 404}},
+    refreshcw = {16898613699, {48, 48}, {404, 869}},
+    refreshcwoff = {16898613699, {48, 48}, {453, 820}},
+    refrigerator = {16898613699, {48, 48}, {355, 918}},
+    regex = {16898613699, {48, 48}, {306, 967}},
+    removeformatting = {16898613699, {48, 48}, {967, 563}},
+    repeat1 = {16898613699, {48, 48}, {918, 612}},
+    repeat2 = {16898613699, {48, 48}, {869, 661}},
+    replace = {16898613699, {48, 48}, {710, 820}},
+    replaceall = {16898613699, {48, 48}, {771, 759}},
+    reply = {16898613699, {48, 48}, {612, 918}},
+    replyall = {16898613699, {48, 48}, {661, 869}},
+    rewind = {16898613699, {48, 48}, {563, 967}},
+    ribbon = {16898613699, {48, 48}, {967, 98}},
+    rocket = {16898613699, {48, 48}, {918, 147}},
+    rockingchair = {16898613699, {48, 48}, {869, 196}},
+    rollercoaster = {16898613699, {48, 48}, {196, 869}},
+    rotate3d = {16898613699, {48, 48}, {147, 918}},
+    rotateccw = {16898613699, {48, 48}, {967, 355}},
+    rotateccwsquare = {16898613699, {48, 48}, {98, 967}},
+    rotatecw = {16898613699, {48, 48}, {869, 453}},
+    rotatecwsquare = {16898613699, {48, 48}, {918, 404}},
+    route = {16898613699, {48, 48}, {404, 918}},
+    routeoff = {16898613699, {48, 48}, {453, 869}},
+    router = {16898613699, {48, 48}, {355, 967}},
+    rows = {16898613699, {48, 48}, {820, 759}},
+    rows2 = {16898613699, {48, 48}, {967, 612}},
+    rows3 = {16898613699, {48, 48}, {918, 661}},
+    rows4 = {16898613699, {48, 48}, {869, 710}},
+    rss = {16898613699, {48, 48}, {771, 808}},
+    ruler = {16898613699, {48, 48}, {710, 869}},
+    russianruble = {16898613699, {48, 48}, {661, 918}},
+    sailboat = {16898613699, {48, 48}, {612, 967}},
+    salad = {16898613699, {48, 48}, {967, 147}},
+    sandwich = {16898613699, {48, 48}, {918, 196}},
+    satellite = {16898613699, {48, 48}, {147, 967}},
+    satellitedish = {16898613699, {48, 48}, {196, 918}},
+    save = {16898613699, {48, 48}, {918, 453}},
+    saveall = {16898613699, {48, 48}, {967, 404}},
+    scale = {16898613699, {48, 48}, {404, 967}},
+    scale3d = {16898613699, {48, 48}, {453, 918}},
+    scaling = {16898613699, {48, 48}, {967, 661}},
+    scan = {16898613699, {48, 48}, {967, 196}},
+    scanbarcode = {16898613699, {48, 48}, {918, 710}},
+    scaneye = {16898613699, {48, 48}, {869, 759}},
+    scanface = {16898613699, {48, 48}, {820, 808}},
+    scanline = {16898613699, {48, 48}, {771, 857}},
+    scansearch = {16898613699, {48, 48}, {710, 918}},
+    scantext = {16898613699, {48, 48}, {661, 967}},
+    scatterchart = {16898613699, {48, 48}, {196, 967}},
+    school = {16898613699, {48, 48}, {453, 967}},
+    school2 = {16898613699, {48, 48}, {967, 453}},
+    scissors = {16898613699, {48, 48}, {820, 857}},
+    scissorslinedashed = {16898613699, {48, 48}, {967, 710}},
+    scissorssquare = {16898613699, {48, 48}, {869, 808}},
+    scissorssquaredashedbottom = {16898613699, {48, 48}, {918, 759}},
+    screenshare = {16898613699, {48, 48}, {710, 967}},
+    screenshareoff = {16898613699, {48, 48}, {771, 906}},
+    scroll = {16898613699, {48, 48}, {918, 808}},
+    scrolltext = {16898613699, {48, 48}, {967, 759}},
+    search = {16898613699, {48, 48}, {918, 857}},
+    searchcheck = {16898613699, {48, 48}, {869, 857}},
+    searchcode = {16898613699, {48, 48}, {820, 906}},
+    searchslash = {16898613699, {48, 48}, {771, 955}},
+    searchx = {16898613699, {48, 48}, {967, 808}},
+    send = {16898613699, {48, 48}, {967, 857}},
+    sendhorizontal = {16898613699, {48, 48}, {869, 906}},
+    sendtoback = {16898613699, {48, 48}, {820, 955}},
+    separatorhorizontal = {16898613699, {48, 48}, {918, 906}},
+    separatorvertical = {16898613699, {48, 48}, {869, 955}},
+    server = {16898613777, {48, 48}, {771, 0}},
+    servercog = {16898613699, {48, 48}, {967, 906}},
+    servercrash = {16898613699, {48, 48}, {918, 955}},
+    serveroff = {16898613699, {48, 48}, {967, 955}},
+    settings = {16898613777, {48, 48}, {771, 257}},
+    settings2 = {16898613777, {48, 48}, {0, 771}},
+    shapes = {16898613777, {48, 48}, {257, 771}},
+    share = {16898613777, {48, 48}, {514, 771}},
+    share2 = {16898613777, {48, 48}, {771, 514}},
+    sheet = {16898613777, {48, 48}, {820, 0}},
+    shell = {16898613777, {48, 48}, {771, 49}},
+    shield = {16898613777, {48, 48}, {869, 0}},
+    shieldalert = {16898613777, {48, 48}, {49, 771}},
+    shieldban = {16898613777, {48, 48}, {0, 820}},
+    shieldcheck = {16898613777, {48, 48}, {820, 257}},
+    shieldellipsis = {16898613777, {48, 48}, {771, 306}},
+    shieldhalf = {16898613777, {48, 48}, {306, 771}},
+    shieldminus = {16898613777, {48, 48}, {257, 820}},
+    shieldoff = {16898613777, {48, 48}, {820, 514}},
+    shieldplus = {16898613777, {48, 48}, {771, 563}},
+    shieldquestion = {16898613777, {48, 48}, {563, 771}},
+    shieldx = {16898613777, {48, 48}, {514, 820}},
+    ship = {16898613777, {48, 48}, {771, 98}},
+    shipwheel = {16898613777, {48, 48}, {820, 49}},
+    shirt = {16898613777, {48, 48}, {98, 771}},
+    shoppingbag = {16898613777, {48, 48}, {49, 820}},
+    shoppingbasket = {16898613777, {48, 48}, {0, 869}},
+    shoppingcart = {16898613777, {48, 48}, {869, 257}},
+    shovel = {16898613777, {48, 48}, {820, 306}},
+    showerhead = {16898613777, {48, 48}, {771, 355}},
+    shrink = {16898613777, {48, 48}, {355, 771}},
+    shrub = {16898613777, {48, 48}, {306, 820}},
+    shuffle = {16898613777, {48, 48}, {257, 869}},
+    sigma = {16898613777, {48, 48}, {820, 563}},
+    sigmasquare = {16898613777, {48, 48}, {869, 514}},
+    signal = {16898613777, {48, 48}, {918, 0}},
+    signalhigh = {16898613777, {48, 48}, {771, 612}},
+    signallow = {16898613777, {48, 48}, {612, 771}},
+    signalmedium = {16898613777, {48, 48}, {563, 820}},
+    signalzero = {16898613777, {48, 48}, {514, 869}},
+    signpost = {16898613777, {48, 48}, {820, 98}},
+    signpostbig = {16898613777, {48, 48}, {869, 49}},
+    siren = {16898613777, {48, 48}, {771, 147}},
+    skipback = {16898613777, {48, 48}, {147, 771}},
+    skipforward = {16898613777, {48, 48}, {98, 820}},
+    skull = {16898613777, {48, 48}, {49, 869}},
+    slack = {16898613777, {48, 48}, {0, 918}},
+    slash = {16898613777, {48, 48}, {918, 257}},
+    slice = {16898613777, {48, 48}, {869, 306}},
+    sliders = {16898613777, {48, 48}, {404, 771}},
+    slidershorizontal = {16898613777, {48, 48}, {820, 355}},
+    slidersvertical = {16898613777, {48, 48}, {771, 404}},
+    smartphone = {16898613777, {48, 48}, {257, 918}},
+    smartphonecharging = {16898613777, {48, 48}, {355, 820}},
+    smartphonenfc = {16898613777, {48, 48}, {306, 869}},
+    smile = {16898613777, {48, 48}, {869, 563}},
+    smileplus = {16898613777, {48, 48}, {918, 514}},
+    snail = {16898613777, {48, 48}, {820, 612}},
+    snowflake = {16898613777, {48, 48}, {771, 661}},
+    sofa = {16898613777, {48, 48}, {661, 771}},
+    soup = {16898613777, {48, 48}, {612, 820}},
+    space = {16898613777, {48, 48}, {563, 869}},
+    spade = {16898613777, {48, 48}, {514, 918}},
+    sparkle = {16898613777, {48, 48}, {967, 0}},
+    sparkles = {16898613777, {48, 48}, {918, 49}},
+    speaker = {16898613777, {48, 48}, {869, 98}},
+    speech = {16898613777, {48, 48}, {820, 147}},
+    spellcheck = {16898613777, {48, 48}, {196, 771}},
+    spellcheck2 = {16898613777, {48, 48}, {771, 196}},
+    spline = {16898613777, {48, 48}, {147, 820}},
+    split = {16898613777, {48, 48}, {0, 967}},
+    splitsquarehorizontal = {16898613777, {48, 48}, {98, 869}},
+    splitsquarevertical = {16898613777, {48, 48}, {49, 918}},
+    spraycan = {16898613777, {48, 48}, {967, 257}},
+    sprout = {16898613777, {48, 48}, {918, 306}},
+    square = {16898613777, {48, 48}, {869, 710}},
+    squareactivity = {16898613777, {48, 48}, {869, 355}},
+    squarearrowdown = {16898613777, {48, 48}, {453, 771}},
+    squarearrowdownleft = {16898613777, {48, 48}, {820, 404}},
+    squarearrowdownright = {16898613777, {48, 48}, {771, 453}},
+    squarearrowleft = {16898613777, {48, 48}, {404, 820}},
+    squarearrowoutdownleft = {16898613777, {48, 48}, {355, 869}},
+    squarearrowoutdownright = {16898613777, {48, 48}, {306, 918}},
+    squarearrowoutupleft = {16898613777, {48, 48}, {257, 967}},
+    squarearrowoutupright = {16898613777, {48, 48}, {967, 514}},
+    squarearrowright = {16898613777, {48, 48}, {918, 563}},
+    squarearrowup = {16898613777, {48, 48}, {771, 710}},
+    squarearrowupleft = {16898613777, {48, 48}, {869, 612}},
+    squarearrowupright = {16898613777, {48, 48}, {820, 661}},
+    squareasterisk = {16898613777, {48, 48}, {710, 771}},
+    squarebottomdashedscissors = {16898613777, {48, 48}, {661, 820}},
+    squarecheck = {16898613777, {48, 48}, {563, 918}},
+    squarecheckbig = {16898613777, {48, 48}, {612, 869}},
+    squarechevrondown = {16898613777, {48, 48}, {514, 967}},
+    squarechevronleft = {16898613777, {48, 48}, {967, 49}},
+    squarechevronright = {16898613777, {48, 48}, {918, 98}},
+    squarechevronup = {16898613777, {48, 48}, {869, 147}},
+    squarecode = {16898613777, {48, 48}, {820, 196}},
+    squaredashedbottom = {16898613777, {48, 48}, {147, 869}},
+    squaredashedbottomcode = {16898613777, {48, 48}, {196, 820}},
+    squaredashedkanban = {16898613777, {48, 48}, {98, 918}},
+    squaredashedmousepointer = {16898613777, {48, 48}, {49, 967}},
+    squaredivide = {16898613777, {48, 48}, {967, 306}},
+    squaredot = {16898613777, {48, 48}, {918, 355}},
+    squareequal = {16898613777, {48, 48}, {869, 404}},
+    squarefunction = {16898613777, {48, 48}, {820, 453}},
+    squareganttchart = {16898613777, {48, 48}, {453, 820}},
+    squarekanban = {16898613777, {48, 48}, {404, 869}},
+    squarelibrary = {16898613777, {48, 48}, {355, 918}},
+    squarem = {16898613777, {48, 48}, {306, 967}},
+    squaremenu = {16898613777, {48, 48}, {967, 563}},
+    squareminus = {16898613777, {48, 48}, {918, 612}},
+    squaremousepointer = {16898613777, {48, 48}, {869, 661}},
+    squareparking = {16898613777, {48, 48}, {771, 759}},
+    squareparkingoff = {16898613777, {48, 48}, {820, 710}},
+    squarepen = {16898613777, {48, 48}, {710, 820}},
+    squarepercent = {16898613777, {48, 48}, {661, 869}},
+    squarepi = {16898613777, {48, 48}, {612, 918}},
+    squarepilcrow = {16898613777, {48, 48}, {563, 967}},
+    squareplay = {16898613777, {48, 48}, {967, 98}},
+    squareplus = {16898613777, {48, 48}, {918, 147}},
+    squarepower = {16898613777, {48, 48}, {869, 196}},
+    squareradical = {16898613777, {48, 48}, {196, 869}},
+    squarescissors = {16898613777, {48, 48}, {147, 918}},
+    squaresigma = {16898613777, {48, 48}, {98, 967}},
+    squareslash = {16898613777, {48, 48}, {967, 355}},
+    squaresplithorizontal = {16898613777, {48, 48}, {918, 404}},
+    squaresplitvertical = {16898613777, {48, 48}, {869, 453}},
+    squarestack = {16898613777, {48, 48}, {453, 869}},
+    squareterminal = {16898613777, {48, 48}, {404, 918}},
+    squareuser = {16898613777, {48, 48}, {967, 612}},
+    squareuserround = {16898613777, {48, 48}, {355, 967}},
+    squarex = {16898613777, {48, 48}, {918, 661}},
+    squircle = {16898613777, {48, 48}, {820, 759}},
+    squirrel = {16898613777, {48, 48}, {771, 808}},
+    stamp = {16898613777, {48, 48}, {710, 869}},
+    star = {16898613777, {48, 48}, {967, 147}},
+    starhalf = {16898613777, {48, 48}, {661, 918}},
+    staroff = {16898613777, {48, 48}, {612, 967}},
+    stepback = {16898613777, {48, 48}, {918, 196}},
+    stepforward = {16898613777, {48, 48}, {196, 918}},
+    stethoscope = {16898613777, {48, 48}, {147, 967}},
+    sticker = {16898613777, {48, 48}, {967, 404}},
+    stickynote = {16898613777, {48, 48}, {918, 453}},
+    stopcircle = {16898613777, {48, 48}, {453, 918}},
+    store = {16898613777, {48, 48}, {404, 967}},
+    stretchhorizontal = {16898613777, {48, 48}, {967, 661}},
+    stretchvertical = {16898613777, {48, 48}, {918, 710}},
+    strikethrough = {16898613777, {48, 48}, {869, 759}},
+    subscript = {16898613777, {48, 48}, {820, 808}},
+    subtitles = {16898613777, {48, 48}, {771, 857}},
+    sun = {16898613777, {48, 48}, {967, 453}},
+    sundim = {16898613777, {48, 48}, {710, 918}},
+    sunmedium = {16898613777, {48, 48}, {661, 967}},
+    sunmoon = {16898613777, {48, 48}, {967, 196}},
+    sunrise = {16898613777, {48, 48}, {453, 967}},
+    sunset = {16898613777, {48, 48}, {967, 710}},
+    sunsnow = {16898613777, {48, 48}, {196, 967}},
+    superscript = {16898613777, {48, 48}, {918, 759}},
+    swatchbook = {16898613777, {48, 48}, {869, 808}},
+    swissfranc = {16898613777, {48, 48}, {820, 857}},
+    switchcamera = {16898613777, {48, 48}, {771, 906}},
+    sword = {16898613777, {48, 48}, {710, 967}},
+    swords = {16898613777, {48, 48}, {967, 759}},
+    syringe = {16898613777, {48, 48}, {918, 808}},
+    table = {16898613777, {48, 48}, {820, 955}},
+    table2 = {16898613777, {48, 48}, {869, 857}},
+    tablecellsmerge = {16898613777, {48, 48}, {820, 906}},
+    tablecellssplit = {16898613777, {48, 48}, {771, 955}},
+    tablecolumnssplit = {16898613777, {48, 48}, {967, 808}},
+    tableproperties = {16898613777, {48, 48}, {918, 857}},
+    tablerowssplit = {16898613777, {48, 48}, {869, 906}},
+    tablet = {16898613777, {48, 48}, {918, 906}},
+    tablets = {16898613777, {48, 48}, {869, 955}},
+    tabletsmartphone = {16898613777, {48, 48}, {967, 857}},
+    tag = {16898613777, {48, 48}, {967, 906}},
+    tags = {16898613777, {48, 48}, {918, 955}},
+    tally1 = {16898613777, {48, 48}, {967, 955}},
+    tally2 = {16898613869, {48, 48}, {771, 0}},
+    tally3 = {16898613869, {48, 48}, {0, 771}},
+    tally4 = {16898613869, {48, 48}, {771, 257}},
+    tally5 = {16898613869, {48, 48}, {257, 771}},
+    tangent = {16898613869, {48, 48}, {771, 514}},
+    target = {16898613869, {48, 48}, {514, 771}},
+    telescope = {16898613869, {48, 48}, {820, 0}},
+    tent = {16898613869, {48, 48}, {49, 771}},
+    tenttree = {16898613869, {48, 48}, {771, 49}},
+    terminal = {16898613869, {48, 48}, {820, 257}},
+    terminalsquare = {16898613869, {48, 48}, {0, 820}},
+    testtube = {16898613869, {48, 48}, {257, 820}},
+    testtube2 = {16898613869, {48, 48}, {771, 306}},
+    testtubediagonal = {16898613869, {48, 48}, {306, 771}},
+    testtubes = {16898613869, {48, 48}, {820, 514}},
+    text = {16898613869, {48, 48}, {771, 98}},
+    textcursor = {16898613869, {48, 48}, {563, 771}},
+    textcursorinput = {16898613869, {48, 48}, {771, 563}},
+    textquote = {16898613869, {48, 48}, {514, 820}},
+    textsearch = {16898613869, {48, 48}, {869, 0}},
+    textselect = {16898613869, {48, 48}, {820, 49}},
+    theater = {16898613869, {48, 48}, {98, 771}},
+    thermometer = {16898613869, {48, 48}, {869, 257}},
+    thermometersnowflake = {16898613869, {48, 48}, {49, 820}},
+    thermometersun = {16898613869, {48, 48}, {0, 869}},
+    thumbsdown = {16898613869, {48, 48}, {820, 306}},
+    thumbsup = {16898613869, {48, 48}, {771, 355}},
+    ticket = {16898613869, {48, 48}, {612, 771}},
+    ticketcheck = {16898613869, {48, 48}, {355, 771}},
+    ticketminus = {16898613869, {48, 48}, {306, 820}},
+    ticketpercent = {16898613869, {48, 48}, {257, 869}},
+    ticketplus = {16898613869, {48, 48}, {869, 514}},
+    ticketslash = {16898613869, {48, 48}, {820, 563}},
+    ticketx = {16898613869, {48, 48}, {771, 612}},
+    timer = {16898613869, {48, 48}, {918, 0}},
+    timeroff = {16898613869, {48, 48}, {563, 820}},
+    timerreset = {16898613869, {48, 48}, {514, 869}},
+    toggleleft = {16898613869, {48, 48}, {869, 49}},
+    toggleright = {16898613869, {48, 48}, {820, 98}},
+    tornado = {16898613869, {48, 48}, {771, 147}},
+    torus = {16898613869, {48, 48}, {147, 771}},
+    touchpad = {16898613869, {48, 48}, {49, 869}},
+    touchpadoff = {16898613869, {48, 48}, {98, 820}},
+    towercontrol = {16898613869, {48, 48}, {0, 918}},
+    toybrick = {16898613869, {48, 48}, {918, 257}},
+    tractor = {16898613869, {48, 48}, {869, 306}},
+    trafficcone = {16898613869, {48, 48}, {820, 355}},
+    trainfront = {16898613869, {48, 48}, {404, 771}},
+    trainfronttunnel = {16898613869, {48, 48}, {771, 404}},
+    traintrack = {16898613869, {48, 48}, {355, 820}},
+    tramfront = {16898613869, {48, 48}, {306, 869}},
+    trash = {16898613869, {48, 48}, {918, 514}},
+    trash2 = {16898613869, {48, 48}, {257, 918}},
+    treedeciduous = {16898613869, {48, 48}, {869, 563}},
+    treepalm = {16898613869, {48, 48}, {820, 612}},
+    treepine = {16898613869, {48, 48}, {771, 661}},
+    trees = {16898613869, {48, 48}, {661, 771}},
+    trello = {16898613869, {48, 48}, {612, 820}},
+    trendingdown = {16898613869, {48, 48}, {563, 869}},
+    trendingup = {16898613869, {48, 48}, {514, 918}},
+    triangle = {16898613869, {48, 48}, {869, 98}},
+    trianglealert = {16898613869, {48, 48}, {967, 0}},
+    triangleright = {16898613869, {48, 48}, {918, 49}},
+    trophy = {16898613869, {48, 48}, {820, 147}},
+    truck = {16898613869, {48, 48}, {771, 196}},
+    turtle = {16898613869, {48, 48}, {196, 771}},
+    tv = {16898613869, {48, 48}, {98, 869}},
+    tv2 = {16898613869, {48, 48}, {147, 820}},
+    twitch = {16898613869, {48, 48}, {49, 918}},
+    twitter = {16898613869, {48, 48}, {0, 967}},
+    type = {16898613869, {48, 48}, {967, 257}},
+    umbrella = {16898613869, {48, 48}, {869, 355}},
+    umbrellaoff = {16898613869, {48, 48}, {918, 306}},
+    underline = {16898613869, {48, 48}, {820, 404}},
+    undo = {16898613869, {48, 48}, {404, 820}},
+    undo2 = {16898613869, {48, 48}, {771, 453}},
+    undodot = {16898613869, {48, 48}, {453, 771}},
+    unfoldhorizontal = {16898613869, {48, 48}, {355, 869}},
+    unfoldvertical = {16898613869, {48, 48}, {306, 918}},
+    ungroup = {16898613869, {48, 48}, {257, 967}},
+    university = {16898613869, {48, 48}, {967, 514}},
+    unlink = {16898613869, {48, 48}, {869, 612}},
+    unlink2 = {16898613869, {48, 48}, {918, 563}},
+    unlock = {16898613869, {48, 48}, {771, 710}},
+    unlockkeyhole = {16898613869, {48, 48}, {820, 661}},
+    unplug = {16898613869, {48, 48}, {710, 771}},
+    upload = {16898613869, {48, 48}, {612, 869}},
+    uploadcloud = {16898613869, {48, 48}, {661, 820}},
+    usb = {16898613869, {48, 48}, {563, 918}},
+    user = {16898613869, {48, 48}, {661, 869}},
+    user2 = {16898613869, {48, 48}, {514, 967}},
+    usercheck = {16898613869, {48, 48}, {918, 98}},
+    usercheck2 = {16898613869, {48, 48}, {967, 49}},
+    usercircle = {16898613869, {48, 48}, {820, 196}},
+    usercircle2 = {16898613869, {48, 48}, {869, 147}},
+    usercog = {16898613869, {48, 48}, {147, 869}},
+    usercog2 = {16898613869, {48, 48}, {196, 820}},
+    userminus = {16898613869, {48, 48}, {49, 967}},
+    userminus2 = {16898613869, {48, 48}, {98, 918}},
+    userplus = {16898613869, {48, 48}, {918, 355}},
+    userplus2 = {16898613869, {48, 48}, {967, 306}},
+    userround = {16898613869, {48, 48}, {967, 563}},
+    userroundcheck = {16898613869, {48, 48}, {869, 404}},
+    userroundcog = {16898613869, {48, 48}, {820, 453}},
+    userroundminus = {16898613869, {48, 48}, {453, 820}},
+    userroundplus = {16898613869, {48, 48}, {404, 869}},
+    userroundsearch = {16898613869, {48, 48}, {355, 918}},
+    userroundx = {16898613869, {48, 48}, {306, 967}},
+    users = {16898613869, {48, 48}, {967, 98}},
+    users2 = {16898613869, {48, 48}, {612, 918}},
+    usersearch = {16898613869, {48, 48}, {918, 612}},
+    usersquare = {16898613869, {48, 48}, {820, 710}},
+    usersquare2 = {16898613869, {48, 48}, {869, 661}},
+    usersround = {16898613869, {48, 48}, {563, 967}},
+    userx = {16898613869, {48, 48}, {710, 820}},
+    userx2 = {16898613869, {48, 48}, {771, 759}},
+    utensils = {16898613869, {48, 48}, {869, 196}},
+    utensilscrossed = {16898613869, {48, 48}, {918, 147}},
+    utilitypole = {16898613869, {48, 48}, {196, 869}},
+    variable = {16898613869, {48, 48}, {147, 918}},
+    vault = {16898613869, {48, 48}, {98, 967}},
+    vegan = {16898613869, {48, 48}, {967, 355}},
+    venetianmask = {16898613869, {48, 48}, {918, 404}},
+    vibrate = {16898613869, {48, 48}, {453, 869}},
+    vibrateoff = {16898613869, {48, 48}, {869, 453}},
+    video = {16898613869, {48, 48}, {355, 967}},
+    videooff = {16898613869, {48, 48}, {404, 918}},
+    videotape = {16898613869, {48, 48}, {967, 612}},
+    view = {16898613869, {48, 48}, {918, 661}},
+    voicemail = {16898613869, {48, 48}, {869, 710}},
+    volume = {16898613869, {48, 48}, {661, 918}},
+    volume1 = {16898613869, {48, 48}, {820, 759}},
+    volume2 = {16898613869, {48, 48}, {771, 808}},
+    volumex = {16898613869, {48, 48}, {710, 869}},
+    vote = {16898613869, {48, 48}, {612, 967}},
+    wallet = {16898613869, {48, 48}, {147, 967}},
+    wallet2 = {16898613869, {48, 48}, {967, 147}},
+    walletcards = {16898613869, {48, 48}, {918, 196}},
+    walletminimal = {16898613869, {48, 48}, {196, 918}},
+    wallpaper = {16898613869, {48, 48}, {967, 404}},
+    wand = {16898613869, {48, 48}, {404, 967}},
+    wand2 = {16898613869, {48, 48}, {918, 453}},
+    wandsparkles = {16898613869, {48, 48}, {453, 918}},
+    warehouse = {16898613869, {48, 48}, {967, 661}},
+    washingmachine = {16898613869, {48, 48}, {918, 710}},
+    watch = {16898613869, {48, 48}, {869, 759}},
+    waves = {16898613869, {48, 48}, {820, 808}},
+    waypoints = {16898613869, {48, 48}, {771, 857}},
+    webcam = {16898613869, {48, 48}, {710, 918}},
+    webhook = {16898613869, {48, 48}, {967, 196}},
+    webhookoff = {16898613869, {48, 48}, {661, 967}},
+    weight = {16898613869, {48, 48}, {196, 967}},
+    wheat = {16898613869, {48, 48}, {453, 967}},
+    wheatoff = {16898613869, {48, 48}, {967, 453}},
+    wholeword = {16898613869, {48, 48}, {967, 710}},
+    wifi = {16898613869, {48, 48}, {869, 808}},
+    wifioff = {16898613869, {48, 48}, {918, 759}},
+    wind = {16898613869, {48, 48}, {820, 857}},
+    wine = {16898613869, {48, 48}, {710, 967}},
+    wineoff = {16898613869, {48, 48}, {771, 906}},
+    workflow = {16898613869, {48, 48}, {967, 759}},
+    worm = {16898613869, {48, 48}, {918, 808}},
+    wraptext = {16898613869, {48, 48}, {869, 857}},
+    wrench = {16898613869, {48, 48}, {820, 906}},
+    x = {16898613869, {48, 48}, {869, 906}},
+    xcircle = {16898613869, {48, 48}, {771, 955}},
+    xoctagon = {16898613869, {48, 48}, {967, 808}},
+    xsquare = {16898613869, {48, 48}, {918, 857}},
+    youtube = {16898613869, {48, 48}, {820, 955}},
+    zap = {16898613869, {48, 48}, {918, 906}},
+    zapoff = {16898613869, {48, 48}, {967, 857}},
+    zoomin = {16898613869, {48, 48}, {869, 955}},
+    zoomout = {16898613869, {48, 48}, {967, 906}},
+}
 
--- ============================================================
--- 5. UTILS
--- ============================================================
-local function IsMobile()
-    return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-end
+-- Mapping GaphopUI internal keywords directly to standard Lucide icons
+GaphopUI.LucideSprites.settings = GaphopUI.LucideSprites.sliders or GaphopUI.LucideSprites.settings
+GaphopUI.LucideSprites.close = GaphopUI.LucideSprites.x
+GaphopUI.LucideSprites.minimize = GaphopUI.LucideSprites.minuscircle
+GaphopUI.LucideSprites.maximize = GaphopUI.LucideSprites.copy
+GaphopUI.LucideSprites.refresh = GaphopUI.LucideSprites.refreshccwdot
+GaphopUI.LucideSprites.palette = GaphopUI.LucideSprites.paintbrush2
+GaphopUI.LucideSprites.keyboard = GaphopUI.LucideSprites.terminalsquare
+GaphopUI.LucideSprites.sparkles = GaphopUI.LucideSprites.sparkles or GaphopUI.LucideSprites.lightbulb
+GaphopUI.LucideSprites.moon = GaphopUI.LucideSprites.sunmoon
+GaphopUI.LucideSprites.sun = GaphopUI.LucideSprites.sunmedium
+GaphopUI.LucideSprites.info = GaphopUI.LucideSprites.badgehelp
+GaphopUI.LucideSprites.bell = GaphopUI.LucideSprites.conciergebell
+GaphopUI.LucideSprites.plus = GaphopUI.LucideSprites.circleplus
+GaphopUI.LucideSprites.minus = GaphopUI.LucideSprites.squareminus or GaphopUI.LucideSprites.minuscircle
+GaphopUI.LucideSprites.check = GaphopUI.LucideSprites.checksquare
+GaphopUI.LucideSprites.slider = GaphopUI.LucideSprites.sliders
+GaphopUI.LucideSprites.layers = GaphopUI.LucideSprites.layers
+GaphopUI.LucideSprites.cog = GaphopUI.LucideSprites.settings
+GaphopUI.LucideSprites.chevron = GaphopUI.LucideSprites.chevronup
+GaphopUI.LucideSprites.shield = GaphopUI.LucideSprites.shieldalert
+GaphopUI.LucideSprites.star = GaphopUI.LucideSprites.star
+GaphopUI.LucideSprites.house = GaphopUI.LucideSprites.home
+GaphopUI.LucideSprites.home = GaphopUI.LucideSprites.home
 
-local function SafePcall(fn, ...)
-    local ok, a, b, c = pcall(fn, ...)
-    if not ok then
-        warn("[GaphopUI] pcall error:", a)
-        return false
-    end
-    return true, a, b, c
-end
-
-local function EnsureFolder(name)
-    if type(isfolder) == "function" and type(makefolder) == "function" then
-        pcall(function()
-            if not isfolder(name) then makefolder(name) end
-        end)
-    end
-end
-
-local function GetConfigPath(winName)
-    local safe = (winName or "GaphopUI"):gsub("[^%w%-_]", "_")
-    local folder = "GaphopUI/" .. safe
-    return folder .. "/config.gpui.json", folder
-end
-
-local function Color3ToHex(c)
-    return string.format("#%02X%02X%02X",
-        math.floor(c.R * 255 + 0.5),
-        math.floor(c.G * 255 + 0.5),
-        math.floor(c.B * 255 + 0.5))
-end
-
-local function HexToColor3(hex)
-    hex = hex:gsub("#", "")
-    if #hex ~= 6 then return nil end
-    local r = tonumber(hex:sub(1, 2), 16)
-    local g = tonumber(hex:sub(3, 4), 16)
-    local b = tonumber(hex:sub(5, 6), 16)
-    if r and g and b then
-        return Color3.fromRGB(r, g, b)
-    end
-    return nil
-end
-
-local function DeepCopy(t)
-    if type(t) ~= "table" then return t end
-    local n = {}
-    for k, v in pairs(t) do n[k] = DeepCopy(v) end
-    return n
-end
-
--- ============================================================
--- 6. TWEEN MANAGER (fixes a, b, e)
--- ============================================================
-local TweenInfoCache = {}
-local function GetTweenInfo(duration, style, dir)
-    style = style or Enum.EasingStyle.Quint
-    dir   = dir   or Enum.EasingDirection.Out
-    local key = tostring(duration) .. tostring(style) .. tostring(dir)
-    if not TweenInfoCache[key] then
-        TweenInfoCache[key] = TweenInfo.new(duration, style, dir)
-    end
-    return TweenInfoCache[key]
-end
-
-local function CancelTween(inst, propGroup)
-    local key = tostring(inst) .. (propGroup or "")
-    local old = GaphopUI.ActiveTweens[key]
-    if old then
-        pcall(function() old:Cancel() end)
-        GaphopUI.ActiveTweens[key] = nil
-    end
-end
-
-local function TrackedTween(inst, duration, props, style, dir, propGroup)
-    if not inst or not inst.Parent then return nil end
-    if GaphopUI.Settings.ReducedMotion or not GaphopUI.Settings.Effects then
-        for k, v in pairs(props) do
-            pcall(function() inst[k] = v end)
-        end
-        return nil
-    end
-    local speed = math.clamp(GaphopUI.Settings.AnimationSpeed or 1, 0.5, 2)
-    duration = duration / speed
-    propGroup = propGroup or "default"
-    CancelTween(inst, propGroup)
-    local ti = GetTweenInfo(duration, style, dir)
-    local tw = TweenService:Create(inst, ti, props)
-    GaphopUI.ActiveTweens[tostring(inst) .. propGroup] = tw
-    tw.Completed:Connect(function()
-        GaphopUI.ActiveTweens[tostring(inst) .. propGroup] = nil
-    end)
-    tw:Play()
-    return tw
-end
-
-local function Spring(inst, duration, props, style)
-    return TrackedTween(inst, duration or 0.35, props, style or Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "spring")
-end
-
-local function SoftSpring(inst, duration, props, style)
-    -- Never use Back for size on layout cards
-    return TrackedTween(inst, duration or 0.3, props, style or Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "soft")
-end
-
-local function Snap(inst, props)
-    for k, v in pairs(props) do
-        pcall(function() inst[k] = v end)
-    end
-end
-
--- ============================================================
--- 7. CONNECTION REGISTRY
--- ============================================================
-local function AddConnection(conn)
-    if conn then
-        table.insert(GaphopUI.Connections, conn)
-    end
-    return conn
-end
-
-local function DisconnectAll()
-    for _, c in ipairs(GaphopUI.Connections) do
-        pcall(function() c:Disconnect() end)
-    end
-    GaphopUI.Connections = {}
-    if GaphopUI.DispatcherConn then
-        pcall(function() GaphopUI.DispatcherConn:Disconnect() end)
-        GaphopUI.DispatcherConn = nil
-    end
-end
-
--- ============================================================
--- 8. THEMES (all original + new)
--- ============================================================
-local function MakeTheme(base)
-    base.AccentSecondary = base.AccentSecondary or base.Accent
-    base.AccentGlow      = base.AccentGlow or base.Accent
-    base.Glass           = base.Glass or 0.18
-    base.Border          = base.Border or Color3.fromRGB(60, 60, 70)
-    base.Shadow          = base.Shadow or Color3.fromRGB(0, 0, 0)
-    base.SubText         = base.SubText or Color3.fromRGB(160, 160, 170)
-    base.Card            = base.Card or base.Background
-    base.CardHover       = base.CardHover or base.Card
-    base.Header          = base.Header or base.Background
-    base.InputBackground = base.InputBackground or base.Card
-    base.SliderBar       = base.SliderBar or Color3.fromRGB(40, 40, 50)
-    return base
-end
 
 GaphopUI.Themes = {
-    Dark = MakeTheme({
-        Background = Color3.fromRGB(18, 18, 24),
-        Card = Color3.fromRGB(28, 28, 36),
-        CardHover = Color3.fromRGB(36, 36, 46),
-        Header = Color3.fromRGB(22, 22, 30),
-        Text = Color3.fromRGB(240, 240, 245),
-        SubText = Color3.fromRGB(150, 150, 160),
-        Accent = Color3.fromRGB(0, 162, 255),
-        AccentSecondary = Color3.fromRGB(0, 120, 220),
-        AccentGlow = Color3.fromRGB(80, 180, 255),
-        Border = Color3.fromRGB(55, 55, 70),
-        Glass = 0.18,
-        InputBackground = Color3.fromRGB(35, 35, 45),
-        SliderBar = Color3.fromRGB(45, 45, 55),
-    }),
-    Midnight = MakeTheme({
-        Background = Color3.fromRGB(10, 12, 22),
-        Card = Color3.fromRGB(18, 22, 36),
-        CardHover = Color3.fromRGB(26, 32, 50),
-        Header = Color3.fromRGB(14, 16, 28),
-        Text = Color3.fromRGB(230, 235, 255),
-        SubText = Color3.fromRGB(140, 150, 180),
-        Accent = Color3.fromRGB(120, 100, 255),
-        AccentSecondary = Color3.fromRGB(80, 60, 220),
-        Border = Color3.fromRGB(40, 45, 70),
-        Glass = 0.20,
-    }),
-    CyberNeon = MakeTheme({
-        Background = Color3.fromRGB(8, 10, 18),
-        Card = Color3.fromRGB(14, 18, 32),
-        CardHover = Color3.fromRGB(22, 28, 48),
-        Header = Color3.fromRGB(10, 14, 26),
-        Text = Color3.fromRGB(0, 255, 200),
-        SubText = Color3.fromRGB(0, 180, 160),
-        Accent = Color3.fromRGB(0, 255, 170),
-        AccentSecondary = Color3.fromRGB(0, 200, 255),
-        Border = Color3.fromRGB(0, 80, 70),
+    -- Core dark
+    Dark = {
+        Background = Color3.fromRGB(14, 15, 20),
+        Card = Color3.fromRGB(22, 24, 34),
+        CardHover = Color3.fromRGB(30, 33, 48),
+        Header = Color3.fromRGB(18, 19, 28),
+        Accent = Color3.fromRGB(0, 170, 255),
+        AccentGlow = Color3.fromRGB(0, 140, 230),
+        Text = Color3.fromRGB(248, 250, 255),
+        SubText = Color3.fromRGB(148, 155, 175),
+        Border = Color3.fromRGB(42, 48, 68),
+        ToggleOn = Color3.fromRGB(0, 170, 255),
+        ToggleOff = Color3.fromRGB(38, 42, 58),
+        SliderBar = Color3.fromRGB(36, 40, 55),
+        InputBackground = Color3.fromRGB(18, 20, 28),
+        Shadow = Color3.fromRGB(0, 0, 0),
         Glass = 0.22,
-    }),
-    Emerald = MakeTheme({
-        Background = Color3.fromRGB(12, 20, 16),
-        Card = Color3.fromRGB(20, 32, 26),
-        CardHover = Color3.fromRGB(28, 44, 36),
-        Header = Color3.fromRGB(16, 26, 20),
-        Text = Color3.fromRGB(220, 255, 230),
-        SubText = Color3.fromRGB(140, 190, 160),
-        Accent = Color3.fromRGB(0, 200, 120),
-        AccentSecondary = Color3.fromRGB(0, 160, 90),
-        Border = Color3.fromRGB(30, 70, 50),
+    },
+    Midnight = {
+        Background = Color3.fromRGB(9, 9, 18),
+        Card = Color3.fromRGB(18, 18, 34),
+        CardHover = Color3.fromRGB(26, 26, 46),
+        Header = Color3.fromRGB(13, 13, 24),
+        Accent = Color3.fromRGB(138, 100, 255),
+        AccentGlow = Color3.fromRGB(110, 70, 230),
+        Text = Color3.fromRGB(245, 245, 255),
+        SubText = Color3.fromRGB(145, 145, 180),
+        Border = Color3.fromRGB(42, 42, 72),
+        ToggleOn = Color3.fromRGB(138, 100, 255),
+        ToggleOff = Color3.fromRGB(30, 30, 50),
+        SliderBar = Color3.fromRGB(30, 30, 52),
+        InputBackground = Color3.fromRGB(14, 14, 26),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.20,
+    },
+    CyberNeon = {
+        Background = Color3.fromRGB(8, 10, 16),
+        Card = Color3.fromRGB(16, 20, 30),
+        CardHover = Color3.fromRGB(24, 30, 44),
+        Header = Color3.fromRGB(12, 14, 22),
+        Accent = Color3.fromRGB(255, 20, 140),
+        AccentGlow = Color3.fromRGB(220, 0, 110),
+        Text = Color3.fromRGB(255, 255, 255),
+        SubText = Color3.fromRGB(160, 170, 195),
+        Border = Color3.fromRGB(55, 25, 65),
+        ToggleOn = Color3.fromRGB(255, 20, 140),
+        ToggleOff = Color3.fromRGB(32, 28, 42),
+        SliderBar = Color3.fromRGB(32, 28, 42),
+        InputBackground = Color3.fromRGB(12, 14, 22),
+        Shadow = Color3.fromRGB(0, 0, 0),
         Glass = 0.18,
-    }),
-    Ocean = MakeTheme({
-        Background = Color3.fromRGB(8, 16, 28),
-        Card = Color3.fromRGB(14, 28, 46),
-        CardHover = Color3.fromRGB(22, 40, 64),
-        Header = Color3.fromRGB(10, 20, 36),
-        Text = Color3.fromRGB(220, 240, 255),
-        SubText = Color3.fromRGB(130, 170, 200),
+    },
+    Emerald = {
+        Background = Color3.fromRGB(8, 16, 14),
+        Card = Color3.fromRGB(16, 28, 24),
+        CardHover = Color3.fromRGB(22, 40, 34),
+        Header = Color3.fromRGB(12, 22, 18),
+        Accent = Color3.fromRGB(16, 200, 140),
+        AccentGlow = Color3.fromRGB(10, 160, 110),
+        Text = Color3.fromRGB(240, 252, 248),
+        SubText = Color3.fromRGB(140, 175, 160),
+        Border = Color3.fromRGB(32, 58, 48),
+        ToggleOn = Color3.fromRGB(16, 200, 140),
+        ToggleOff = Color3.fromRGB(26, 42, 36),
+        SliderBar = Color3.fromRGB(26, 42, 36),
+        InputBackground = Color3.fromRGB(12, 22, 18),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.22,
+    },
+    Ocean = {
+        Background = Color3.fromRGB(6, 14, 22),
+        Card = Color3.fromRGB(14, 26, 38),
+        CardHover = Color3.fromRGB(22, 36, 52),
+        Header = Color3.fromRGB(10, 20, 30),
         Accent = Color3.fromRGB(0, 180, 255),
-        AccentSecondary = Color3.fromRGB(0, 120, 200),
-        Border = Color3.fromRGB(30, 60, 90),
-        Glass = 0.20,
-    }),
-    Light = MakeTheme({
-        Background = Color3.fromRGB(245, 247, 252),
+        AccentGlow = Color3.fromRGB(0, 140, 220),
+        Text = Color3.fromRGB(240, 250, 255),
+        SubText = Color3.fromRGB(130, 165, 190),
+        Border = Color3.fromRGB(28, 55, 78),
+        ToggleOn = Color3.fromRGB(0, 180, 255),
+        ToggleOff = Color3.fromRGB(22, 40, 58),
+        SliderBar = Color3.fromRGB(22, 40, 58),
+        InputBackground = Color3.fromRGB(10, 20, 30),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.22,
+    },
+    Light = {
+        Background = Color3.fromRGB(240, 243, 248),
         Card = Color3.fromRGB(255, 255, 255),
-        CardHover = Color3.fromRGB(240, 244, 255),
-        Header = Color3.fromRGB(250, 252, 255),
-        Text = Color3.fromRGB(30, 30, 40),
-        SubText = Color3.fromRGB(90, 95, 110),
+        CardHover = Color3.fromRGB(245, 248, 252),
+        Header = Color3.fromRGB(232, 236, 244),
         Accent = Color3.fromRGB(0, 120, 255),
-        AccentSecondary = Color3.fromRGB(0, 90, 210),
-        Border = Color3.fromRGB(210, 215, 230),
-        Glass = 0.12,
-        InputBackground = Color3.fromRGB(235, 240, 250),
-        SliderBar = Color3.fromRGB(220, 225, 240),
-    }),
-    Bloom = MakeTheme({
-        Background = Color3.fromRGB(28, 12, 24),
-        Card = Color3.fromRGB(42, 20, 38),
-        CardHover = Color3.fromRGB(58, 28, 52),
-        Header = Color3.fromRGB(34, 16, 30),
-        Text = Color3.fromRGB(255, 230, 245),
-        SubText = Color3.fromRGB(200, 150, 180),
-        Accent = Color3.fromRGB(255, 80, 160),
-        AccentSecondary = Color3.fromRGB(220, 40, 140),
-        Border = Color3.fromRGB(80, 30, 60),
-        Glass = 0.18,
-    }),
-    AmberGlow = MakeTheme({
-        Background = Color3.fromRGB(22, 16, 8),
-        Card = Color3.fromRGB(36, 26, 14),
-        CardHover = Color3.fromRGB(50, 36, 20),
-        Header = Color3.fromRGB(28, 20, 10),
-        Text = Color3.fromRGB(255, 240, 210),
-        SubText = Color3.fromRGB(200, 170, 120),
-        Accent = Color3.fromRGB(255, 170, 40),
-        AccentSecondary = Color3.fromRGB(230, 140, 20),
-        Border = Color3.fromRGB(70, 50, 20),
-        Glass = 0.18,
-    }),
-    Amethyst = MakeTheme({
-        Background = Color3.fromRGB(18, 12, 28),
-        Card = Color3.fromRGB(30, 20, 46),
-        CardHover = Color3.fromRGB(42, 28, 64),
-        Header = Color3.fromRGB(24, 16, 36),
-        Text = Color3.fromRGB(240, 230, 255),
-        SubText = Color3.fromRGB(170, 150, 200),
-        Accent = Color3.fromRGB(170, 100, 255),
-        AccentSecondary = Color3.fromRGB(130, 60, 220),
-        Border = Color3.fromRGB(60, 40, 90),
+        AccentGlow = Color3.fromRGB(0, 95, 220),
+        Text = Color3.fromRGB(20, 24, 32),
+        SubText = Color3.fromRGB(105, 112, 128),
+        Border = Color3.fromRGB(210, 218, 230),
+        ToggleOn = Color3.fromRGB(0, 120, 255),
+        ToggleOff = Color3.fromRGB(205, 212, 225),
+        SliderBar = Color3.fromRGB(205, 212, 225),
+        InputBackground = Color3.fromRGB(248, 250, 253),
+        Shadow = Color3.fromRGB(170, 180, 200),
+        Glass = 0.08,
+    },
+    Bloom = {
+        Background = Color3.fromRGB(250, 242, 246),
+        Card = Color3.fromRGB(255, 250, 252),
+        CardHover = Color3.fromRGB(255, 244, 248),
+        Header = Color3.fromRGB(244, 226, 234),
+        Accent = Color3.fromRGB(245, 130, 175),
+        AccentGlow = Color3.fromRGB(255, 170, 200),
+        Text = Color3.fromRGB(50, 40, 48),
+        SubText = Color3.fromRGB(140, 120, 130),
+        Border = Color3.fromRGB(232, 210, 220),
+        ToggleOn = Color3.fromRGB(245, 130, 175),
+        ToggleOff = Color3.fromRGB(210, 195, 200),
+        SliderBar = Color3.fromRGB(240, 200, 215),
+        InputBackground = Color3.fromRGB(255, 248, 250),
+        Shadow = Color3.fromRGB(220, 185, 200),
+        Glass = 0.10,
+    },
+    AmberGlow = {
+        Background = Color3.fromRGB(22, 18, 12),
+        Card = Color3.fromRGB(34, 28, 20),
+        CardHover = Color3.fromRGB(44, 36, 26),
+        Header = Color3.fromRGB(28, 22, 16),
+        Accent = Color3.fromRGB(255, 175, 60),
+        AccentGlow = Color3.fromRGB(255, 210, 110),
+        Text = Color3.fromRGB(255, 248, 235),
+        SubText = Color3.fromRGB(185, 170, 145),
+        Border = Color3.fromRGB(70, 55, 38),
+        ToggleOn = Color3.fromRGB(255, 175, 60),
+        ToggleOff = Color3.fromRGB(55, 45, 32),
+        SliderBar = Color3.fromRGB(55, 45, 32),
+        InputBackground = Color3.fromRGB(26, 21, 16),
+        Shadow = Color3.fromRGB(0, 0, 0),
         Glass = 0.20,
-    }),
-    Serenity = MakeTheme({
-        Background = Color3.fromRGB(16, 22, 26),
-        Card = Color3.fromRGB(26, 36, 42),
-        CardHover = Color3.fromRGB(36, 48, 56),
-        Header = Color3.fromRGB(20, 28, 34),
-        Text = Color3.fromRGB(230, 245, 250),
-        SubText = Color3.fromRGB(150, 180, 190),
-        Accent = Color3.fromRGB(80, 200, 220),
-        AccentSecondary = Color3.fromRGB(50, 160, 180),
-        Border = Color3.fromRGB(40, 60, 70),
-        Glass = 0.18,
-    }),
-    Crimson = MakeTheme({
-        Background = Color3.fromRGB(22, 10, 12),
-        Card = Color3.fromRGB(36, 16, 20),
-        CardHover = Color3.fromRGB(50, 22, 28),
-        Header = Color3.fromRGB(28, 12, 16),
-        Text = Color3.fromRGB(255, 230, 230),
-        SubText = Color3.fromRGB(200, 140, 140),
-        Accent = Color3.fromRGB(255, 60, 80),
-        AccentSecondary = Color3.fromRGB(220, 30, 50),
-        Border = Color3.fromRGB(70, 25, 30),
-        Glass = 0.18,
-    }),
-    Frost = MakeTheme({
-        Background = Color3.fromRGB(14, 18, 26),
-        Card = Color3.fromRGB(24, 30, 42),
-        CardHover = Color3.fromRGB(34, 42, 58),
-        Header = Color3.fromRGB(18, 24, 34),
-        Text = Color3.fromRGB(230, 240, 255),
-        SubText = Color3.fromRGB(150, 170, 200),
-        Accent = Color3.fromRGB(140, 190, 255),
-        AccentSecondary = Color3.fromRGB(100, 150, 230),
-        Border = Color3.fromRGB(50, 65, 90),
+    },
+    Amethyst = {
+        Background = Color3.fromRGB(16, 14, 26),
+        Card = Color3.fromRGB(26, 22, 40),
+        CardHover = Color3.fromRGB(34, 29, 52),
+        Header = Color3.fromRGB(21, 18, 32),
+        Accent = Color3.fromRGB(170, 120, 255),
+        AccentGlow = Color3.fromRGB(205, 170, 255),
+        Text = Color3.fromRGB(248, 246, 255),
+        SubText = Color3.fromRGB(170, 165, 195),
+        Border = Color3.fromRGB(55, 48, 82),
+        ToggleOn = Color3.fromRGB(170, 120, 255),
+        ToggleOff = Color3.fromRGB(42, 36, 60),
+        SliderBar = Color3.fromRGB(42, 36, 60),
+        InputBackground = Color3.fromRGB(20, 17, 30),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.20,
+    },
+    Serenity = {
+        Background = Color3.fromRGB(236, 241, 248),
+        Card = Color3.fromRGB(248, 251, 255),
+        CardHover = Color3.fromRGB(240, 246, 252),
+        Header = Color3.fromRGB(226, 234, 244),
+        Accent = Color3.fromRGB(70, 150, 210),
+        AccentGlow = Color3.fromRGB(130, 185, 235),
+        Text = Color3.fromRGB(38, 46, 58),
+        SubText = Color3.fromRGB(115, 128, 145),
+        Border = Color3.fromRGB(200, 212, 228),
+        ToggleOn = Color3.fromRGB(70, 150, 210),
+        ToggleOff = Color3.fromRGB(205, 215, 228),
+        SliderBar = Color3.fromRGB(205, 215, 228),
+        InputBackground = Color3.fromRGB(250, 253, 255),
+        Shadow = Color3.fromRGB(170, 180, 195),
+        Glass = 0.08,
+    },
+    Crimson = {
+        Background = Color3.fromRGB(22, 14, 16),
+        Card = Color3.fromRGB(32, 20, 24),
+        CardHover = Color3.fromRGB(42, 26, 30),
+        Header = Color3.fromRGB(27, 16, 19),
+        Accent = Color3.fromRGB(235, 55, 70),
+        AccentGlow = Color3.fromRGB(255, 110, 125),
+        Text = Color3.fromRGB(250, 245, 246),
+        SubText = Color3.fromRGB(175, 155, 160),
+        Border = Color3.fromRGB(68, 40, 44),
+        ToggleOn = Color3.fromRGB(235, 55, 70),
+        ToggleOff = Color3.fromRGB(50, 32, 35),
+        SliderBar = Color3.fromRGB(50, 32, 35),
+        InputBackground = Color3.fromRGB(26, 17, 19),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.20,
+    },
+    Frost = {
+        Background = Color3.fromRGB(242, 247, 252),
+        Card = Color3.fromRGB(252, 254, 255),
+        CardHover = Color3.fromRGB(246, 250, 255),
+        Header = Color3.fromRGB(230, 238, 246),
+        Accent = Color3.fromRGB(90, 195, 255),
+        AccentGlow = Color3.fromRGB(160, 220, 255),
+        Text = Color3.fromRGB(35, 48, 60),
+        SubText = Color3.fromRGB(110, 125, 142),
+        Border = Color3.fromRGB(200, 215, 230),
+        ToggleOn = Color3.fromRGB(90, 195, 255),
+        ToggleOff = Color3.fromRGB(208, 220, 232),
+        SliderBar = Color3.fromRGB(208, 220, 232),
+        InputBackground = Color3.fromRGB(255, 255, 255),
+        Shadow = Color3.fromRGB(175, 185, 200),
+        Glass = 0.08,
+    },
+    Twilight = {
+        Background = Color3.fromRGB(18, 16, 26),
+        Card = Color3.fromRGB(28, 24, 38),
+        CardHover = Color3.fromRGB(38, 32, 50),
+        Header = Color3.fromRGB(23, 20, 32),
+        Accent = Color3.fromRGB(185, 125, 255),
+        AccentGlow = Color3.fromRGB(220, 175, 255),
+        Text = Color3.fromRGB(245, 242, 255),
+        SubText = Color3.fromRGB(160, 150, 185),
+        Border = Color3.fromRGB(55, 48, 75),
+        ToggleOn = Color3.fromRGB(185, 125, 255),
+        ToggleOff = Color3.fromRGB(42, 36, 58),
+        SliderBar = Color3.fromRGB(42, 36, 58),
+        InputBackground = Color3.fromRGB(20, 18, 30),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.20,
+    },
+    Forest = {
+        Background = Color3.fromRGB(14, 20, 15),
+        Card = Color3.fromRGB(22, 32, 24),
+        CardHover = Color3.fromRGB(30, 42, 32),
+        Header = Color3.fromRGB(18, 26, 20),
+        Accent = Color3.fromRGB(70, 180, 110),
+        AccentGlow = Color3.fromRGB(120, 220, 150),
+        Text = Color3.fromRGB(240, 248, 242),
+        SubText = Color3.fromRGB(150, 170, 155),
+        Border = Color3.fromRGB(45, 68, 50),
+        ToggleOn = Color3.fromRGB(70, 180, 110),
+        ToggleOff = Color3.fromRGB(35, 50, 38),
+        SliderBar = Color3.fromRGB(35, 50, 38),
+        InputBackground = Color3.fromRGB(18, 26, 20),
+        Shadow = Color3.fromRGB(0, 0, 0),
         Glass = 0.22,
-    }),
-    Twilight = MakeTheme({
-        Background = Color3.fromRGB(16, 12, 28),
-        Card = Color3.fromRGB(28, 20, 46),
-        CardHover = Color3.fromRGB(40, 28, 64),
-        Header = Color3.fromRGB(22, 16, 36),
-        Text = Color3.fromRGB(240, 230, 255),
-        SubText = Color3.fromRGB(160, 140, 190),
-        Accent = Color3.fromRGB(180, 100, 255),
-        AccentSecondary = Color3.fromRGB(120, 60, 220),
-        Border = Color3.fromRGB(55, 40, 80),
-        Glass = 0.20,
-    }),
-    Forest = MakeTheme({
-        Background = Color3.fromRGB(12, 18, 14),
-        Card = Color3.fromRGB(20, 30, 24),
-        CardHover = Color3.fromRGB(28, 42, 34),
-        Header = Color3.fromRGB(16, 24, 18),
-        Text = Color3.fromRGB(220, 245, 225),
-        SubText = Color3.fromRGB(140, 180, 150),
-        Accent = Color3.fromRGB(60, 180, 100),
-        AccentSecondary = Color3.fromRGB(40, 140, 70),
-        Border = Color3.fromRGB(30, 60, 40),
+    },
+    Sunset = {
+        Background = Color3.fromRGB(255, 244, 238),
+        Card = Color3.fromRGB(255, 250, 247),
+        CardHover = Color3.fromRGB(255, 245, 240),
+        Header = Color3.fromRGB(252, 232, 222),
+        Accent = Color3.fromRGB(255, 120, 90),
+        AccentGlow = Color3.fromRGB(255, 175, 140),
+        Text = Color3.fromRGB(55, 42, 38),
+        SubText = Color3.fromRGB(145, 120, 112),
+        Border = Color3.fromRGB(235, 210, 200),
+        ToggleOn = Color3.fromRGB(255, 120, 90),
+        ToggleOff = Color3.fromRGB(220, 205, 200),
+        SliderBar = Color3.fromRGB(220, 205, 200),
+        InputBackground = Color3.fromRGB(255, 252, 250),
+        Shadow = Color3.fromRGB(205, 180, 170),
+        Glass = 0.10,
+    },
+    Galaxy = {
+        Background = Color3.fromRGB(7, 10, 22),
+        Card = Color3.fromRGB(16, 20, 38),
+        CardHover = Color3.fromRGB(24, 29, 52),
+        Header = Color3.fromRGB(11, 15, 28),
+        Accent = Color3.fromRGB(110, 155, 255),
+        AccentGlow = Color3.fromRGB(160, 200, 255),
+        Text = Color3.fromRGB(245, 248, 255),
+        SubText = Color3.fromRGB(145, 160, 190),
+        Border = Color3.fromRGB(40, 52, 80),
+        ToggleOn = Color3.fromRGB(110, 155, 255),
+        ToggleOff = Color3.fromRGB(28, 34, 50),
+        SliderBar = Color3.fromRGB(28, 34, 50),
+        InputBackground = Color3.fromRGB(12, 16, 28),
+        Shadow = Color3.fromRGB(0, 0, 0),
         Glass = 0.18,
-    }),
-    Sunset = MakeTheme({
-        Background = Color3.fromRGB(24, 14, 12),
-        Card = Color3.fromRGB(40, 24, 20),
-        CardHover = Color3.fromRGB(56, 34, 28),
-        Header = Color3.fromRGB(32, 18, 16),
-        Text = Color3.fromRGB(255, 240, 230),
-        SubText = Color3.fromRGB(210, 160, 140),
-        Accent = Color3.fromRGB(255, 120, 60),
-        AccentSecondary = Color3.fromRGB(255, 80, 40),
-        Border = Color3.fromRGB(80, 40, 30),
-        Glass = 0.18,
-    }),
-    Galaxy = MakeTheme({
-        Background = Color3.fromRGB(10, 8, 20),
-        Card = Color3.fromRGB(18, 14, 36),
-        CardHover = Color3.fromRGB(28, 22, 54),
-        Header = Color3.fromRGB(14, 10, 28),
-        Text = Color3.fromRGB(230, 220, 255),
-        SubText = Color3.fromRGB(150, 130, 190),
-        Accent = Color3.fromRGB(160, 80, 255),
-        AccentSecondary = Color3.fromRGB(100, 40, 220),
-        Border = Color3.fromRGB(50, 30, 80),
-        Glass = 0.22,
-    }),
-    Arctic = MakeTheme({
-        Background = Color3.fromRGB(16, 20, 28),
-        Card = Color3.fromRGB(26, 34, 46),
-        CardHover = Color3.fromRGB(36, 46, 62),
-        Header = Color3.fromRGB(20, 26, 36),
-        Text = Color3.fromRGB(230, 245, 255),
-        SubText = Color3.fromRGB(150, 180, 210),
-        Accent = Color3.fromRGB(100, 200, 255),
-        AccentSecondary = Color3.fromRGB(60, 150, 220),
-        Border = Color3.fromRGB(40, 60, 80),
-        Glass = 0.20,
-    }),
-    Obsidian = MakeTheme({
-        Background = Color3.fromRGB(8, 8, 10),
-        Card = Color3.fromRGB(16, 16, 20),
-        CardHover = Color3.fromRGB(24, 24, 30),
-        Header = Color3.fromRGB(12, 12, 14),
-        Text = Color3.fromRGB(230, 230, 235),
-        SubText = Color3.fromRGB(140, 140, 150),
-        Accent = Color3.fromRGB(200, 200, 210),
-        AccentSecondary = Color3.fromRGB(160, 160, 170),
-        Border = Color3.fromRGB(40, 40, 50),
-        Glass = 0.15,
-    }),
-    Rose = MakeTheme({
-        Background = Color3.fromRGB(24, 12, 18),
-        Card = Color3.fromRGB(40, 20, 30),
-        CardHover = Color3.fromRGB(56, 28, 42),
-        Header = Color3.fromRGB(32, 16, 24),
-        Text = Color3.fromRGB(255, 235, 245),
-        SubText = Color3.fromRGB(210, 150, 170),
-        Accent = Color3.fromRGB(255, 100, 150),
-        AccentSecondary = Color3.fromRGB(230, 60, 120),
-        Border = Color3.fromRGB(80, 30, 50),
-        Glass = 0.18,
-    }),
-    Mint = MakeTheme({
-        Background = Color3.fromRGB(12, 22, 20),
-        Card = Color3.fromRGB(20, 36, 34),
-        CardHover = Color3.fromRGB(28, 50, 46),
-        Header = Color3.fromRGB(16, 28, 26),
-        Text = Color3.fromRGB(220, 255, 245),
-        SubText = Color3.fromRGB(140, 190, 175),
-        Accent = Color3.fromRGB(60, 220, 180),
-        AccentSecondary = Color3.fromRGB(30, 180, 140),
-        Border = Color3.fromRGB(30, 70, 60),
-        Glass = 0.18,
-    }),
-    Carbon = MakeTheme({
-        Background = Color3.fromRGB(14, 14, 16),
-        Card = Color3.fromRGB(24, 24, 28),
-        CardHover = Color3.fromRGB(34, 34, 40),
-        Header = Color3.fromRGB(18, 18, 22),
-        Text = Color3.fromRGB(235, 235, 240),
-        SubText = Color3.fromRGB(150, 150, 160),
-        Accent = Color3.fromRGB(100, 160, 255),
-        AccentSecondary = Color3.fromRGB(70, 120, 220),
-        Border = Color3.fromRGB(45, 45, 55),
-        Glass = 0.16,
-    }),
-    Aurora = MakeTheme({
-        Background = Color3.fromRGB(10, 14, 22),
-        Card = Color3.fromRGB(16, 24, 38),
-        CardHover = Color3.fromRGB(24, 36, 54),
-        Header = Color3.fromRGB(12, 18, 30),
-        Text = Color3.fromRGB(220, 245, 255),
-        SubText = Color3.fromRGB(130, 180, 200),
-        Accent = Color3.fromRGB(80, 255, 200),
-        AccentSecondary = Color3.fromRGB(100, 160, 255),
-        Border = Color3.fromRGB(30, 60, 80),
-        Glass = 0.22,
-    }),
-    Sakura = MakeTheme({
-        Background = Color3.fromRGB(28, 16, 22),
-        Card = Color3.fromRGB(44, 26, 36),
-        CardHover = Color3.fromRGB(60, 36, 50),
-        Header = Color3.fromRGB(36, 20, 28),
-        Text = Color3.fromRGB(255, 240, 250),
-        SubText = Color3.fromRGB(210, 160, 180),
-        Accent = Color3.fromRGB(255, 140, 180),
-        AccentSecondary = Color3.fromRGB(255, 100, 150),
-        Border = Color3.fromRGB(80, 40, 60),
-        Glass = 0.18,
-    }),
-    Neon = MakeTheme({
-        Background = Color3.fromRGB(6, 8, 14),
-        Card = Color3.fromRGB(12, 16, 28),
-        CardHover = Color3.fromRGB(20, 26, 44),
-        Header = Color3.fromRGB(8, 12, 22),
-        Text = Color3.fromRGB(0, 255, 255),
-        SubText = Color3.fromRGB(0, 180, 200),
-        Accent = Color3.fromRGB(0, 255, 180),
-        AccentSecondary = Color3.fromRGB(180, 0, 255),
-        Border = Color3.fromRGB(0, 70, 80),
-        Glass = 0.24,
-    }),
-    -- New v4 themes
-    ["Midnight Glass"] = MakeTheme({
-        Background = Color3.fromRGB(6, 8, 16),
-        Card = Color3.fromRGB(12, 16, 30),
-        CardHover = Color3.fromRGB(20, 26, 48),
-        Header = Color3.fromRGB(8, 12, 24),
-        Text = Color3.fromRGB(230, 240, 255),
-        SubText = Color3.fromRGB(130, 150, 190),
-        Accent = Color3.fromRGB(100, 140, 255),
-        AccentSecondary = Color3.fromRGB(60, 100, 220),
-        Border = Color3.fromRGB(30, 40, 70),
-        Glass = 0.28,
-    }),
-    ["Ocean Depth"] = MakeTheme({
-        Background = Color3.fromRGB(4, 12, 22),
-        Card = Color3.fromRGB(8, 22, 40),
-        CardHover = Color3.fromRGB(14, 34, 58),
-        Header = Color3.fromRGB(6, 16, 30),
-        Text = Color3.fromRGB(210, 240, 255),
-        SubText = Color3.fromRGB(100, 160, 200),
-        Accent = Color3.fromRGB(0, 200, 255),
-        AccentSecondary = Color3.fromRGB(0, 140, 200),
-        Border = Color3.fromRGB(20, 50, 80),
-        Glass = 0.26,
-    }),
-    ["Sunset Blaze"] = MakeTheme({
-        Background = Color3.fromRGB(22, 10, 8),
-        Card = Color3.fromRGB(38, 18, 14),
-        CardHover = Color3.fromRGB(54, 26, 20),
-        Header = Color3.fromRGB(30, 14, 10),
-        Text = Color3.fromRGB(255, 240, 230),
-        SubText = Color3.fromRGB(220, 160, 130),
-        Accent = Color3.fromRGB(255, 100, 40),
-        AccentSecondary = Color3.fromRGB(255, 60, 20),
-        Border = Color3.fromRGB(80, 35, 20),
-        Glass = 0.20,
-    }),
-    ["Aurora Borealis"] = MakeTheme({
-        Background = Color3.fromRGB(6, 10, 18),
-        Card = Color3.fromRGB(10, 18, 32),
-        CardHover = Color3.fromRGB(16, 28, 48),
-        Header = Color3.fromRGB(8, 14, 26),
-        Text = Color3.fromRGB(220, 255, 250),
-        SubText = Color3.fromRGB(120, 190, 180),
-        Accent = Color3.fromRGB(80, 255, 200),
-        AccentSecondary = Color3.fromRGB(120, 160, 255),
-        Border = Color3.fromRGB(20, 50, 60),
+    },
+    Arctic = {
+        Background = Color3.fromRGB(236, 243, 250),
+        Card = Color3.fromRGB(250, 253, 255),
+        CardHover = Color3.fromRGB(244, 250, 254),
+        Header = Color3.fromRGB(226, 236, 246),
+        Accent = Color3.fromRGB(60, 175, 255),
+        AccentGlow = Color3.fromRGB(140, 215, 255),
+        Text = Color3.fromRGB(30, 42, 55),
+        SubText = Color3.fromRGB(110, 125, 142),
+        Border = Color3.fromRGB(198, 214, 230),
+        ToggleOn = Color3.fromRGB(60, 175, 255),
+        ToggleOff = Color3.fromRGB(205, 218, 232),
+        SliderBar = Color3.fromRGB(205, 218, 232),
+        InputBackground = Color3.fromRGB(252, 254, 255),
+        Shadow = Color3.fromRGB(170, 185, 205),
+        Glass = 0.08,
+    },
+    -- NEW premium themes
+    Obsidian = {
+        Background = Color3.fromRGB(10, 10, 12),
+        Card = Color3.fromRGB(18, 18, 22),
+        CardHover = Color3.fromRGB(26, 26, 32),
+        Header = Color3.fromRGB(14, 14, 17),
+        Accent = Color3.fromRGB(255, 255, 255),
+        AccentGlow = Color3.fromRGB(200, 200, 210),
+        Text = Color3.fromRGB(245, 245, 250),
+        SubText = Color3.fromRGB(140, 140, 155),
+        Border = Color3.fromRGB(40, 40, 48),
+        ToggleOn = Color3.fromRGB(255, 255, 255),
+        ToggleOff = Color3.fromRGB(35, 35, 42),
+        SliderBar = Color3.fromRGB(35, 35, 42),
+        InputBackground = Color3.fromRGB(14, 14, 17),
+        Shadow = Color3.fromRGB(0, 0, 0),
         Glass = 0.25,
-    }),
+    },
+    Rose = {
+        Background = Color3.fromRGB(22, 12, 18),
+        Card = Color3.fromRGB(34, 18, 28),
+        CardHover = Color3.fromRGB(44, 24, 36),
+        Header = Color3.fromRGB(28, 14, 22),
+        Accent = Color3.fromRGB(255, 80, 140),
+        AccentGlow = Color3.fromRGB(255, 140, 180),
+        Text = Color3.fromRGB(255, 245, 250),
+        SubText = Color3.fromRGB(190, 150, 170),
+        Border = Color3.fromRGB(70, 35, 55),
+        ToggleOn = Color3.fromRGB(255, 80, 140),
+        ToggleOff = Color3.fromRGB(50, 28, 40),
+        SliderBar = Color3.fromRGB(50, 28, 40),
+        InputBackground = Color3.fromRGB(26, 14, 20),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.20,
+    },
+    Mint = {
+        Background = Color3.fromRGB(236, 250, 245),
+        Card = Color3.fromRGB(250, 255, 253),
+        CardHover = Color3.fromRGB(242, 252, 248),
+        Header = Color3.fromRGB(220, 242, 235),
+        Accent = Color3.fromRGB(0, 200, 150),
+        AccentGlow = Color3.fromRGB(80, 230, 190),
+        Text = Color3.fromRGB(25, 50, 42),
+        SubText = Color3.fromRGB(90, 130, 115),
+        Border = Color3.fromRGB(190, 225, 210),
+        ToggleOn = Color3.fromRGB(0, 200, 150),
+        ToggleOff = Color3.fromRGB(195, 220, 210),
+        SliderBar = Color3.fromRGB(195, 220, 210),
+        InputBackground = Color3.fromRGB(252, 255, 254),
+        Shadow = Color3.fromRGB(170, 200, 185),
+        Glass = 0.08,
+    },
+    Carbon = {
+        Background = Color3.fromRGB(16, 16, 18),
+        Card = Color3.fromRGB(28, 28, 32),
+        CardHover = Color3.fromRGB(38, 38, 44),
+        Header = Color3.fromRGB(22, 22, 25),
+        Accent = Color3.fromRGB(0, 220, 180),
+        AccentGlow = Color3.fromRGB(0, 180, 150),
+        Text = Color3.fromRGB(240, 242, 245),
+        SubText = Color3.fromRGB(150, 155, 165),
+        Border = Color3.fromRGB(50, 52, 58),
+        ToggleOn = Color3.fromRGB(0, 220, 180),
+        ToggleOff = Color3.fromRGB(42, 44, 50),
+        SliderBar = Color3.fromRGB(42, 44, 50),
+        InputBackground = Color3.fromRGB(20, 20, 23),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.22,
+    },
+    Aurora = {
+        Background = Color3.fromRGB(12, 14, 28),
+        Card = Color3.fromRGB(20, 24, 42),
+        CardHover = Color3.fromRGB(28, 34, 56),
+        Header = Color3.fromRGB(16, 18, 34),
+        Accent = Color3.fromRGB(0, 255, 200),
+        AccentGlow = Color3.fromRGB(80, 255, 220),
+        Text = Color3.fromRGB(240, 250, 255),
+        SubText = Color3.fromRGB(140, 170, 190),
+        Border = Color3.fromRGB(40, 55, 80),
+        ToggleOn = Color3.fromRGB(0, 255, 200),
+        ToggleOff = Color3.fromRGB(30, 40, 60),
+        SliderBar = Color3.fromRGB(30, 40, 60),
+        InputBackground = Color3.fromRGB(14, 16, 30),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.18,
+    },
+    Sakura = {
+        Background = Color3.fromRGB(255, 245, 250),
+        Card = Color3.fromRGB(255, 252, 254),
+        CardHover = Color3.fromRGB(255, 248, 252),
+        Header = Color3.fromRGB(255, 232, 242),
+        Accent = Color3.fromRGB(255, 105, 160),
+        AccentGlow = Color3.fromRGB(255, 160, 195),
+        Text = Color3.fromRGB(60, 40, 50),
+        SubText = Color3.fromRGB(150, 120, 135),
+        Border = Color3.fromRGB(245, 210, 225),
+        ToggleOn = Color3.fromRGB(255, 105, 160),
+        ToggleOff = Color3.fromRGB(235, 210, 220),
+        SliderBar = Color3.fromRGB(235, 210, 220),
+        InputBackground = Color3.fromRGB(255, 250, 253),
+        Shadow = Color3.fromRGB(220, 180, 195),
+        Glass = 0.10,
+    },
+    Neon = {
+        Background = Color3.fromRGB(6, 6, 12),
+        Card = Color3.fromRGB(14, 14, 24),
+        CardHover = Color3.fromRGB(22, 22, 36),
+        Header = Color3.fromRGB(10, 10, 18),
+        Accent = Color3.fromRGB(0, 255, 170),
+        AccentGlow = Color3.fromRGB(0, 220, 150),
+        Text = Color3.fromRGB(255, 255, 255),
+        SubText = Color3.fromRGB(150, 170, 180),
+        Border = Color3.fromRGB(30, 50, 45),
+        ToggleOn = Color3.fromRGB(0, 255, 170),
+        ToggleOff = Color3.fromRGB(25, 35, 32),
+        SliderBar = Color3.fromRGB(25, 35, 32),
+        InputBackground = Color3.fromRGB(10, 12, 18),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.16,
+    },
+    -- MacUI-inspired + new liquid glass themes
+    Graphite = {
+        Background = Color3.fromRGB(40, 40, 42),
+        Card = Color3.fromRGB(50, 50, 53),
+        CardHover = Color3.fromRGB(60, 60, 64),
+        Header = Color3.fromRGB(45, 45, 48),
+        Accent = Color3.fromRGB(120, 120, 130),
+        AccentGlow = Color3.fromRGB(90, 90, 100),
+        Text = Color3.fromRGB(245, 245, 247),
+        SubText = Color3.fromRGB(160, 160, 165),
+        Border = Color3.fromRGB(80, 80, 85),
+        ToggleOn = Color3.fromRGB(120, 120, 130),
+        ToggleOff = Color3.fromRGB(55, 55, 58),
+        SliderBar = Color3.fromRGB(55, 55, 58),
+        InputBackground = Color3.fromRGB(42, 42, 45),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.18,
+    },
+    Blue = {
+        Background = Color3.fromRGB(20, 30, 50),
+        Card = Color3.fromRGB(28, 40, 65),
+        CardHover = Color3.fromRGB(35, 50, 80),
+        Header = Color3.fromRGB(22, 35, 55),
+        Accent = Color3.fromRGB(10, 132, 255),
+        AccentGlow = Color3.fromRGB(0, 100, 220),
+        Text = Color3.fromRGB(240, 245, 255),
+        SubText = Color3.fromRGB(160, 180, 210),
+        Border = Color3.fromRGB(50, 70, 100),
+        ToggleOn = Color3.fromRGB(10, 132, 255),
+        ToggleOff = Color3.fromRGB(30, 45, 70),
+        SliderBar = Color3.fromRGB(30, 45, 70),
+        InputBackground = Color3.fromRGB(18, 28, 48),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.18,
+    },
+    Purple = {
+        Background = Color3.fromRGB(30, 20, 45),
+        Card = Color3.fromRGB(40, 28, 58),
+        CardHover = Color3.fromRGB(50, 35, 70),
+        Header = Color3.fromRGB(35, 25, 50),
+        Accent = Color3.fromRGB(175, 82, 222),
+        AccentGlow = Color3.fromRGB(140, 50, 190),
+        Text = Color3.fromRGB(245, 240, 255),
+        SubText = Color3.fromRGB(180, 160, 200),
+        Border = Color3.fromRGB(70, 50, 90),
+        ToggleOn = Color3.fromRGB(175, 82, 222),
+        ToggleOff = Color3.fromRGB(45, 30, 65),
+        SliderBar = Color3.fromRGB(45, 30, 65),
+        InputBackground = Color3.fromRGB(28, 18, 42),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.18,
+    },
+    MacOS = {
+        Background = Color3.fromRGB(28, 28, 30),
+        Card = Color3.fromRGB(38, 38, 42),
+        CardHover = Color3.fromRGB(48, 48, 52),
+        Header = Color3.fromRGB(35, 35, 40),
+        Accent = Color3.fromRGB(10, 132, 255),
+        AccentGlow = Color3.fromRGB(0, 110, 230),
+        Text = Color3.fromRGB(255, 255, 255),
+        SubText = Color3.fromRGB(180, 180, 185),
+        Border = Color3.fromRGB(70, 70, 75),
+        ToggleOn = Color3.fromRGB(10, 132, 255),
+        ToggleOff = Color3.fromRGB(48, 48, 52),
+        SliderBar = Color3.fromRGB(48, 48, 52),
+        InputBackground = Color3.fromRGB(32, 32, 36),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.22,
+    },
+    Velvet = {
+        Background = Color3.fromRGB(22, 12, 18),
+        Card = Color3.fromRGB(36, 20, 30),
+        CardHover = Color3.fromRGB(48, 28, 40),
+        Header = Color3.fromRGB(30, 16, 24),
+        Accent = Color3.fromRGB(220, 60, 120),
+        AccentGlow = Color3.fromRGB(180, 40, 95),
+        Text = Color3.fromRGB(255, 245, 250),
+        SubText = Color3.fromRGB(190, 150, 165),
+        Border = Color3.fromRGB(70, 35, 55),
+        ToggleOn = Color3.fromRGB(220, 60, 120),
+        ToggleOff = Color3.fromRGB(40, 24, 34),
+        SliderBar = Color3.fromRGB(40, 24, 34),
+        InputBackground = Color3.fromRGB(26, 14, 20),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.17,
+    },
+    Plasma = {
+        Background = Color3.fromRGB(12, 8, 22),
+        Card = Color3.fromRGB(22, 16, 38),
+        CardHover = Color3.fromRGB(32, 24, 52),
+        Header = Color3.fromRGB(18, 12, 30),
+        Accent = Color3.fromRGB(180, 80, 255),
+        AccentGlow = Color3.fromRGB(140, 40, 230),
+        Text = Color3.fromRGB(250, 245, 255),
+        SubText = Color3.fromRGB(170, 150, 200),
+        Border = Color3.fromRGB(60, 40, 90),
+        ToggleOn = Color3.fromRGB(180, 80, 255),
+        ToggleOff = Color3.fromRGB(30, 22, 48),
+        SliderBar = Color3.fromRGB(30, 22, 48),
+        InputBackground = Color3.fromRGB(16, 10, 28),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glass = 0.16,
+    },
 }
+-- STREAMING_CHUNK:Creating Main ScreenGui Container...
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GaphopUI_Engine"
+ScreenGui.DisplayOrder = 999999
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Enabled = true
+ScreenGui.Parent = ParentUI
 
--- Glass intensity presets
-local GlassPresets = {
-    Frosted = { Glass = 0.22, StrokeT = 0.45, HighlightT = 0.65, SheenT = 0.85 },
-    Clear   = { Glass = 0.35, StrokeT = 0.55, HighlightT = 0.75, SheenT = 0.90 },
-    Crystal = { Glass = 0.12, StrokeT = 0.30, HighlightT = 0.50, SheenT = 0.70 },
-}
+-- Mobile adaptive UIScale (tiny bit smaller on mobile, full size on PC)
+local function ApplyMobileScale()
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+    local scaleValue = isMobile and (GaphopUI.MobileScale or 0.82) or 1
 
--- ============================================================
--- 9. TRUE LIQUID GLASS (idempotent)
--- ============================================================
-local function ClearGlassChildren(frame)
-    for _, child in ipairs(frame:GetChildren()) do
-        if child.Name:match("^GaphopGlass") or child.Name:match("^GaphopShadow") then
-            child:Destroy()
-        end
+    if GaphopUI.UIScaleInstance and GaphopUI.UIScaleInstance.Parent then
+        GaphopUI.UIScaleInstance.Scale = scaleValue
+        return
+    end
+
+    local uiScale = Instance.new("UIScale")
+    uiScale.Name = "GaphopUIScale"
+    uiScale.Scale = scaleValue
+    uiScale.Parent = ScreenGui
+    GaphopUI.UIScaleInstance = uiScale
+end
+ApplyMobileScale()
+
+-- STREAMING_CHUNK:Defining Animation Utility Helpers & Smooth Easing Physics...
+local function Tween(instance, info, properties)
+    if not instance or not instance.Parent then return end
+    local tween = TweenService:Create(instance, info, properties)
+    tween:Play()
+    return tween
+end
+
+local function SpringTween(instance, duration, properties, style)
+    style = style or Enum.EasingStyle.Quart
+    local info = TweenInfo.new(duration or 0.35, style, Enum.EasingDirection.Out)
+    return Tween(instance, info, properties)
+end
+
+local function SoftSpring(instance, duration, properties)
+    return SpringTween(instance, duration or 0.42, properties, Enum.EasingStyle.Back)
+end
+
+local function ElasticSpring(instance, duration, properties)
+    return SpringTween(instance, duration or 0.55, properties, Enum.EasingStyle.Elastic)
+end
+
+local function SmoothTween(instance, duration, properties)
+    return SpringTween(instance, duration or 0.3, properties, Enum.EasingStyle.Sine)
+end
+
+-- MacOS-style bounce (dock jump feel)
+local function Bounce(object, height, duration)
+    if not object or not object.Parent then return end
+    height = height or 14
+    duration = duration or 0.42
+    local original = object.Position
+    local up = original - UDim2.new(0, 0, 0, height)
+    local t1 = SpringTween(object, duration * 0.32, { Position = up }, Enum.EasingStyle.Quad)
+    if t1 then
+        t1.Completed:Connect(function()
+            SpringTween(object, duration * 0.68, { Position = original }, Enum.EasingStyle.Bounce)
+        end)
     end
 end
 
-local function ApplyLiquidGlass(frame, theme, opts)
-    opts = opts or {}
-    theme = theme or GaphopUI.Themes[GaphopUI.CurrentTheme]
-    local preset = GlassPresets[GaphopUI.Settings.GlassPreset] or GlassPresets.Frosted
-
-    -- Idempotent: remove previous glass layers
-    ClearGlassChildren(frame)
-
-    local transparency = opts.Transparency or theme.Glass or preset.Glass
-    local radius = opts.Radius or 12
-    local thickness = opts.Thickness or 1.4
-    local strokeT = opts.StrokeTransparency or preset.StrokeT
-    local borderColor = opts.BorderColor or theme.Accent
-    local highlight = opts.Highlight ~= false
-    local highlightHeight = opts.HighlightHeight or 1
-    local highlightT = opts.HighlightTransparency or preset.HighlightT
-    local innerGlow = opts.InnerGlow
-    local sheen = opts.Sheen ~= false and GaphopUI.Settings.Sheen
-
-    -- Base corner
-    local corner = frame:FindFirstChildOfClass("UICorner")
-    if not corner then
-        corner = Instance.new("UICorner")
-        corner.Parent = frame
+-- Scale pulse (press / select feedback)
+local function PulseScale(object, scale, duration)
+    if not object or not object.Parent then return end
+    scale = scale or 1.08
+    duration = duration or 0.22
+    local uiScale = object:FindFirstChildOfClass("UIScale")
+    if not uiScale then
+        uiScale = Instance.new("UIScale")
+        uiScale.Parent = object
     end
-    corner.CornerRadius = UDim.new(0, radius)
-
-    -- Outer stroke
-    local stroke = frame:FindFirstChild("GaphopGlassStroke")
-    if not stroke then
-        stroke = Instance.new("UIStroke")
-        stroke.Name = "GaphopGlassStroke"
-        stroke.Parent = frame
-    end
-    stroke.Color = borderColor
-    stroke.Thickness = thickness
-    stroke.Transparency = strokeT
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-    -- Diagonal gradient fill
-    local grad = frame:FindFirstChild("GaphopGlassGrad")
-    if not grad then
-        grad = Instance.new("UIGradient")
-        grad.Name = "GaphopGlassGrad"
-        grad.Parent = frame
-    end
-    grad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, theme.Card or theme.Background),
-        ColorSequenceKeypoint.new(1, theme.Background),
-    })
-    grad.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0, transparency * 0.6),
-        NumberSequenceKeypoint.new(1, transparency),
-    })
-    grad.Rotation = 135
-
-    -- Inner highlight (follows corners via UIStroke on a child)
-    if highlight then
-        local hl = Instance.new("Frame")
-        hl.Name = "GaphopGlassHighlight"
-        hl.Size = UDim2.new(1, -2, 0, highlightHeight + 2)
-        hl.Position = UDim2.new(0, 1, 0, 1)
-        hl.BackgroundColor3 = Color3.new(1, 1, 1)
-        hl.BackgroundTransparency = highlightT
-        hl.BorderSizePixel = 0
-        hl.ZIndex = frame.ZIndex + 1
-        hl.Parent = frame
-        local hlCorner = Instance.new("UICorner")
-        hlCorner.CornerRadius = UDim.new(0, math.max(0, radius - 1))
-        hlCorner.Parent = hl
-        local hlGrad = Instance.new("UIGradient")
-        hlGrad.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.2),
-            NumberSequenceKeypoint.new(0.4, 0.7),
-            NumberSequenceKeypoint.new(1, 1),
-        })
-        hlGrad.Rotation = 90
-        hlGrad.Parent = hl
-    end
-
-    -- Soft specular sheen (animated later by dispatcher)
-    if sheen then
-        local sheenFrame = Instance.new("Frame")
-        sheenFrame.Name = "GaphopGlassSheen"
-        sheenFrame.Size = UDim2.new(0.4, 0, 1.2, 0)
-        sheenFrame.Position = UDim2.new(-0.5, 0, -0.1, 0)
-        sheenFrame.BackgroundColor3 = Color3.new(1, 1, 1)
-        sheenFrame.BackgroundTransparency = 0.92
-        sheenFrame.BorderSizePixel = 0
-        sheenFrame.ZIndex = frame.ZIndex + 2
-        sheenFrame.Parent = frame
-        local sCorner = Instance.new("UICorner")
-        sCorner.CornerRadius = UDim.new(0, radius)
-        sCorner.Parent = sheenFrame
-        local sGrad = Instance.new("UIGradient")
-        sGrad.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 1),
-            NumberSequenceKeypoint.new(0.4, 0.7),
-            NumberSequenceKeypoint.new(0.6, 0.7),
-            NumberSequenceKeypoint.new(1, 1),
-        })
-        sGrad.Rotation = 20
-        sGrad.Parent = sheenFrame
-    end
-
-    -- Multi-layer soft shadow (stacked frames)
-    if opts.Shadow ~= false then
-        for i = 1, 3 do
-            local sh = Instance.new("Frame")
-            sh.Name = "GaphopShadow" .. i
-            sh.Size = UDim2.new(1, 4 + i * 2, 1, 4 + i * 2)
-            sh.Position = UDim2.new(0, -2 - i, 0, -1 + i)
-            sh.BackgroundColor3 = theme.Shadow or Color3.new(0, 0, 0)
-            sh.BackgroundTransparency = 0.85 + i * 0.04
-            sh.BorderSizePixel = 0
-            sh.ZIndex = frame.ZIndex - 1
-            sh.Parent = frame.Parent or frame
-            local shCorner = Instance.new("UICorner")
-            shCorner.CornerRadius = UDim.new(0, radius + i)
-            shCorner.Parent = sh
-            -- Reparent under frame for clipping if needed
-            sh.Parent = frame
-        end
-    end
-
-    return stroke
-end
-
--- ============================================================
--- 10. SHARED DISPATCHER (sheen, RGB, particles)
--- ============================================================
-local sheenOffset = 0
-local rgbHue = 0
-local particleTime = 0
-
-local function StartDispatcher()
-    if GaphopUI.DispatcherConn then return end
-    GaphopUI.DispatcherConn = RunService.Heartbeat:Connect(function(dt)
-        if not GaphopUI.IsOpen or GaphopUI.IsMinimized then return end
-        if not GaphopUI.Settings.Effects then return end
-
-        -- Sheen sweep
-        if GaphopUI.Settings.Sheen and GaphopUI.WindowInstance then
-            sheenOffset = (sheenOffset + dt * 0.15) % 1.6
-            for _, sheen in ipairs(GaphopUI.WindowInstance:GetDescendants()) do
-                if sheen.Name == "GaphopGlassSheen" then
-                    sheen.Position = UDim2.new(-0.5 + sheenOffset, 0, -0.1, 0)
-                end
-            end
-        end
-
-        -- RGB
-        if GaphopUI.RGBEnabled then
-            rgbHue = (rgbHue + dt * 0.12) % 1
-            GaphopUI.CurrentRGBColor = Color3.fromHSV(rgbHue, 0.7, 1)
-            -- Apply to registered accent elements (lightweight)
-            if GaphopUI.WindowInstance then
-                local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
-                -- update a few key strokes / fills that hold accent
-            end
-        end
-
-        -- Particles (very light)
-        if GaphopUI.Settings.Particles and not IsMobile() then
-            particleTime = particleTime + dt
-            -- pool managed separately
+    SpringTween(uiScale, duration * 0.4, { Scale = scale }, Enum.EasingStyle.Back)
+    task.delay(duration * 0.4, function()
+        if uiScale and uiScale.Parent then
+            SpringTween(uiScale, duration * 0.6, { Scale = 1 }, Enum.EasingStyle.Quint)
         end
     end)
 end
 
-local function StopDispatcher()
-    if GaphopUI.DispatcherConn then
-        GaphopUI.DispatcherConn:Disconnect()
-        GaphopUI.DispatcherConn = nil
-    end
-end
+GaphopUI.Bounce = Bounce
+GaphopUI.PulseScale = PulseScale
 
--- ============================================================
--- 11. ICON CREATOR (Lucide preferred)
--- ============================================================
-function GaphopUI:CreateIcon(parent, iconName, size, color, opts)
-    opts = opts or {}
-    color = color or Color3.new(1, 1, 1)
-    size = size or UDim2.fromOffset(16, 16)
-
-    local key = tostring(iconName or ""):lower():gsub("%s", ""):gsub("-", "")
-    local sprite = GaphopUI.LucideSprites[key]
-
-    if sprite then
-        local img = Instance.new("ImageLabel")
-        img.Name = "GaphopIcon"
-        img.Size = size
-        img.Position = opts.Position or UDim2.fromOffset(0, 0)
-        img.BackgroundTransparency = 1
-        img.Image = "rbxassetid://" .. tostring(sprite[1])
-        img.ImageRectSize = Vector2.new(sprite[2][1], sprite[2][2])
-        img.ImageRectOffset = Vector2.new(sprite[3][1], sprite[3][2])
-        img.ImageColor3 = color
-        img.ScaleType = Enum.ScaleType.Fit
-        img.Parent = parent
-        return img
-    end
-
-    -- Text fallback
-    local lbl = Instance.new("TextLabel")
-    lbl.Name = "GaphopIcon"
-    lbl.Size = size
-    lbl.Position = opts.Position or UDim2.fromOffset(0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = GaphopUI.Icons[key] or tostring(iconName or "?")
-    lbl.TextColor3 = color
-    lbl.TextSize = opts.TextSize or 14
-    lbl.Font = Enum.Font.GothamBold
-    lbl.Parent = parent
-    return lbl
-end
-
--- ============================================================
--- 12. RIPPLE (correct input position + pool)
--- ============================================================
-local function CreateRipple(parent, inputObj, color)
-    if not GaphopUI.Settings.Effects or GaphopUI.Settings.ReducedMotion then return end
-    color = color or Color3.new(1, 1, 1)
-
-    local mousePos
-    if inputObj and inputObj.Position then
-        mousePos = Vector2.new(inputObj.Position.X, inputObj.Position.Y)
-    else
-        mousePos = UserInputService:GetMouseLocation()
-    end
-
-    local absPos = parent.AbsolutePosition
-    local absSize = parent.AbsoluteSize
-    local relX = mousePos.X - absPos.X
-    local relY = mousePos.Y - absPos.Y
-
+-- Improved liquid-glass ripple with accent tint + soft expansion
+local function CreateRipple(parent, inputPosition, accentColor)
+    if not parent or not parent.Parent then return end
+    local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
     local ripple = Instance.new("Frame")
-    ripple.Name = "GaphopRipple"
+    ripple.Name = "RippleEffect"
     ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-    ripple.Position = UDim2.fromOffset(relX, relY)
-    ripple.Size = UDim2.fromOffset(0, 0)
-    ripple.BackgroundColor3 = color
-    ripple.BackgroundTransparency = 0.6
-    ripple.BorderSizePixel = 0
-    ripple.ZIndex = parent.ZIndex + 5
-    ripple.Parent = parent
+    ripple.BackgroundColor3 = accentColor or theme.Accent or Color3.fromRGB(255, 255, 255)
+    ripple.BackgroundTransparency = 0.72
+    ripple.ZIndex = (parent.ZIndex or 1) + 15
+    ripple.ClipsDescendants = true
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(1, 0)
     corner.Parent = ripple
 
-    local maxDim = math.max(absSize.X, absSize.Y) * 2.2
-    Spring(ripple, 0.45, {
-        Size = UDim2.fromOffset(maxDim, maxDim),
-        BackgroundTransparency = 1,
-    }, Enum.EasingStyle.Quad)
+    local parentAbsPos = parent.AbsolutePosition
+    local parentAbsSize = parent.AbsoluteSize
+    local inputPos = inputPosition
+    if typeof(inputPosition) == "InputObject" then
+        inputPos = inputPosition.Position
+    end
+    local relX = (inputPos and inputPos.X or (parentAbsPos.X + parentAbsSize.X / 2)) - parentAbsPos.X
+    local relY = (inputPos and inputPos.Y or (parentAbsPos.Y + parentAbsSize.Y / 2)) - parentAbsPos.Y
 
-    task.delay(0.5, function()
+    ripple.Position = UDim2.fromOffset(relX, relY)
+    ripple.Size = UDim2.fromOffset(4, 4)
+    ripple.Parent = parent
+
+    local maxSize = math.max(parentAbsSize.X, parentAbsSize.Y) * 2.4
+    Tween(ripple, TweenInfo.new(0.55, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+        Size = UDim2.fromOffset(maxSize, maxSize),
+        BackgroundTransparency = 1
+    })
+
+    task.delay(0.6, function()
         if ripple and ripple.Parent then ripple:Destroy() end
     end)
 end
 
--- ============================================================
--- 13. CONFIG SAVE / LOAD
--- ============================================================
-local function SaveConfig()
-    if not GaphopUI.ConfigPath then return end
-    local data = {
-        Version = GaphopUI.Version,
-        Theme = GaphopUI.CurrentTheme,
-        RGBEnabled = GaphopUI.RGBEnabled,
-        ToggleKey = GaphopUI.ToggleKey and GaphopUI.ToggleKey.Name or "K",
-        Settings = GaphopUI.Settings,
-        Flags = {},
-    }
-    for k, v in pairs(GaphopUI.Flags) do
-        if typeof(v) == "Color3" then
-            data.Flags[k] = { __color = true, R = v.R, G = v.G, B = v.B }
-        elseif typeof(v) == "EnumItem" then
-            data.Flags[k] = { __enum = true, Name = v.Name }
+local function CreateCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 12)
+    corner.Parent = parent
+    return corner
+end
+
+local function CreateStroke(parent, color, thickness, transparency)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color or GaphopUI.Themes[GaphopUI.CurrentTheme].Border
+    stroke.Thickness = thickness or 1
+    stroke.Transparency = transparency or 0.55
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = parent
+    return stroke
+end
+
+-- Advanced Liquid Glass (multi-layer: frost + sheen + specular + optional shadow)
+local function ApplyLiquidGlass(frame, theme, opts)
+    opts = opts or {}
+    local glassAlpha = opts.Transparency or theme.Glass or 0.20
+    local radius = opts.Radius or 14
+    local zBase = frame.ZIndex or 1
+
+    frame.BackgroundColor3 = opts.Color or theme.Card
+    frame.BackgroundTransparency = glassAlpha
+    frame.BorderSizePixel = 0
+
+    -- Soft border stroke with glass feel
+    local stroke = frame:FindFirstChildOfClass("UIStroke")
+    if stroke then
+        stroke.Color = opts.BorderColor or theme.Border
+        stroke.Thickness = opts.Thickness or 1.2
+        stroke.Transparency = opts.StrokeTransparency or 0.38
+    else
+        stroke = CreateStroke(frame, opts.BorderColor or theme.Border, opts.Thickness or 1.2, opts.StrokeTransparency or 0.38)
+    end
+
+    if opts.Corner ~= false then
+        local existing = frame:FindFirstChildOfClass("UICorner")
+        if existing then
+            existing.CornerRadius = UDim.new(0, radius)
         else
-            data.Flags[k] = v
+            CreateCorner(frame, radius)
         end
     end
+
+    -- Clean previous glass children
+    for _, child in ipairs(frame:GetChildren()) do
+        if child.Name == "GlassHighlight" or child.Name == "GlassInnerGlow"
+            or child.Name == "GlassSpecular" or child.Name == "GlassFrost"
+            or child.Name == "GlassSheen" or child.Name == "GlassShadow" then
+            child:Destroy()
+        end
+    end
+
+    -- Optional drop shadow (MacUI-style soft depth)
+    if opts.Shadow then
+        local shadow = Instance.new("ImageLabel")
+        shadow.Name = "GlassShadow"
+        shadow.BackgroundTransparency = 1
+        shadow.Image = "rbxassetid://6014261993"
+        shadow.ImageColor3 = Color3.new(0, 0, 0)
+        shadow.ImageTransparency = opts.ShadowTransparency or 0.58
+        shadow.ScaleType = Enum.ScaleType.Slice
+        shadow.SliceCenter = Rect.new(49, 49, 450, 450)
+        shadow.Size = UDim2.new(1, 40, 1, 40)
+        shadow.Position = UDim2.new(0, -20, 0, -16)
+        shadow.ZIndex = math.max(0, zBase - 2)
+        shadow.Parent = frame
+    end
+
+    -- Frost / tint overlay for deeper glass
+    if opts.Frost ~= false then
+        local frost = Instance.new("Frame")
+        frost.Name = "GlassFrost"
+        frost.Size = UDim2.new(1, 0, 1, 0)
+        frost.BackgroundColor3 = theme.Card or theme.Background
+        frost.BackgroundTransparency = opts.FrostTransparency or 0.88
+        frost.BorderSizePixel = 0
+        frost.ZIndex = zBase
+        frost.Parent = frame
+        CreateCorner(frost, radius)
+    end
+
+    -- Top liquid-glass sheen (gradient highlight)
+    if opts.Sheen ~= false then
+        local sheen = Instance.new("Frame")
+        sheen.Name = "GlassSheen"
+        sheen.Size = UDim2.new(1, 0, 0, math.max(opts.SheenHeight or 28, radius))
+        sheen.Position = UDim2.new(0, 0, 0, 0)
+        sheen.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        sheen.BackgroundTransparency = opts.SheenTransparency or 0.90
+        sheen.BorderSizePixel = 0
+        sheen.ZIndex = zBase + 1
+        sheen.Parent = frame
+        CreateCorner(sheen, radius)
+        local grad = Instance.new("UIGradient")
+        grad.Rotation = 90
+        grad.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.45),
+            NumberSequenceKeypoint.new(0.55, 0.88),
+            NumberSequenceKeypoint.new(1, 1)
+        })
+        grad.Parent = sheen
+    end
+
+    -- Thin top specular strip
+    if opts.Highlight ~= false then
+        local highlight = Instance.new("Frame")
+        highlight.Name = "GlassHighlight"
+        highlight.Size = UDim2.new(1, 0, 0, opts.HighlightHeight or 2)
+        highlight.Position = UDim2.new(0, 0, 0, 0)
+        highlight.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        highlight.BackgroundTransparency = opts.HighlightTransparency or 0.68
+        highlight.BorderSizePixel = 0
+        highlight.ZIndex = zBase + 2
+        highlight.Parent = frame
+    end
+
+    -- Soft bottom accent edge for depth
+    if opts.BottomEdge ~= false then
+        local bottom = Instance.new("Frame")
+        bottom.Name = "GlassSpecular"
+        bottom.Size = UDim2.new(1, 0, 0, 1)
+        bottom.Position = UDim2.new(0, 0, 1, -1)
+        bottom.BackgroundColor3 = opts.BorderColor or theme.Accent
+        bottom.BackgroundTransparency = 0.80
+        bottom.BorderSizePixel = 0
+        bottom.ZIndex = zBase + 1
+        bottom.Parent = frame
+    end
+
+    -- Subtle inner glow for frosted depth
+    if opts.InnerGlow then
+        local glow = Instance.new("Frame")
+        glow.Name = "GlassInnerGlow"
+        glow.Size = UDim2.new(1, -8, 1, -8)
+        glow.Position = UDim2.new(0, 4, 0, 4)
+        glow.BackgroundColor3 = theme.Accent
+        glow.BackgroundTransparency = 0.92
+        glow.ZIndex = zBase
+        glow.Parent = frame
+        CreateCorner(glow, math.max(4, radius - 4))
+    end
+
+    return stroke
+end
+
+-- Backward compatible alias
+local function ApplyGlass(frame, theme, opts)
+    return ApplyLiquidGlass(frame, theme, opts)
+end
+
+local function ResolveIconValue(icon, fallback)
+    if icon == nil or icon == false or icon == 0 then
+        return fallback or ""
+    end
+
+    if type(icon) == "number" then
+        return "rbxassetid://" .. tostring(icon)
+    end
+
+    if type(icon) ~= "string" then
+        return fallback or ""
+    end
+
+    local cleaned = icon:lower():gsub("^lucide:", ""):gsub("[%s%-]", "")
+    
+    -- Priority 1: Lucide ImageRect Icons
+    if cleaned ~= "" and GaphopUI.LucideSprites and GaphopUI.LucideSprites[cleaned] then
+        return GaphopUI.LucideSprites[cleaned]
+    end
+
+    -- Priority 2: Standard Text Emojis
+    if cleaned ~= "" and GaphopUI.Icons[cleaned] then
+        return GaphopUI.Icons[cleaned]
+    end
+
+    if icon:match("^rbxassetid://") or icon:match("^http") or icon:match("^rbxthumb://") then
+        return icon
+    end
+
+    return icon
+end
+
+function GaphopUI:CreateIcon(parent, icon, size, color, opts)
+    opts = opts or {}
+    local theme = opts.Theme or GaphopUI.Themes[GaphopUI.CurrentTheme]
+    local resolved = ResolveIconValue(icon, opts.Fallback)
+
+    -- Detect and render Lucide Icon Sprite Array
+    if type(resolved) == "table" and resolved[1] and resolved[2] and resolved[3] then
+        local image = Instance.new("ImageLabel")
+        image.BackgroundTransparency = 1
+        image.Size = size or UDim2.fromOffset(20, 20)
+        image.Position = opts.Position or UDim2.new()
+        image.Image = "rbxassetid://" .. tostring(resolved[1])
+        image.ImageRectSize = Vector2.new(resolved[2][1], resolved[2][2])
+        image.ImageRectOffset = Vector2.new(resolved[3][1], resolved[3][2])
+        image.ImageColor3 = color or Color3.new(1, 1, 1)
+        image.Parent = parent
+        return image
+    end
+
+    -- Legacy image parsing
+    if type(resolved) == "string" and (resolved:match("^rbxassetid://") or resolved:match("^http") or resolved:match("^rbxthumb://")) then
+        local image = Instance.new("ImageLabel")
+        image.BackgroundTransparency = 1
+        image.Size = size or UDim2.fromOffset(20, 20)
+        image.Position = opts.Position or UDim2.new()
+        image.Image = resolved
+        image.ImageColor3 = color or Color3.new(1, 1, 1)
+        image.Parent = parent
+        return image
+    end
+
+    -- Legacy text/emoji icon
+    local label = Instance.new("TextLabel")
+    label.BackgroundTransparency = 1
+    label.Size = size or UDim2.fromOffset(20, 20)
+    label.Position = opts.Position or UDim2.new()
+    label.Text = tostring(resolved or "")
+    label.TextColor3 = color or theme.Text
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = opts.TextSize or 14
+    label.Parent = parent
+    return label
+end
+
+-- STREAMING_CHUNK:RGB Glow Engine Management...
+function GaphopUI:ToggleRGB(enabled)
+    GaphopUI.RGBEnabled = enabled
+    if GaphopUI.RGBConnection then
+        GaphopUI.RGBConnection:Disconnect()
+        GaphopUI.RGBConnection = nil
+    end
+
+    if enabled then
+        local hue = 0
+        GaphopUI.RGBConnection = RunService.RenderStepped:Connect(function(dt)
+            hue = (hue + dt * 0.25) % 1
+            local color = Color3.fromHSV(hue, 0.85, 1)
+            GaphopUI.CurrentRGBColor = color
+
+            if GaphopUI.WindowInstance then
+                local stroke = GaphopUI.WindowInstance:FindFirstChildOfClass("UIStroke")
+                if stroke then stroke.Color = color end
+            end
+        end)
+    else
+        if GaphopUI.WindowInstance then
+            local stroke = GaphopUI.WindowInstance:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = GaphopUI.Themes[GaphopUI.CurrentTheme].Border end
+        end
+    end
+end
+
+-- STREAMING_CHUNK:Config File & Persistence Management...
+-- Structure:
+--   GaphopUI/
+--     <Window Name>/          e.g. "TrollFun Hub"
+--       config.gpui
+--     <Another Hub Name>/
+--       config.gpui
+GaphopUI.WindowName = nil
+GaphopUI.ConfigPath = nil
+
+local function EnsureFolder(folderName)
+    if type(makefolder) == "function" then
+        pcall(function() makefolder(folderName) end)
+    end
+end
+
+-- Keep folder names readable while stripping filesystem-hostile characters
+local function SanitizeHubName(name)
+    name = tostring(name or "GaphopUI")
+    name = name:gsub("[%c%z]", "")
+    name = name:gsub('[<>:"/\\|%?%*]', "")
+    name = name:gsub("^%s+", ""):gsub("%s+$", "")
+    if name == "" then name = "GaphopUI" end
+    -- Cap length for safer paths on some executors
+    if #name > 64 then name = name:sub(1, 64) end
+    return name
+end
+
+local function GetConfigPath(hubName)
+    local safe = SanitizeHubName(hubName or GaphopUI.WindowName or "GaphopUI")
+    return "GaphopUI/" .. safe .. "/config.gpui", "GaphopUI/" .. safe
+end
+
+local function SafeWriteFile(path, content)
     pcall(function()
-        if type(writefile) == "function" then
-            writefile(GaphopUI.ConfigPath, HttpService:JSONEncode(data))
+        local folder = path:match("(.+)/[^/]+$")
+        if folder then
+            -- Create nested folders: GaphopUI then GaphopUI/<Hub>
+            local root = folder:match("^([^/]+)")
+            if root then EnsureFolder(root) end
+            EnsureFolder(folder)
+        else
+            EnsureFolder("GaphopUI")
         end
+        writefile(path, content)
     end)
 end
 
-local saveDebounce = false
-local function DebouncedSave()
-    if saveDebounce then return end
-    saveDebounce = true
-    task.delay(0.6, function()
-        SaveConfig()
-        saveDebounce = false
-    end)
-end
-
-local function LoadConfig(winName)
+local function SaveConfig()
     local path = GaphopUI.ConfigPath
-    if not path or type(readfile) ~= "function" or type(isfile) ~= "function" then return end
-    local ok, raw = pcall(function()
-        if isfile(path) then return readfile(path) end
-    end)
-    if not ok or not raw then return end
-    local ok2, data = pcall(function() return HttpService:JSONDecode(raw) end)
-    if not ok2 or type(data) ~= "table" then return end
+    if not path then
+        path = select(1, GetConfigPath(GaphopUI.WindowName or "GaphopUI"))
+        GaphopUI.ConfigPath = path
+    end
 
-    if data.Theme and GaphopUI.Themes[data.Theme] then
-        GaphopUI.CurrentTheme = data.Theme
+    local payload = {
+        hubName = GaphopUI.WindowName or "GaphopUI",
+        theme = GaphopUI.CurrentTheme,
+        toggleKey = GaphopUI.ToggleKey and GaphopUI.ToggleKey.Name or "K",
+        showMobileButton = GaphopUI.Flags.ShowMobileButton ~= false,
+        isOpen = GaphopUI.IsOpen,
+        rgbEnabled = GaphopUI.RGBEnabled,
+        version = GaphopUI.Version,
+        flags = GaphopUI.Flags,
+        savedAt = os.time and os.time() or nil
+    }
+    SafeWriteFile(path, HttpService:JSONEncode(payload))
+end
+
+local function LoadConfig(hubName)
+    pcall(function()
+        if type(readfile) ~= "function" or type(isfile) ~= "function" then return end
+
+        local path, folder = GetConfigPath(hubName)
+        GaphopUI.ConfigPath = path
+        EnsureFolder("GaphopUI")
+        EnsureFolder(folder)
+
+        -- Prefer per-hub .gpui; fall back to legacy .gpui.json / global config.json
+        local raw
+        local legacyPath = path:gsub("%.gpui$", ".gpui.json")
+        if isfile(path) then
+            raw = readfile(path)
+        elseif isfile(legacyPath) then
+            raw = readfile(legacyPath)
+        elseif isfile("GaphopUI/config.json") then
+            raw = readfile("GaphopUI/config.json")
+        else
+            return
+        end
+
+        if not raw or raw == "" then return end
+        local data = HttpService:JSONDecode(raw)
+        if type(data) ~= "table" then return end
+
+        if data.theme and GaphopUI.Themes[data.theme] then
+            GaphopUI.CurrentTheme = data.theme
+        end
+        if data.toggleKey and Enum.KeyCode[data.toggleKey] then
+            GaphopUI.ToggleKey = Enum.KeyCode[data.toggleKey]
+        end
+        if data.showMobileButton ~= nil then
+            GaphopUI.Flags.ShowMobileButton = data.showMobileButton
+        end
+        if data.rgbEnabled ~= nil then
+            GaphopUI.RGBEnabled = data.rgbEnabled
+        end
+        if data.isOpen ~= nil then
+            GaphopUI.IsOpen = data.isOpen
+        end
+        if type(data.flags) == "table" then
+            for k, v in pairs(data.flags) do
+                GaphopUI.Flags[k] = v
+            end
+        end
+    end)
+end
+
+local function HexToColor3(hex)
+    hex = hex:gsub("#", "")
+    local r = tonumber("0x" .. hex:sub(1, 2)) or 255
+    local g = tonumber("0x" .. hex:sub(3, 4)) or 255
+    local b = tonumber("0x" .. hex:sub(5, 6)) or 255
+    return Color3.fromRGB(r, g, b)
+end
+
+local function Color3ToHex(color)
+    if not color then return "#FFFFFF" end
+    return string.format("#%02X%02X%02X", math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255))
+end
+
+-- STREAMING_CHUNK:Implementing Smooth Window Dragging Mechanics...
+local function MakeDraggable(gui, handle)
+    local dragging, dragInput, dragStart, startPos
+    handle = handle or gui
+
+    local conn1 = handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = gui.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    local conn2 = handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    local conn3 = UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            SpringTween(gui, 0.12, {
+                Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            }, Enum.EasingStyle.Sine)
+        end
+    end)
+
+    table.insert(GaphopUI.Connections, conn1)
+    table.insert(GaphopUI.Connections, conn2)
+    table.insert(GaphopUI.Connections, conn3)
+end
+
+-- STREAMING_CHUNK:Constructing Animated Notification Stack System...
+local NotifyContainer = Instance.new("Frame")
+NotifyContainer.Name = "NotifyContainer"
+NotifyContainer.Size = UDim2.new(0, 320, 1, -40)
+NotifyContainer.Position = UDim2.new(1, -330, 0, 20)
+NotifyContainer.BackgroundTransparency = 1
+NotifyContainer.ZIndex = 1000
+NotifyContainer.Parent = ScreenGui
+
+local NotifyLayout = Instance.new("UIListLayout")
+NotifyLayout.SortOrder = Enum.SortOrder.LayoutOrder
+NotifyLayout.Padding = UDim.new(0, 10)
+NotifyLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+NotifyLayout.Parent = NotifyContainer
+
+GaphopUI.NotifyContainer = NotifyContainer
+
+function GaphopUI:Notify(cfg)
+    cfg = cfg or {}
+    local titleText = cfg.Title or "Notification"
+    local contentText = cfg.Content or ""
+    local duration = cfg.Duration or 4
+    local imgId = cfg.Image
+    local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
+
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 0, 72)
+    card.BackgroundColor3 = theme.Card
+    card.BackgroundTransparency = 0.16
+    card.Position = UDim2.new(1, 380, 0, 0)
+    card.ClipsDescendants = true
+    card.Parent = NotifyContainer
+
+    local stroke = ApplyLiquidGlass(card, theme, {
+        Transparency = 0.16,
+        Radius = 14,
+        Thickness = 1.35,
+        StrokeTransparency = 0.28,
+        Highlight = true,
+        HighlightHeight = 2,
+        HighlightTransparency = 0.7,
+        BorderColor = theme.Accent,
+        InnerGlow = true,
+        Sheen = true,
+        SheenHeight = 22,
+        Frost = true,
+        Shadow = true,
+        ShadowTransparency = 0.6
+    })
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 16)
+    padding.PaddingRight = UDim.new(0, 12)
+    padding.PaddingTop = UDim.new(0, 10)
+    padding.PaddingBottom = UDim.new(0, 10)
+    padding.Parent = card
+
+    local iconOffset = 0
+    if imgId then
+        iconOffset = 42
+        local resolvedNotify = ResolveIconValue(imgId, nil)
+        
+        local iconImg = Instance.new("ImageLabel")
+        iconImg.Size = UDim2.new(0, 34, 0, 34)
+        iconImg.Position = UDim2.new(0, 0, 0.5, -17)
+        iconImg.BackgroundTransparency = 1
+        
+        if type(resolvedNotify) == "table" then
+            iconImg.Image = "rbxassetid://" .. tostring(resolvedNotify[1])
+            iconImg.ImageRectSize = Vector2.new(resolvedNotify[2][1], resolvedNotify[2][2])
+            iconImg.ImageRectOffset = Vector2.new(resolvedNotify[3][1], resolvedNotify[3][2])
+            iconImg.ImageColor3 = theme.Text
+        else
+            iconImg.Image = (type(resolvedNotify) == "number" and "rbxassetid://" .. tostring(resolvedNotify)) or tostring(resolvedNotify)
+        end
+        
+        iconImg.Parent = card
+        CreateCorner(iconImg, 8)
     end
-    if data.RGBEnabled ~= nil then GaphopUI.RGBEnabled = data.RGBEnabled end
-    if data.ToggleKey and Enum.KeyCode[data.ToggleKey] then
-        GaphopUI.ToggleKey = Enum.KeyCode[data.ToggleKey]
-    end
-    if type(data.Settings) == "table" then
-        for k, v in pairs(data.Settings) do
-            if GaphopUI.Settings[k] ~= nil then GaphopUI.Settings[k] = v end
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -iconOffset, 0, 20)
+    title.Position = UDim2.new(0, iconOffset, 0, 2)
+    title.BackgroundTransparency = 1
+    title.Text = titleText
+    title.TextColor3 = theme.Text
+    title.TextSize = 14
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = card
+
+    local content = Instance.new("TextLabel")
+    content.Size = UDim2.new(1, -iconOffset, 0, 28)
+    content.Position = UDim2.new(0, iconOffset, 0, 22)
+    content.BackgroundTransparency = 1
+    content.Text = contentText
+    content.TextColor3 = theme.SubText
+    content.TextSize = 12
+    content.Font = Enum.Font.Gotham
+    content.TextWrapped = true
+    content.TextXAlignment = Enum.TextXAlignment.Left
+    content.Parent = card
+
+    -- Bounce-in entrance
+    SoftSpring(card, 0.5, { Position = UDim2.new(0, 0, 0, 0) })
+
+    local timerBar = Instance.new("Frame")
+    timerBar.Size = UDim2.new(1, 0, 0, 3)
+    timerBar.Position = UDim2.new(0, 0, 1, -3)
+    timerBar.BackgroundColor3 = theme.Accent
+    timerBar.BorderSizePixel = 0
+    timerBar.Parent = card
+
+    Tween(timerBar, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+        Size = UDim2.new(0, 0, 0, 3)
+    })
+
+    task.delay(duration, function()
+        if card and card.Parent then
+            local exitTween = SoftSpring(card, 0.38, {
+                Position = UDim2.new(1, 380, 0, 0),
+                BackgroundTransparency = 1
+            }, Enum.EasingStyle.Quart)
+
+            if exitTween then
+                exitTween.Completed:Connect(function() if card then card:Destroy() end end)
+            else
+                card:Destroy()
+            end
+        end
+    end)
+end
+
+
+-- STREAMING_CHUNK: Constructing Animated Warning Notification Stack System
+
+local WarnNotifyContainer = Instance.new("Frame")
+WarnNotifyContainer.Name = "WarnNotifyContainer"
+WarnNotifyContainer.Size = UDim2.new(0, 320, 1, -40)
+WarnNotifyContainer.Position = UDim2.new(1, -330, 0, 20)
+WarnNotifyContainer.BackgroundTransparency = 1
+WarnNotifyContainer.ZIndex = 1000
+WarnNotifyContainer.Parent = ScreenGui
+
+local WarnNotifyLayout = Instance.new("UIListLayout")
+WarnNotifyLayout.SortOrder = Enum.SortOrder.LayoutOrder
+WarnNotifyLayout.Padding = UDim.new(0, 10)
+WarnNotifyLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+WarnNotifyLayout.Parent = WarnNotifyContainer
+
+GaphopUI.WarnNotifyContainer = WarnNotifyContainer
+
+function GaphopUI:WarnNotify(cfg)
+	cfg = cfg or {}
+
+	local titleText = cfg.Title or "Warning"
+	local contentText = cfg.Content or ""
+	local duration = cfg.Duration or 4
+	local imgId = cfg.Image
+	local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
+
+	-- Warning colors
+	local warnAccent = cfg.Color or Color3.fromRGB(255, 180, 0)
+	local warnText = Color3.fromRGB(255, 220, 130)
+
+	local card = Instance.new("Frame")
+	card.Size = UDim2.new(1, 0, 0, 72)
+	card.BackgroundColor3 = theme.Card
+	card.BackgroundTransparency = 0.12
+	card.Position = UDim2.new(1, 360, 0, 0)
+	card.ClipsDescendants = true
+	card.Parent = WarnNotifyContainer
+
+	CreateCorner(card, 12)
+
+	local stroke = CreateStroke(
+		card,
+		warnAccent,
+		1.5,
+		0.25
+	)
+
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0, 16)
+	padding.PaddingRight = UDim.new(0, 12)
+	padding.PaddingTop = UDim.new(0, 10)
+	padding.PaddingBottom = UDim.new(0, 10)
+	padding.Parent = card
+
+	local iconOffset = 42
+
+	-- Warning icon
+	local iconImg = Instance.new("ImageLabel")
+	iconImg.Size = UDim2.new(0, 34, 0, 34)
+	iconImg.Position = UDim2.new(0, 0, 0.5, -17)
+	iconImg.BackgroundTransparency = 1
+
+	if imgId then
+		local resolvedNotify = ResolveIconValue(imgId, nil)
+
+		if type(resolvedNotify) == "table" then
+			iconImg.Image = "rbxassetid://" .. tostring(resolvedNotify[1])
+			iconImg.ImageRectSize = Vector2.new(
+				resolvedNotify[2][1],
+				resolvedNotify[2][2]
+			)
+			iconImg.ImageRectOffset = Vector2.new(
+				resolvedNotify[3][1],
+				resolvedNotify[3][2]
+			)
+			iconImg.ImageColor3 = warnAccent
+		else
+			iconImg.Image =
+				(type(resolvedNotify) == "number"
+				and "rbxassetid://" .. tostring(resolvedNotify))
+				or tostring(resolvedNotify)
+
+			iconImg.ImageColor3 = warnAccent
+		end
+	else
+		-- Default warning symbol
+		iconImg.Image = ""
+		iconImg.BackgroundTransparency = 1
+
+		local warningText = Instance.new("TextLabel")
+		warningText.Size = UDim2.new(1, 0, 1, 0)
+		warningText.BackgroundTransparency = 1
+		warningText.Text = "⚠"
+		warningText.TextColor3 = warnAccent
+		warningText.TextSize = 28
+		warningText.Font = Enum.Font.GothamBold
+		warningText.TextXAlignment = Enum.TextXAlignment.Center
+		warningText.TextYAlignment = Enum.TextYAlignment.Center
+		warningText.Parent = iconImg
+	end
+
+	iconImg.Parent = card
+	CreateCorner(iconImg, 8)
+
+	-- Warning title
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -iconOffset, 0, 20)
+	title.Position = UDim2.new(0, iconOffset, 0, 2)
+	title.BackgroundTransparency = 1
+	title.Text = titleText
+	title.TextColor3 = warnText
+	title.TextSize = 14
+	title.Font = Enum.Font.GothamBold
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Parent = card
+
+	-- Warning content
+	local content = Instance.new("TextLabel")
+	content.Size = UDim2.new(1, -iconOffset, 0, 28)
+	content.Position = UDim2.new(0, iconOffset, 0, 22)
+	content.BackgroundTransparency = 1
+	content.Text = contentText
+	content.TextColor3 = theme.SubText
+	content.TextSize = 12
+	content.Font = Enum.Font.Gotham
+	content.TextWrapped = true
+	content.TextXAlignment = Enum.TextXAlignment.Left
+	content.Parent = card
+
+	-- Slide in
+	SpringTween(
+		card,
+		0.45,
+		{
+			Position = UDim2.new(0, 0, 0, 0)
+		},
+		Enum.EasingStyle.Back
+	)
+
+	-- Warning timer bar
+	local timerBar = Instance.new("Frame")
+	timerBar.Size = UDim2.new(1, 0, 0, 3)
+	timerBar.Position = UDim2.new(0, 0, 1, -3)
+	timerBar.BackgroundColor3 = warnAccent
+	timerBar.BorderSizePixel = 0
+	timerBar.Parent = card
+
+	Tween(
+		timerBar,
+		TweenInfo.new(duration, Enum.EasingStyle.Linear),
+		{
+			Size = UDim2.new(0, 0, 0, 3)
+		}
+	)
+
+	-- Slide out
+	task.delay(duration, function()
+		if card and card.Parent then
+			local exitTween = SpringTween(
+				card,
+				0.35,
+				{
+					Position = UDim2.new(1, 360, 0, 0),
+					BackgroundTransparency = 1
+				},
+				Enum.EasingStyle.Quart
+			)
+
+			if exitTween then
+				exitTween.Completed:Connect(function()
+					if card then
+						card:Destroy()
+					end
+				end)
+			else
+				card:Destroy()
+			end
+		end
+	end)
+end
+
+
+
+-- STREAMING_CHUNK:Building Floating Mobile Button & Window Toggle Logic...
+local function IsMobile()
+    -- Prefer true mobile / touch-primary devices
+    return UserInputService.TouchEnabled and (not UserInputService.KeyboardEnabled or UserInputService.TouchEnabled)
+end
+
+local function CreateOpenButton()
+    if not IsMobile() or GaphopUI.OpenButton then return end
+
+    local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
+    local btn = Instance.new("TextButton")
+    btn.Name = "GaphopOpenButton"
+    btn.Size = UDim2.new(0, 150, 0, 42)
+    btn.AnchorPoint = Vector2.new(0.5, 0)
+    btn.Position = UDim2.new(0.5, 0, 0, 14)
+    btn.BackgroundColor3 = theme.Card
+    btn.BackgroundTransparency = 0.15
+    btn.Text = "Open GaphopUI"
+    btn.TextColor3 = theme.Text
+    btn.TextSize = 13
+    btn.Font = Enum.Font.GothamBold
+    btn.ZIndex = 9999
+    btn.Visible = not GaphopUI.IsOpen
+    btn.Parent = ScreenGui
+
+    ApplyLiquidGlass(btn, theme, {
+        Transparency = 0.18,
+        Radius = 16,
+        Thickness = 1.3,
+        StrokeTransparency = 0.3,
+        Highlight = true,
+        HighlightHeight = 2,
+        BorderColor = theme.Accent
+    })
+    MakeDraggable(btn, btn)
+
+    btn.MouseButton1Click:Connect(function(input)
+        CreateRipple(btn, input, theme.Accent)
+        SoftSpring(btn, 0.15, {Size = UDim2.new(0, 142, 0, 38)}).Completed:Connect(function()
+            SoftSpring(btn, 0.22, {Size = UDim2.new(0, 150, 0, 42)})
+        end)
+        GaphopUI:ToggleUI(true)
+    end)
+
+    GaphopUI.OpenButton = btn
+end
+
+function GaphopUI:ToggleUI(forceState)
+    local shouldOpen = (forceState ~= nil and forceState) or (not GaphopUI.IsOpen)
+    GaphopUI.IsOpen = shouldOpen
+
+    if GaphopUI.WindowInstance then
+        local win = GaphopUI.WindowInstance
+        local normalSize = win:GetAttribute("NormalSize") or UDim2.new(0, 720, 0, 480)
+        local theme = GaphopUI.Themes[GaphopUI.CurrentTheme] or GaphopUI.Themes.Dark
+        local centerPos = win:GetAttribute("CenterPos") or win.Position
+
+        if GaphopUI.IsOpen then
+            -- Open: scale + fade + slight overshoot spring
+            win.Visible = true
+            win.Size = UDim2.new(normalSize.X.Scale, math.floor(normalSize.X.Offset * 0.88), normalSize.Y.Scale, math.floor(normalSize.Y.Offset * 0.88))
+            win.BackgroundTransparency = 1
+            SoftSpring(win, 0.42, {
+                Size = normalSize,
+                BackgroundTransparency = (theme.Glass or 0.18),
+                Position = centerPos
+            })
+
+            -- Soft pulse on window stroke
+            local stroke = win:FindFirstChildOfClass("UIStroke")
+            if stroke then
+                local prevT = stroke.Transparency
+                stroke.Transparency = 0.05
+                SpringTween(stroke, 0.55, { Transparency = prevT }, Enum.EasingStyle.Sine)
+            end
+
+            if GaphopUI.OpenButton then
+                SoftSpring(GaphopUI.OpenButton, 0.25, {
+                    Size = UDim2.new(0, 0, 0, 0),
+                    BackgroundTransparency = 1
+                })
+                task.delay(0.28, function()
+                    if GaphopUI.OpenButton then GaphopUI.OpenButton.Visible = false end
+                end)
+            end
+        else
+            -- Hide: shrink toward center + fade out
+            if not win:GetAttribute("CenterPos") then
+                win:SetAttribute("CenterPos", win.Position)
+            end
+            local collapsed = UDim2.new(
+                normalSize.X.Scale,
+                math.floor(normalSize.X.Offset * 0.72),
+                normalSize.Y.Scale,
+                math.floor(normalSize.Y.Offset * 0.72)
+            )
+            local tw = SpringTween(win, 0.36, {
+                Size = collapsed,
+                BackgroundTransparency = 1
+            }, Enum.EasingStyle.Quart)
+
+            if tw then
+                tw.Completed:Connect(function()
+                    if not GaphopUI.IsOpen and win then
+                        win.Visible = false
+                        win.Size = normalSize
+                    end
+                end)
+            else
+                win.Visible = false
+            end
+
+            if IsMobile() and GaphopUI.Flags.ShowMobileButton ~= false then
+                if not GaphopUI.OpenButton then CreateOpenButton() end
+                if GaphopUI.OpenButton then
+                    GaphopUI.OpenButton.Visible = true
+                    GaphopUI.OpenButton.Size = UDim2.new(0, 0, 0, 0)
+                    SoftSpring(GaphopUI.OpenButton, 0.35, {
+                        Size = UDim2.new(0, 150, 0, 42),
+                        BackgroundTransparency = 0.15
+                    })
+                end
+            else
+                -- PC only: remind user of the toggle keybind when UI is hidden
+                local keyName = (GaphopUI.ToggleKey and GaphopUI.ToggleKey.Name) or "K"
+                GaphopUI:Notify({
+                    Title = "UI Hidden",
+                    Content = "Press [" .. keyName .. "] to show UI",
+                    Duration = 3.5,
+                    Image = "keyboard"
+                })
+            end
         end
     end
-    if type(data.Flags) == "table" then
-        for k, v in pairs(data.Flags) do
-            if type(v) == "table" and v.__color then
-                GaphopUI.Flags[k] = Color3.new(v.R, v.G, v.B)
-            elseif type(v) == "table" and v.__enum and Enum.KeyCode[v.Name] then
-                GaphopUI.Flags[k] = Enum.KeyCode[v.Name]
+    SaveConfig()
+end
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == GaphopUI.ToggleKey then
+        GaphopUI:ToggleUI()
+    end
+end)
+
+-- STREAMING_CHUNK:Theme Dynamic Updating & Live Search Filter Engine...
+local function RegisterElement(entry)
+    if entry then table.insert(GaphopUI.Elements, entry) end
+end
+
+local function ApplyThemeToEntry(entry, theme)
+    if not entry then return end
+    if entry.Card then entry.Card.BackgroundColor3 = theme.Card end
+    if entry.Stroke then entry.Stroke.Color = theme.Border end
+    if entry.Label then entry.Label.TextColor3 = theme.Text end
+    if entry.SubLabel then entry.SubLabel.TextColor3 = theme.SubText end
+    if entry.Input then
+        entry.Input.BackgroundColor3 = theme.InputBackground
+        entry.Input.TextColor3 = theme.Text
+        entry.Input.PlaceholderColor3 = theme.SubText
+    end
+    if entry.Button then entry.Button.TextColor3 = theme.Text end
+    if entry.ToggleBg then entry.ToggleBg.BackgroundColor3 = entry.ToggleState and theme.ToggleOn or theme.ToggleOff end
+    if entry.ToggleKnob then entry.ToggleKnob.BackgroundColor3 = theme.Text end
+    if entry.SliderTrack then entry.SliderTrack.BackgroundColor3 = theme.SliderBar end
+    if entry.SliderFill then entry.SliderFill.BackgroundColor3 = theme.Accent end
+    if entry.ValueLabel then entry.ValueLabel.TextColor3 = theme.SubText end
+    if entry.DropdownButton then
+        entry.DropdownButton.BackgroundColor3 = theme.InputBackground
+        entry.DropdownButton.TextColor3 = theme.Text
+    end
+    if entry.BindButton then
+        entry.BindButton.BackgroundColor3 = theme.InputBackground
+        entry.BindButton.TextColor3 = theme.Text
+    end
+    if entry.ColorDisplay then entry.ColorDisplay.BackgroundColor3 = entry.ColorValue or theme.Text end
+end
+
+function GaphopUI:ApplyTheme(themeName)
+    local theme = GaphopUI.Themes[themeName] or GaphopUI.Themes.Dark
+    GaphopUI.CurrentTheme = themeName or GaphopUI.CurrentTheme
+
+    if GaphopUI.WindowInstance then
+        GaphopUI.WindowInstance.BackgroundColor3 = theme.Background
+        GaphopUI.WindowInstance.BackgroundTransparency = theme.Glass or 0.18
+        local topBar = GaphopUI.WindowInstance:FindFirstChild("TopBar")
+        if topBar then
+            topBar.BackgroundColor3 = theme.Header
+            topBar.BackgroundTransparency = (theme.Glass or 0.18) + 0.12
+        end
+        local sideBar = GaphopUI.WindowInstance:FindFirstChild("SideBar")
+        if sideBar then
+            sideBar.BackgroundColor3 = theme.Card
+            sideBar.BackgroundTransparency = (theme.Glass or 0.18) + 0.18
+        end
+        local stroke = GaphopUI.WindowInstance:FindFirstChildOfClass("UIStroke")
+        if stroke then stroke.Color = theme.Accent end
+    end
+
+    for _, entry in ipairs(GaphopUI.Elements) do
+        ApplyThemeToEntry(entry, theme)
+    end
+end
+
+function GaphopUI:FilterElements(query)
+    local q = (query or ""):lower()
+    for _, entry in ipairs(GaphopUI.Elements) do
+        if entry and entry.Card then
+            if entry.Type == "search" then
+                entry.Card.Visible = true
             else
-                GaphopUI.Flags[k] = v
+                local match = (q == "") or (entry.SearchText and string.find(string.lower(entry.SearchText), q, 1, true) ~= nil)
+                entry.Card.Visible = match
             end
         end
     end
 end
 
--- ============================================================
--- 14. NOTIFICATIONS
--- ============================================================
-local function EnsureNotifyContainer()
-    if GaphopUI.NotifyContainer and GaphopUI.NotifyContainer.Parent then return end
-    local gui = ParentUI:FindFirstChild("GaphopUI_Engine")
-    if not gui then return end
-    local cont = Instance.new("Frame")
-    cont.Name = "NotifyContainer"
-    cont.Size = UDim2.new(0, 320, 1, -20)
-    cont.Position = UDim2.new(1, -340, 0, 10)
-    cont.BackgroundTransparency = 1
-    cont.ZIndex = 200
-    cont.Parent = gui
-    local layout = Instance.new("UIListLayout")
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 8)
-    layout.VerticalAlignment = Enum.VerticalAlignment.Top
-    layout.Parent = cont
-    GaphopUI.NotifyContainer = cont
-end
-
-function GaphopUI:Notify(cfg)
-    cfg = cfg or {}
-    EnsureNotifyContainer()
-    local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
-    local duration = cfg.Duration or 4
-    local title = cfg.Title or "Notification"
-    local content = cfg.Content or ""
-    local image = cfg.Image
-
-    -- Queue limit
-    local children = GaphopUI.NotifyContainer:GetChildren()
-    local count = 0
-    for _, c in ipairs(children) do if c:IsA("Frame") then count += 1 end end
-    if count >= 5 then
-        for _, c in ipairs(children) do
-            if c:IsA("Frame") then c:Destroy() break end
-        end
-    end
-
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 0)
-    card.BackgroundColor3 = theme.Card
-    card.BackgroundTransparency = theme.Glass or 0.2
-    card.ClipsDescendants = true
-    card.ZIndex = 201
-    card.Parent = GaphopUI.NotifyContainer
-    ApplyLiquidGlass(card, theme, { Radius = 12, Thickness = 1.2, Highlight = true })
-
-    local titleL = Instance.new("TextLabel")
-    titleL.Size = UDim2.new(1, -50, 0, 20)
-    titleL.Position = UDim2.new(0, 14, 0, 10)
-    titleL.BackgroundTransparency = 1
-    titleL.Text = title
-    titleL.TextColor3 = theme.Text
-    titleL.TextSize = 14
-    titleL.Font = Enum.Font.GothamBold
-    titleL.TextXAlignment = Enum.TextXAlignment.Left
-    titleL.ZIndex = 202
-    titleL.Parent = card
-
-    local contentL = Instance.new("TextLabel")
-    contentL.Size = UDim2.new(1, -24, 0, 32)
-    contentL.Position = UDim2.new(0, 14, 0, 32)
-    contentL.BackgroundTransparency = 1
-    contentL.Text = content
-    contentL.TextColor3 = theme.SubText
-    contentL.TextSize = 12
-    contentL.Font = Enum.Font.Gotham
-    contentL.TextWrapped = true
-    contentL.TextXAlignment = Enum.TextXAlignment.Left
-    contentL.ZIndex = 202
-    contentL.Parent = card
-
-    local progress = Instance.new("Frame")
-    progress.Size = UDim2.new(1, 0, 0, 3)
-    progress.Position = UDim2.new(0, 0, 1, -3)
-    progress.BackgroundColor3 = theme.Accent
-    progress.BorderSizePixel = 0
-    progress.ZIndex = 203
-    progress.Parent = card
-
-    -- Spring in
-    SoftSpring(card, 0.4, { Size = UDim2.new(1, 0, 0, 72) }, Enum.EasingStyle.Back)
-
-    local start = tick()
-    local paused = false
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        if not card or not card.Parent then
-            if conn then conn:Disconnect() end
-            return
-        end
-        if paused then return end
-        local elapsed = tick() - start
-        local t = math.clamp(1 - elapsed / duration, 0, 1)
-        progress.Size = UDim2.new(t, 0, 0, 3)
-        if elapsed >= duration then
-            SoftSpring(card, 0.3, { Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1 })
-            task.delay(0.35, function() if card then card:Destroy() end end)
-            conn:Disconnect()
-        end
-    end)
-    AddConnection(conn)
-
-    card.MouseEnter:Connect(function() paused = true end)
-    card.MouseLeave:Connect(function() paused = false end)
-
-    -- Click to dismiss
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.fromScale(1, 1)
-    btn.BackgroundTransparency = 1
-    btn.Text = ""
-    btn.ZIndex = 204
-    btn.Parent = card
-    btn.MouseButton1Click:Connect(function()
-        SoftSpring(card, 0.25, { Size = UDim2.new(1, 0, 0, 0) })
-        task.delay(0.3, function() if card then card:Destroy() end end)
-        if conn then conn:Disconnect() end
-    end)
-end
-
-function GaphopUI:WarnNotify(cfg)
-    cfg = cfg or {}
-    cfg.Title = cfg.Title or "Warning"
-    cfg.Color = cfg.Color or Color3.fromRGB(255, 180, 0)
-    self:Notify(cfg)
-end
-
--- ============================================================
--- 15. PROMPT
--- ============================================================
+-- STREAMING_CHUNK:Constructing Modal Prompt Dialog System...
 function GaphopUI:CreatePrompt(cfg)
     cfg = cfg or {}
+    local titleText = cfg.Title or "Confirmation"
+    local contentText = cfg.Content or "Are you sure you want to proceed?"
+    local confirmText = cfg.ConfirmText or "Confirm"
+    local cancelText = cfg.CancelText or "Cancel"
+    local onConfirm = cfg.OnConfirm or function() end
+    local onCancel = cfg.OnCancel or function() end
     local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
-    local gui = ParentUI:FindFirstChild("GaphopUI_Engine")
-    if not gui then return end
 
     local overlay = Instance.new("Frame")
-    overlay.Name = "GaphopPromptOverlay"
     overlay.Size = UDim2.fromScale(1, 1)
-    overlay.BackgroundColor3 = Color3.new(0, 0, 0)
-    overlay.BackgroundTransparency = 0.55
-    overlay.ZIndex = 300
-    overlay.Parent = gui
+    overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    overlay.BackgroundTransparency = 1
+    overlay.ZIndex = 99999999999999
+    overlay.Parent = ScreenGui
+
+    Tween(overlay, TweenInfo.new(0.25), {BackgroundTransparency = 1})
 
     local modal = Instance.new("Frame")
-    modal.Size = UDim2.fromOffset(340, 180)
+    modal.Size = UDim2.new(0, 340, 0, 180)
     modal.AnchorPoint = Vector2.new(0.5, 0.5)
-    modal.Position = UDim2.fromScale(0.5, 0.5)
+    modal.Position = UDim2.fromScale(0.5, 0.45)
     modal.BackgroundColor3 = theme.Background
-    modal.BackgroundTransparency = theme.Glass or 0.15
-    modal.ZIndex = 301
+    modal.BackgroundTransparency = 0.05
     modal.Parent = overlay
-    ApplyLiquidGlass(modal, theme, { Radius = 16, Thickness = 1.5 })
+
+    CreateCorner(modal, 14)
+    CreateStroke(modal, theme.Accent, 1.2, 0.3)
 
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -24, 0, 28)
+    title.Size = UDim2.new(1, -24, 0, 24)
     title.Position = UDim2.new(0, 12, 0, 14)
     title.BackgroundTransparency = 1
-    title.Text = cfg.Title or "Confirm"
+    title.Text = titleText
     title.TextColor3 = theme.Text
     title.TextSize = 16
     title.Font = Enum.Font.GothamBold
-    title.ZIndex = 302
+    title.TextXAlignment = Enum.TextXAlignment.Center
     title.Parent = modal
 
     local content = Instance.new("TextLabel")
     content.Size = UDim2.new(1, -24, 0, 50)
-    content.Position = UDim2.new(0, 12, 0, 48)
+    content.Position = UDim2.new(0, 12, 0, 44)
     content.BackgroundTransparency = 1
-    content.Text = cfg.Content or ""
+    content.Text = contentText
     content.TextColor3 = theme.SubText
-    content.TextSize = 13
+    content.TextSize = 12
     content.Font = Enum.Font.Gotham
     content.TextWrapped = true
-    content.ZIndex = 302
+    content.TextXAlignment = Enum.TextXAlignment.Center
     content.Parent = modal
 
-    local function close()
-        SoftSpring(modal, 0.25, { Size = UDim2.fromOffset(320, 0), BackgroundTransparency = 1 })
-        Spring(overlay, 0.25, { BackgroundTransparency = 1 })
-        task.delay(0.3, function() if overlay then overlay:Destroy() end end)
+    local function CloseModal()
+        SpringTween(modal, 0.2, {Position = UDim2.fromScale(0.5, 0.4)}, Enum.EasingStyle.Quart)
+        Tween(overlay, TweenInfo.new(0.2), {BackgroundTransparency = 1}).Completed:Connect(function()
+            overlay:Destroy()
+        end)
     end
 
-    local confBtn = Instance.new("TextButton")
-    confBtn.Size = UDim2.new(0, 120, 0, 34)
-    confBtn.Position = UDim2.new(1, -140, 1, -50)
-    confBtn.BackgroundColor3 = theme.Accent
-    confBtn.Text = cfg.ConfirmText or "Confirm"
-    confBtn.TextColor3 = Color3.new(1, 1, 1)
-    confBtn.TextSize = 13
-    confBtn.Font = Enum.Font.GothamBold
-    confBtn.ZIndex = 302
-    confBtn.Parent = modal
-    Instance.new("UICorner", confBtn).CornerRadius = UDim.new(0, 8)
-    confBtn.MouseButton1Click:Connect(function()
-        close()
-        if cfg.OnConfirm then pcall(cfg.OnConfirm) end
+    local confirmBtn = Instance.new("TextButton")
+    confirmBtn.Size = UDim2.new(0, 140, 0, 36)
+    confirmBtn.Position = UDim2.new(0, 22, 1, -48)
+    confirmBtn.BackgroundColor3 = theme.Accent
+    confirmBtn.Text = confirmText
+    confirmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    confirmBtn.Font = Enum.Font.GothamBold
+    confirmBtn.TextSize = 13
+    confirmBtn.Parent = modal
+    CreateCorner(confirmBtn, 8)
+
+    confirmBtn.MouseButton1Click:Connect(function(input)
+        CreateRipple(confirmBtn, input)
+        CloseModal()
+        onConfirm()
     end)
 
     local cancelBtn = Instance.new("TextButton")
-    cancelBtn.Size = UDim2.new(0, 100, 0, 34)
-    cancelBtn.Position = UDim2.new(1, -250, 1, -50)
+    cancelBtn.Size = UDim2.new(0, 140, 0, 36)
+    cancelBtn.Position = UDim2.new(1, -162, 1, -48)
     cancelBtn.BackgroundColor3 = theme.Card
-    cancelBtn.Text = cfg.CancelText or "Cancel"
+    cancelBtn.Text = cancelText
     cancelBtn.TextColor3 = theme.Text
+    cancelBtn.Font = Enum.Font.GothamMedium
     cancelBtn.TextSize = 13
-    cancelBtn.Font = Enum.Font.Gotham
-    cancelBtn.ZIndex = 302
     cancelBtn.Parent = modal
-    Instance.new("UICorner", cancelBtn).CornerRadius = UDim.new(0, 8)
-    cancelBtn.MouseButton1Click:Connect(function()
-        close()
-        if cfg.OnCancel then pcall(cfg.OnCancel) end
+    CreateCorner(cancelBtn, 8)
+    CreateStroke(cancelBtn, theme.Border, 1, 0.5)
+
+    cancelBtn.MouseButton1Click:Connect(function(input)
+        CreateRipple(cancelBtn, input)
+        CloseModal()
+        onCancel()
     end)
 
-    SoftSpring(modal, 0.35, { Size = UDim2.fromOffset(340, 180) }, Enum.EasingStyle.Back)
+    SpringTween(modal, 0.35, {Position = UDim2.fromScale(0.5, 0.5)}, Enum.EasingStyle.Back)
 end
 
--- ============================================================
--- 16. TOGGLE UI (fixed forceState logic + animation token)
--- ============================================================
-function GaphopUI:ToggleUI(forceState)
-    local shouldOpen
-    if forceState == nil then
-        shouldOpen = not GaphopUI.IsOpen
-    else
-        shouldOpen = forceState and true or false
-    end
-
-    if shouldOpen == GaphopUI.IsOpen then return end
-
-    GaphopUI.AnimationToken = GaphopUI.AnimationToken + 1
-    local token = GaphopUI.AnimationToken
-    local win = GaphopUI.WindowInstance
-    if not win then return end
-
-    local content = win:FindFirstChild("ContentCanvas")
-    local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
-
-    if shouldOpen then
-        GaphopUI.IsOpen = true
-        win.Visible = true
-        if content then
-            content.GroupTransparency = 1
-            content.UIScale.Scale = 0.94
-        end
-        SoftSpring(win, 0.4, { Size = win:GetAttribute("NormalSize") or UDim2.fromOffset(720, 480) })
-        if content then
-            Spring(content, 0.4, { GroupTransparency = 0 })
-            Spring(content.UIScale, 0.4, { Scale = 1 })
-        end
-        if GaphopUI.Settings.Blur then
-            pcall(function()
-                if not GaphopUI.BlurEffect then
-                    GaphopUI.BlurEffect = Instance.new("BlurEffect")
-                    GaphopUI.BlurEffect.Size = 0
-                    GaphopUI.BlurEffect.Parent = Lighting
-                end
-                Spring(GaphopUI.BlurEffect, 0.4, { Size = 12 })
-            end)
-        end
-        StartDispatcher()
-    else
-        GaphopUI.IsOpen = false
-        if content then
-            Spring(content, 0.3, { GroupTransparency = 1 })
-            Spring(content.UIScale, 0.3, { Scale = 0.94 })
-        end
-        SoftSpring(win, 0.3, { Size = UDim2.fromOffset(0, 0) })
-        task.delay(0.32, function()
-            if GaphopUI.AnimationToken == token then
-                win.Visible = false
-            end
-        end)
-        if GaphopUI.BlurEffect then
-            Spring(GaphopUI.BlurEffect, 0.3, { Size = 0 })
-        end
-        StopDispatcher()
-
-        if not GaphopUI.HideNotifyShown and (cfg and cfg.HideNotify) then
-            GaphopUI.HideNotifyShown = true
-            GaphopUI:Notify({
-                Title = "UI Hidden",
-                Content = "Press [" .. (GaphopUI.ToggleKey and GaphopUI.ToggleKey.Name or "K") .. "] to show again",
-                Duration = 3,
-            })
-        end
-    end
-end
-
--- ============================================================
--- 17. APPLY THEME
--- ============================================================
-function GaphopUI:ApplyTheme(name)
-    if not GaphopUI.Themes[name] then return end
-    GaphopUI.CurrentTheme = name
-    local theme = GaphopUI.Themes[name]
-    -- Live retint is handled by registered elements + glass refresh
-    if GaphopUI.WindowInstance then
-        -- Force re-apply glass on main surfaces
-        for _, desc in ipairs(GaphopUI.WindowInstance:GetDescendants()) do
-            if desc:IsA("Frame") and desc:GetAttribute("GaphopGlass") then
-                ApplyLiquidGlass(desc, theme, { Radius = desc:GetAttribute("GlassRadius") or 12 })
-            end
-        end
-    end
-    DebouncedSave()
-end
-
-function GaphopUI:ToggleRGB(state)
-    if state == nil then state = not GaphopUI.RGBEnabled end
-    GaphopUI.RGBEnabled = state
-    if state then StartDispatcher() else -- RGB stops automatically when flag is false
-    end
-    DebouncedSave()
-end
-
-function GaphopUI:FilterElements(query)
-    query = (query or ""):lower()
-    for _, el in ipairs(GaphopUI.Elements) do
-        if el.Card and el.Card.Parent then
-            local match = query == "" or (el.SearchText or ""):lower():find(query, 1, true)
-            el.Card.Visible = match and true or false
-        end
-    end
-end
-
--- ============================================================
--- 18. DESTROY
--- ============================================================
-function GaphopUI:Destroy()
-    DisconnectAll()
-    StopDispatcher()
-    if GaphopUI.BlurEffect then
-        pcall(function() GaphopUI.BlurEffect:Destroy() end)
-        GaphopUI.BlurEffect = nil
-    end
-    local eng = ParentUI:FindFirstChild("GaphopUI_Engine")
-    if eng then eng:Destroy() end
-    GaphopUI.WindowInstance = nil
-    GaphopUI.Elements = {}
-    GaphopUI.ActiveTweens = {}
-end
-
--- ============================================================
--- 19. ELEMENT REGISTRATION + COMMON OBJECT API
--- ============================================================
-local function RegisterElement(data)
-    table.insert(GaphopUI.Elements, data)
-    return data
-end
-
-local function MakeElementObject(base)
-    base = base or {}
-    function base:SetVisible(v)
-        if self.Card then self.Card.Visible = v end
-    end
-    function base:SetLocked(v)
-        self.Locked = v
-        if self.Card then
-            self.Card.BackgroundTransparency = v and 0.6 or (GaphopUI.Themes[GaphopUI.CurrentTheme].Glass or 0.32)
-        end
-    end
-    function base:Destroy()
-        if self.Card then self.Card:Destroy() end
-    end
-    function base:SetName(t)
-        if self.Label then self.Label.Text = t end
-    end
-    function base:SetDescription(t)
-        if self.DescLabel then self.DescLabel.Text = t end
-    end
-    base.Changed = Instance.new("BindableEvent")
-    return base
-end
-
--- ============================================================
--- 20. BIND ELEMENT METHODS (Tab methods)
--- ============================================================
+-- STREAMING_CHUNK:Binding UI Component Engine with Spring & Ripple Animations...
 local function BindElementMethods(TabObj, page, theme)
-    -- Button
+    TabObj = TabObj or {}
+
     function TabObj:makeButton(cfg)
         cfg = cfg or {}
-        local name = cfg.Name or "Button"
+        local btnName = cfg.Name or "Button"
         local callback = cfg.Callback or function() end
+
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -8, 0, 44)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.32
+        card.BackgroundTransparency = 0.26
+        card.ClipsDescendants = true
         card.Parent = page
-        ApplyLiquidGlass(card, theme, { Radius = 11, Thickness = 1, Highlight = true })
 
-        local scale = Instance.new("UIScale")
-        scale.Parent = card
-
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, -24, 1, 0)
-        label.Position = UDim2.new(0, 12, 0, 0)
-        label.BackgroundTransparency = 1
-        label.Text = name
-        label.TextColor3 = theme.Text
-        label.TextSize = 13
-        label.Font = Enum.Font.GothamMedium
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.TextTruncate = Enum.TextTruncate.AtEnd
-        label.Parent = card
+        local stroke = ApplyLiquidGlass(card, theme, {
+            Transparency = 0.26,
+            Radius = 12,
+            Thickness = 1.15,
+            StrokeTransparency = 0.42,
+            Highlight = true,
+            HighlightHeight = 1,
+            HighlightTransparency = 0.75,
+            BorderColor = theme.Border,
+            Sheen = true,
+            SheenHeight = 18,
+            Frost = true
+        })
 
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.fromScale(1, 1)
+        btn.Size = UDim2.new(1, 0, 1, 0)
         btn.BackgroundTransparency = 1
-        btn.Text = ""
+        btn.Text = btnName
+        btn.TextColor3 = theme.Text
+        btn.TextSize = 13
+        btn.Font = Enum.Font.GothamMedium
         btn.Parent = card
 
         btn.MouseEnter:Connect(function()
-            if TabObj.Locked then return end
-            Spring(scale, 0.18, { Scale = 1.02 })
-            Spring(card, 0.18, { BackgroundTransparency = 0.18 })
+            SoftSpring(card, 0.2, {BackgroundColor3 = theme.CardHover, BackgroundTransparency = 0.10, Size = UDim2.new(1, -4, 0, 46)})
+            SpringTween(stroke, 0.18, {Color = theme.Accent, Transparency = 0.22, Thickness = 1.45})
         end)
         btn.MouseLeave:Connect(function()
-            Spring(scale, 0.18, { Scale = 1 })
-            Spring(card, 0.18, { BackgroundTransparency = 0.32 })
+            SoftSpring(card, 0.22, {BackgroundColor3 = theme.Card, BackgroundTransparency = 0.26, Size = UDim2.new(1, -6, 0, 44)})
+            SpringTween(stroke, 0.2, {Color = theme.Border, Transparency = 0.42, Thickness = 1.15})
         end)
-        btn.Activated:Connect(function()
-            if TabObj.Locked then return end
-            CreateRipple(card, nil, theme.Accent)
-            Spring(scale, 0.08, { Scale = 0.97 })
-            task.delay(0.08, function() Spring(scale, 0.15, { Scale = 1 }) end)
-            SafePcall(callback)
+        btn.MouseButton1Click:Connect(function(input)
+            CreateRipple(card, input, theme.Accent)
+            PulseScale(card, 0.97, 0.16)
+            SoftSpring(card, 0.09, {Size = UDim2.new(1, -14, 0, 40)}).Completed:Connect(function()
+                SoftSpring(card, 0.2, {Size = UDim2.new(1, -6, 0, 44)})
+            end)
+            callback()
         end)
 
-        local obj = MakeElementObject({ Card = card, Label = label, Type = "button" })
-        RegisterElement({ Type = "button", Card = card, Label = label, SearchText = name, Page = page })
-        return obj
+        RegisterElement({Type = "button", Card = card, Stroke = stroke, Button = btn, SearchText = btnName, Page = page})
     end
     TabObj.CreateButton = TabObj.makeButton
     TabObj.AddButton = TabObj.makeButton
 
-    -- Toggle (liquid knob)
     function TabObj:makeToggle(cfg)
         cfg = cfg or {}
         local name = cfg.Name or "Toggle"
-        local current = cfg.CurrentValue
-        if current == nil then current = false end
-        if cfg.Flag and GaphopUI.Flags[cfg.Flag] ~= nil then current = GaphopUI.Flags[cfg.Flag] end
-        local callback = cfg.Callback or function() end
+        local state = cfg.CurrentValue or false
         local flag = cfg.Flag
+        local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -8, 0, 44)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.32
+        card.BackgroundTransparency = 0.26
+        card.ClipsDescendants = true
         card.Parent = page
-        ApplyLiquidGlass(card, theme, { Radius = 11 })
+
+        local stroke = ApplyLiquidGlass(card, theme, {
+            Transparency = 0.26,
+            Radius = 12,
+            Thickness = 1.1,
+            StrokeTransparency = 0.45,
+            Highlight = true,
+            HighlightHeight = 1,
+            BorderColor = theme.Border
+        })
 
         local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, -80, 1, 0)
-        label.Position = UDim2.new(0, 12, 0, 0)
+        label.Size = UDim2.new(1, -64, 1, 0)
+        label.Position = UDim2.new(0, 14, 0, 0)
         label.BackgroundTransparency = 1
         label.Text = name
         label.TextColor3 = theme.Text
         label.TextSize = 13
         label.Font = Enum.Font.Gotham
         label.TextXAlignment = Enum.TextXAlignment.Left
-        label.TextTruncate = Enum.TextTruncate.AtEnd
         label.Parent = card
 
-        local track = Instance.new("Frame")
-        track.Size = UDim2.fromOffset(44, 24)
-        track.Position = UDim2.new(1, -56, 0.5, -12)
-        track.BackgroundColor3 = current and theme.Accent or theme.SliderBar
-        track.Parent = card
-        Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
+        local switchBg = Instance.new("TextButton")
+        switchBg.Size = UDim2.new(0, 46, 0, 24)
+        switchBg.Position = UDim2.new(1, -58, 0.5, -12)
+        switchBg.BackgroundColor3 = state and theme.ToggleOn or theme.ToggleOff
+        switchBg.Text = ""
+        switchBg.Parent = card
+        CreateCorner(switchBg, 13)
+        CreateStroke(switchBg, Color3.fromRGB(255,255,255), 1, 0.82)
 
         local knob = Instance.new("Frame")
-        knob.Size = UDim2.fromOffset(20, 20)
-        knob.Position = current and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
-        knob.BackgroundColor3 = Color3.new(1, 1, 1)
-        knob.Parent = track
-        Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+        knob.Size = UDim2.new(0, 18, 0, 18)
+        knob.Position = state and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+        knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        knob.Parent = switchBg
+        CreateCorner(knob, 11)
 
-        local function setState(val, animate)
-            current = val
-            if flag then GaphopUI.Flags[flag] = val end
-            local targetPos = val and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
-            local targetCol = val and theme.Accent or theme.SliderBar
-            if animate and GaphopUI.Settings.Effects then
-                -- stretch
-                Spring(knob, 0.12, { Size = UDim2.fromOffset(26, 18) })
-                task.delay(0.1, function()
-                    Spring(knob, 0.2, { Size = UDim2.fromOffset(20, 20), Position = targetPos })
-                end)
-                Spring(track, 0.25, { BackgroundColor3 = targetCol })
-            else
-                knob.Position = targetPos
-                track.BackgroundColor3 = targetCol
-            end
-            SafePcall(callback, val)
+        local function SetToggleState(newState)
+            state = newState
+            if flag then GaphopUI.Flags[flag] = state end
+            SpringTween(switchBg, 0.22, {BackgroundColor3 = state and theme.ToggleOn or theme.ToggleOff})
+            SpringTween(knob, 0.26, {Position = state and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)}, Enum.EasingStyle.Back)
+            SoftSpring(card, 0.15, {BackgroundTransparency = 0.18}).Completed:Connect(function()
+                SoftSpring(card, 0.2, {BackgroundTransparency = 0.26})
+            end)
+            callback(state)
         end
 
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.fromScale(1, 1)
-        btn.BackgroundTransparency = 1
-        btn.Text = ""
-        btn.Parent = card
-        btn.Activated:Connect(function()
-            setState(not current, true)
-            DebouncedSave()
+        switchBg.MouseButton1Click:Connect(function(input)
+            CreateRipple(card, input, theme.Accent)
+            SetToggleState(not state)
         end)
+        if flag then GaphopUI.Flags[flag] = state end
 
-        local obj = MakeElementObject({ Card = card, Label = label, Type = "toggle" })
-        function obj:Set(v) setState(v, true) end
-        function obj:Get() return current end
-        RegisterElement({ Type = "toggle", Card = card, Label = label, SearchText = name, Page = page })
-        return obj
+        RegisterElement({Type = "toggle", Card = card, Stroke = stroke, Label = label, ToggleBg = switchBg, ToggleKnob = knob, ToggleState = state, SearchText = name, Page = page})
     end
     TabObj.CreateToggle = TabObj.makeToggle
     TabObj.AddToggle = TabObj.makeToggle
 
-    -- Slider
     function TabObj:makeSlider(cfg)
         cfg = cfg or {}
         local name = cfg.Name or "Slider"
         local range = cfg.Range or {0, 100}
-        local min, max = range[1] or 0, range[2] or 100
-        local current = cfg.CurrentValue or min
-        if cfg.Flag and GaphopUI.Flags[cfg.Flag] ~= nil then current = GaphopUI.Flags[cfg.Flag] end
+        local minVal, maxVal = range[1] or 0, range[2] or 100
+        local val = cfg.CurrentValue or minVal
         local suffix = cfg.Suffix or ""
-        local increment = cfg.Increment or 1
-        local callback = cfg.Callback or function() end
         local flag = cfg.Flag
+        local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -8, 0, 56)
+        card.Size = UDim2.new(1, -6, 0, 56)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.32
+        card.BackgroundTransparency = 0.28
+        card.ClipsDescendants = false
         card.Parent = page
-        ApplyLiquidGlass(card, theme, { Radius = 11 })
+
+        local stroke = ApplyLiquidGlass(card, theme, {
+            Transparency = 0.28,
+            Radius = 12,
+            Thickness = 1.1,
+            StrokeTransparency = 0.48,
+            Highlight = true,
+            HighlightHeight = 1,
+            BorderColor = theme.Border
+        })
 
         local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0.6, 0, 0, 20)
-        label.Position = UDim2.new(0, 12, 0, 6)
+        label.Size = UDim2.new(1, -80, 0, 22)
+        label.Position = UDim2.new(0, 14, 0, 5)
         label.BackgroundTransparency = 1
         label.Text = name
         label.TextColor3 = theme.Text
@@ -1525,104 +3572,129 @@ local function BindElementMethods(TabObj, page, theme)
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.Parent = card
 
-        local valueL = Instance.new("TextLabel")
-        valueL.Size = UDim2.new(0.35, 0, 0, 20)
-        valueL.Position = UDim2.new(0.62, 0, 0, 6)
-        valueL.BackgroundTransparency = 1
-        valueL.Text = tostring(current) .. suffix
-        valueL.TextColor3 = theme.Accent
-        valueL.TextSize = 12
-        valueL.Font = Enum.Font.GothamBold
-        valueL.TextXAlignment = Enum.TextXAlignment.Right
-        valueL.Parent = card
+        local valLabel = Instance.new("TextLabel")
+        valLabel.Size = UDim2.new(0, 60, 0, 22)
+        valLabel.Position = UDim2.new(1, -74, 0, 5)
+        valLabel.BackgroundTransparency = 1
+        valLabel.Text = tostring(val) .. suffix
+        valLabel.TextColor3 = theme.Accent
+        valLabel.TextSize = 12
+        valLabel.Font = Enum.Font.GothamBold
+        valLabel.TextXAlignment = Enum.TextXAlignment.Right
+        valLabel.Parent = card
 
-        local bar = Instance.new("Frame")
-        bar.Size = UDim2.new(1, -24, 0, 6)
-        bar.Position = UDim2.new(0, 12, 0, 36)
-        bar.BackgroundColor3 = theme.SliderBar
-        bar.Parent = card
-        Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
+        local sliderTrack = Instance.new("Frame")
+        sliderTrack.Size = UDim2.new(1, -28, 0, 8)
+        sliderTrack.Position = UDim2.new(0, 14, 0, 36)
+        sliderTrack.BackgroundColor3 = theme.SliderBar
+        sliderTrack.BackgroundTransparency = 0.18
+        sliderTrack.Parent = card
+        CreateCorner(sliderTrack, 5)
+        CreateStroke(sliderTrack, theme.Border, 1, 0.7)
 
-        local fill = Instance.new("Frame")
-        fill.Size = UDim2.new((current - min) / (max - min), 0, 1, 0)
-        fill.BackgroundColor3 = theme.Accent
-        fill.Parent = bar
-        Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+        local initPercent = (val - minVal) / math.max(1, (maxVal - minVal))
+        local sliderFill = Instance.new("Frame")
+        sliderFill.Size = UDim2.new(math.clamp(initPercent, 0, 1), 0, 1, 0)
+        sliderFill.BackgroundColor3 = theme.Accent
+        sliderFill.Parent = sliderTrack
+        CreateCorner(sliderFill, 4)
 
-        local knob = Instance.new("Frame")
-        knob.Size = UDim2.fromOffset(16, 16)
-        knob.AnchorPoint = Vector2.new(0.5, 0.5)
-        knob.Position = UDim2.new((current - min) / (max - min), 0, 0.5, 0)
-        knob.BackgroundColor3 = Color3.new(1, 1, 1)
-        knob.Parent = bar
-        Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+        -- Soft glass knob indicator on fill end
+        local fillKnob = Instance.new("Frame")
+        fillKnob.Size = UDim2.new(0, 14, 0, 14)
+        fillKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+        fillKnob.Position = UDim2.new(1, 0, 0.5, 0)
+        fillKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        fillKnob.Parent = sliderFill
+        CreateCorner(fillKnob, 8)
+        CreateStroke(fillKnob, theme.Accent, 1.2, 0.3)
+
+        local tooltip = Instance.new("Frame")
+        tooltip.Size = UDim2.new(0, 40, 0, 20)
+        tooltip.AnchorPoint = Vector2.new(0.5, 1)
+        tooltip.Position = UDim2.new(initPercent, 0, 0, -8)
+        tooltip.BackgroundColor3 = theme.Header
+        tooltip.Visible = false
+        tooltip.ZIndex = 20
+        tooltip.Parent = sliderTrack
+        CreateCorner(tooltip, 6)
+        CreateStroke(tooltip, theme.Accent, 1.1, 0.35)
+
+        local tooltipText = Instance.new("TextLabel")
+        tooltipText.Size = UDim2.fromScale(1, 1)
+        tooltipText.BackgroundTransparency = 1
+        tooltipText.Text = tostring(val)
+        tooltipText.TextColor3 = theme.Text
+        tooltipText.TextSize = 10
+        tooltipText.Font = Enum.Font.GothamBold
+        tooltipText.Parent = tooltip
 
         local dragging = false
-        local function update(val, fire)
-            val = math.clamp(math.floor(val / increment + 0.5) * increment, min, max)
-            current = val
-            local alpha = (val - min) / (max - min)
-            fill.Size = UDim2.new(alpha, 0, 1, 0)
-            knob.Position = UDim2.new(alpha, 0, 0.5, 0)
-            valueL.Text = tostring(val) .. suffix
-            if flag then GaphopUI.Flags[flag] = val end
-            if fire then SafePcall(callback, val) end
+        local function UpdateSlider(input)
+            local pos = math.clamp((input.Position.X - sliderTrack.AbsolutePosition.X) / sliderTrack.AbsoluteSize.X, 0, 1)
+            local calculated = math.floor(minVal + (maxVal - minVal) * pos)
+
+            SpringTween(sliderFill, 0.08, { Size = UDim2.new(pos, 0, 1, 0) }, Enum.EasingStyle.Sine)
+            tooltip.Position = UDim2.new(pos, 0, 0, -6)
+            tooltipText.Text = tostring(calculated)
+            valLabel.Text = tostring(calculated) .. suffix
+
+            if flag then GaphopUI.Flags[flag] = calculated end
+            callback(calculated)
         end
 
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.fromScale(1, 1)
-        btn.BackgroundTransparency = 1
-        btn.Text = ""
-        btn.Parent = card
-
-        btn.InputBegan:Connect(function(input)
+        sliderTrack.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = true
-                Spring(knob, 0.12, { Size = UDim2.fromOffset(20, 20) })
+                tooltip.Visible = true
+                UpdateSlider(input)
             end
         end)
-        AddConnection(UserInputService.InputEnded:Connect(function(input)
-            if dragging and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                UpdateSlider(input)
+            end
+        end)
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = false
-                Spring(knob, 0.15, { Size = UDim2.fromOffset(16, 16) })
-                DebouncedSave()
+                tooltip.Visible = false
             end
-        end))
-        AddConnection(UserInputService.InputChanged:Connect(function(input)
-            if not dragging then return end
-            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                local rel = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-                update(min + rel * (max - min), true)
-            end
-        end))
+        end)
 
-        local obj = MakeElementObject({ Card = card, Label = label, Type = "slider" })
-        function obj:Set(v) update(v, true) end
-        function obj:Get() return current end
-        RegisterElement({ Type = "slider", Card = card, Label = label, SearchText = name, Page = page })
-        return obj
+        RegisterElement({Type = "slider", Card = card, Stroke = stroke, Label = label, SliderTrack = sliderTrack, SliderFill = sliderFill, ValueLabel = valLabel, SearchText = name, Page = page})
     end
     TabObj.CreateSlider = TabObj.makeSlider
     TabObj.AddSlider = TabObj.makeSlider
 
-    -- Input
     function TabObj:makeInput(cfg)
         cfg = cfg or {}
         local name = cfg.Name or "Input"
-        local placeholder = cfg.PlaceholderText or ""
+        local placeholder = cfg.PlaceholderText or "Type here..."
         local callback = cfg.Callback or function() end
-        local live = cfg.LiveUpdate
-        local clearAfter = cfg.RemoveTextAfterFocusLost
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -8, 0, 44)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
         card.BackgroundTransparency = 0.32
+        card.ClipsDescendants = true
         card.Parent = page
-        ApplyLiquidGlass(card, theme, { Radius = 11 })
+
+        local stroke = ApplyLiquidGlass(card, theme, {
+            Transparency = 0.32,
+            Radius = 11,
+            Thickness = 1.1,
+            StrokeTransparency = 0.45,
+            Highlight = true,
+            HighlightHeight = 1,
+            Sheen = true,
+            SheenHeight = 18,
+            Frost = true,
+            BorderColor = theme.Border
+        })
 
         local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0.35, 0, 1, 0)
+        label.Size = UDim2.new(0, 150, 1, 0)
         label.Position = UDim2.new(0, 12, 0, 0)
         label.BackgroundTransparency = 1
         label.Text = name
@@ -1632,59 +3704,63 @@ local function BindElementMethods(TabObj, page, theme)
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.Parent = card
 
-        local box = Instance.new("TextBox")
-        box.Size = UDim2.new(0.55, 0, 0, 28)
-        box.Position = UDim2.new(0.4, 0, 0.5, -14)
-        box.BackgroundColor3 = theme.InputBackground
-        box.Text = ""
-        box.PlaceholderText = placeholder
-        box.TextColor3 = theme.Text
-        box.PlaceholderColor3 = theme.SubText
-        box.TextSize = 12
-        box.Font = Enum.Font.Gotham
-        box.ClearTextOnFocus = false
-        box.Parent = card
-        Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
+        local textBox = Instance.new("TextBox")
+        textBox.Size = UDim2.new(0, 160, 0, 26)
+        textBox.Position = UDim2.new(1, -172, 0.5, -13)
+        textBox.BackgroundColor3 = theme.InputBackground
+        textBox.Text = ""
+        textBox.PlaceholderText = placeholder
+        textBox.TextColor3 = theme.Text
+        textBox.PlaceholderColor3 = theme.SubText
+        textBox.TextSize = 12
+        textBox.Font = Enum.Font.Gotham
+        textBox.Parent = card
+        CreateCorner(textBox, 6)
+        local boxStroke = CreateStroke(textBox, theme.Border, 1, 0.4)
 
-        box.FocusLost:Connect(function(enter)
-            SafePcall(callback, box.Text)
-            if clearAfter then box.Text = "" end
+        textBox.Focused:Connect(function()
+            SpringTween(boxStroke, 0.2, {Color = theme.Accent, Transparency = 0.1})
         end)
-        if live then
-            box:GetPropertyChangedSignal("Text"):Connect(function()
-                SafePcall(callback, box.Text)
-            end)
-        end
+        textBox.FocusLost:Connect(function()
+            SpringTween(boxStroke, 0.2, {Color = theme.Border, Transparency = 0.4})
+            callback(textBox.Text)
+        end)
 
-        local obj = MakeElementObject({ Card = card, Label = label, Type = "input" })
-        function obj:Set(t) box.Text = tostring(t) end
-        function obj:Get() return box.Text end
-        RegisterElement({ Type = "input", Card = card, Label = label, SearchText = name, Page = page })
-        return obj
+        RegisterElement({Type = "input", Card = card, Stroke = stroke, Label = label, Input = textBox, SearchText = name, Page = page})
     end
     TabObj.CreateInput = TabObj.makeInput
     TabObj.AddInput = TabObj.makeInput
 
-    -- Dropdown (simplified solid implementation)
     function TabObj:makeDropdown(cfg)
         cfg = cfg or {}
         local name = cfg.Name or "Dropdown"
         local options = cfg.Options or {}
-        local current = cfg.CurrentOption or options[1]
-        if cfg.Flag and GaphopUI.Flags[cfg.Flag] ~= nil then current = GaphopUI.Flags[cfg.Flag] end
-        local callback = cfg.Callback or function() end
+        local current = cfg.CurrentOption or options[1] or ""
         local flag = cfg.Flag
-        local multi = cfg.MultipleOptions
+        local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -8, 0, 44)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
         card.BackgroundTransparency = 0.32
+        card.ClipsDescendants = true
         card.Parent = page
-        ApplyLiquidGlass(card, theme, { Radius = 11 })
+
+        local stroke = ApplyLiquidGlass(card, theme, {
+            Transparency = 0.32,
+            Radius = 11,
+            Thickness = 1.1,
+            StrokeTransparency = 0.45,
+            Highlight = true,
+            HighlightHeight = 1,
+            Sheen = true,
+            SheenHeight = 18,
+            Frost = true,
+            BorderColor = theme.Border
+        })
 
         local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0.4, 0, 1, 0)
+        label.Size = UDim2.new(0, 150, 0, 42)
         label.Position = UDim2.new(0, 12, 0, 0)
         label.BackgroundTransparency = 1
         label.Text = name
@@ -1695,98 +3771,87 @@ local function BindElementMethods(TabObj, page, theme)
         label.Parent = card
 
         local dropBtn = Instance.new("TextButton")
-        dropBtn.Size = UDim2.new(0.5, 0, 0, 28)
-        dropBtn.Position = UDim2.new(0.45, 0, 0.5, -14)
+        dropBtn.Size = UDim2.new(0, 150, 0, 26)
+        dropBtn.Position = UDim2.new(1, -162, 0, 8)
         dropBtn.BackgroundColor3 = theme.InputBackground
-        dropBtn.Text = tostring(current) .. "  ▾"
+        dropBtn.Text = tostring(current) .. "   " .. GaphopUI.Icons.chevron
         dropBtn.TextColor3 = theme.Text
         dropBtn.TextSize = 12
         dropBtn.Font = Enum.Font.Gotham
         dropBtn.Parent = card
-        Instance.new("UICorner", dropBtn).CornerRadius = UDim.new(0, 6)
+        CreateCorner(dropBtn, 6)
 
-        -- Popup created on demand in ScreenGui top layer
-        local popup
-        local function closePopup()
-            if popup then
-                SoftSpring(popup, 0.2, { Size = UDim2.fromOffset(popup.AbsoluteSize.X, 0) })
-                task.delay(0.22, function() if popup then popup:Destroy() popup = nil end end)
-            end
-        end
-
-        dropBtn.Activated:Connect(function()
-            if popup then closePopup() return end
-            local gui = ParentUI:FindFirstChild("GaphopUI_Engine")
-            if not gui then return end
-            popup = Instance.new("Frame")
-            popup.Size = UDim2.fromOffset(math.max(180, dropBtn.AbsoluteSize.X), 0)
-            popup.Position = UDim2.fromOffset(dropBtn.AbsolutePosition.X, dropBtn.AbsolutePosition.Y + dropBtn.AbsoluteSize.Y + 4)
-            popup.BackgroundColor3 = theme.Card
-            popup.BackgroundTransparency = 0.15
-            popup.ZIndex = 250
-            popup.ClipsDescendants = true
-            popup.Parent = gui
-            ApplyLiquidGlass(popup, theme, { Radius = 10 })
-
-            local list = Instance.new("UIListLayout")
-            list.Parent = popup
-            for _, opt in ipairs(options) do
-                local optBtn = Instance.new("TextButton")
-                optBtn.Size = UDim2.new(1, 0, 0, 32)
-                optBtn.BackgroundTransparency = 1
-                optBtn.Text = "  " .. tostring(opt)
-                optBtn.TextColor3 = theme.Text
-                optBtn.TextSize = 12
-                optBtn.Font = Enum.Font.Gotham
-                optBtn.TextXAlignment = Enum.TextXAlignment.Left
-                optBtn.ZIndex = 251
-                optBtn.Parent = popup
-                optBtn.MouseEnter:Connect(function()
-                    optBtn.BackgroundTransparency = 0.7
-                    optBtn.BackgroundColor3 = theme.Accent
-                end)
-                optBtn.MouseLeave:Connect(function()
-                    optBtn.BackgroundTransparency = 1
-                end)
-                optBtn.Activated:Connect(function()
-                    current = opt
-                    dropBtn.Text = tostring(opt) .. "  ▾"
-                    if flag then GaphopUI.Flags[flag] = opt end
-                    SafePcall(callback, opt)
-                    closePopup()
-                    DebouncedSave()
-                end)
-            end
-            SoftSpring(popup, 0.25, { Size = UDim2.fromOffset(popup.AbsoluteSize.X, #options * 32 + 4) })
+        local isOpen = false
+        dropBtn.MouseButton1Click:Connect(function(input)
+            CreateRipple(dropBtn, input)
+            isOpen = not isOpen
+            SoftSpring(card, 0.4, {
+                Size = UDim2.new(1, -6, 0, isOpen and (50 + #options * 30) or 44)
+            })
         end)
 
-        local obj = MakeElementObject({ Card = card, Label = label, Type = "dropdown" })
-        function obj:Set(v) current = v; dropBtn.Text = tostring(v) .. "  ▾" end
-        function obj:Get() return current end
-        RegisterElement({ Type = "dropdown", Card = card, Label = label, SearchText = name, Page = page })
-        return obj
+        for i, opt in ipairs(options) do
+            local optBtn = Instance.new("TextButton")
+            optBtn.Size = UDim2.new(1, -24, 0, 26)
+            optBtn.Position = UDim2.new(0, 12, 0, 46 + (i - 1) * 30)
+            optBtn.BackgroundColor3 = theme.InputBackground
+            optBtn.Text = tostring(opt)
+            optBtn.TextColor3 = theme.SubText
+            optBtn.TextSize = 12
+            optBtn.Font = Enum.Font.Gotham
+            optBtn.Parent = card
+            CreateCorner(optBtn, 4)
+
+            optBtn.MouseEnter:Connect(function()
+                SpringTween(optBtn, 0.15, {TextColor3 = theme.Text, BackgroundColor3 = theme.CardHover})
+            end)
+            optBtn.MouseLeave:Connect(function()
+                SpringTween(optBtn, 0.15, {TextColor3 = theme.SubText, BackgroundColor3 = theme.InputBackground})
+            end)
+            optBtn.MouseButton1Click:Connect(function(input)
+                CreateRipple(optBtn, input)
+                current = opt
+                dropBtn.Text = tostring(current) .. "   " .. GaphopUI.Icons.chevron
+                isOpen = false
+                SoftSpring(card, 0.3, {Size = UDim2.new(1, -6, 0, 44)})
+                if flag then GaphopUI.Flags[flag] = current end
+                callback(current)
+            end)
+        end
+
+        RegisterElement({Type = "dropdown", Card = card, Stroke = stroke, Label = label, DropdownButton = dropBtn, SearchText = name, Page = page})
     end
     TabObj.CreateDropdown = TabObj.makeDropdown
     TabObj.AddDropdown = TabObj.makeDropdown
 
-    -- Keybind
     function TabObj:makeKeybind(cfg)
         cfg = cfg or {}
         local name = cfg.Name or "Keybind"
-        local current = cfg.CurrentKeybind or Enum.KeyCode.E
-        if cfg.Flag and GaphopUI.Flags[cfg.Flag] then current = GaphopUI.Flags[cfg.Flag] end
-        local callback = cfg.Callback or function() end
+        local currentKey = cfg.CurrentKeybind or Enum.KeyCode.E
         local flag = cfg.Flag
+        local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -8, 0, 44)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
         card.BackgroundTransparency = 0.32
         card.Parent = page
-        ApplyLiquidGlass(card, theme, { Radius = 11 })
+
+        local stroke = ApplyLiquidGlass(card, theme, {
+            Transparency = 0.32,
+            Radius = 11,
+            Thickness = 1.1,
+            StrokeTransparency = 0.45,
+            Highlight = true,
+            HighlightHeight = 1,
+            Sheen = true,
+            SheenHeight = 18,
+            Frost = true,
+            BorderColor = theme.Border
+        })
 
         local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0.5, 0, 1, 0)
+        label.Size = UDim2.new(0, 150, 1, 0)
         label.Position = UDim2.new(0, 12, 0, 0)
         label.BackgroundTransparency = 1
         label.Text = name
@@ -1797,69 +3862,67 @@ local function BindElementMethods(TabObj, page, theme)
         label.Parent = card
 
         local bindBtn = Instance.new("TextButton")
-        bindBtn.Size = UDim2.fromOffset(90, 28)
-        bindBtn.Position = UDim2.new(1, -102, 0.5, -14)
+        bindBtn.Size = UDim2.new(0, 84, 0, 26)
+        bindBtn.Position = UDim2.new(1, -96, 0.5, -13)
         bindBtn.BackgroundColor3 = theme.InputBackground
-        bindBtn.Text = current.Name
+        bindBtn.Text = currentKey.Name
         bindBtn.TextColor3 = theme.Text
         bindBtn.TextSize = 12
         bindBtn.Font = Enum.Font.GothamBold
         bindBtn.Parent = card
-        Instance.new("UICorner", bindBtn).CornerRadius = UDim.new(0, 6)
+        CreateCorner(bindBtn, 6)
 
-        local listening = false
-        bindBtn.Activated:Connect(function()
-            listening = true
+        local isBinding = false
+        bindBtn.MouseButton1Click:Connect(function()
+            isBinding = true
             bindBtn.Text = "..."
-            Spring(bindBtn, 0.15, { BackgroundColor3 = theme.Accent })
+            SpringTween(bindBtn, 0.2, {BackgroundColor3 = theme.Accent})
         end)
 
-        AddConnection(UserInputService.InputBegan:Connect(function(input, gp)
-            if not listening then return end
-            if input.KeyCode == Enum.KeyCode.Escape then
-                listening = false
-                bindBtn.Text = current.Name
-                Spring(bindBtn, 0.15, { BackgroundColor3 = theme.InputBackground })
-                return
+        UserInputService.InputBegan:Connect(function(input)
+            if isBinding and input.UserInputType == Enum.UserInputType.Keyboard then
+                currentKey = input.KeyCode
+                bindBtn.Text = currentKey.Name
+                isBinding = false
+                SpringTween(bindBtn, 0.2, {BackgroundColor3 = theme.InputBackground})
+                if flag then GaphopUI.Flags[flag] = currentKey end
+                callback(currentKey)
             end
-            if input.UserInputType == Enum.UserInputType.Keyboard then
-                current = input.KeyCode
-                bindBtn.Text = current.Name
-                listening = false
-                Spring(bindBtn, 0.15, { BackgroundColor3 = theme.InputBackground })
-                if flag then GaphopUI.Flags[flag] = current end
-                SafePcall(callback, current)
-                DebouncedSave()
-            end
-        end))
+        end)
 
-        local obj = MakeElementObject({ Card = card, Label = label, Type = "keybind" })
-        function obj:Set(k) current = k; bindBtn.Text = k.Name end
-        function obj:Get() return current end
-        RegisterElement({ Type = "keybind", Card = card, Label = label, SearchText = name, Page = page })
-        return obj
+        RegisterElement({Type = "keybind", Card = card, Stroke = stroke, Label = label, BindButton = bindBtn, SearchText = name, Page = page})
     end
     TabObj.CreateKeybind = TabObj.makeKeybind
     TabObj.AddKeybind = TabObj.makeKeybind
 
-    -- ColorPicker (hex + display for now; full HSV can be expanded)
     function TabObj:makeColorPicker(cfg)
         cfg = cfg or {}
-        local name = cfg.Name or "Color"
-        local current = cfg.Color or Color3.fromRGB(0, 162, 255)
-        if cfg.Flag and GaphopUI.Flags[cfg.Flag] then current = GaphopUI.Flags[cfg.Flag] end
-        local callback = cfg.Callback or function() end
+        local name = cfg.Name or "Color Picker"
+        local currentColor = cfg.Color or Color3.fromRGB(255, 255, 255)
         local flag = cfg.Flag
+        local callback = cfg.Callback or function() end
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -8, 0, 44)
+        card.Size = UDim2.new(1, -6, 0, 44)
         card.BackgroundColor3 = theme.Card
         card.BackgroundTransparency = 0.32
         card.Parent = page
-        ApplyLiquidGlass(card, theme, { Radius = 11 })
+
+        local stroke = ApplyLiquidGlass(card, theme, {
+            Transparency = 0.32,
+            Radius = 11,
+            Thickness = 1.1,
+            StrokeTransparency = 0.45,
+            Highlight = true,
+            HighlightHeight = 1,
+            Sheen = true,
+            SheenHeight = 18,
+            Frost = true,
+            BorderColor = theme.Border
+        })
 
         local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0.4, 0, 1, 0)
+        label.Size = UDim2.new(0, 150, 1, 0)
         label.Position = UDim2.new(0, 12, 0, 0)
         label.BackgroundTransparency = 1
         label.Text = name
@@ -1869,143 +3932,234 @@ local function BindElementMethods(TabObj, page, theme)
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.Parent = card
 
-        local display = Instance.new("Frame")
-        display.Size = UDim2.fromOffset(24, 24)
-        display.Position = UDim2.new(1, -36, 0.5, -12)
-        display.BackgroundColor3 = current
-        display.Parent = card
-        Instance.new("UICorner", display).CornerRadius = UDim.new(0, 6)
+        local colorDisplay = Instance.new("Frame")
+        colorDisplay.Size = UDim2.new(0, 24, 0, 24)
+        colorDisplay.Position = UDim2.new(1, -36, 0.5, -12)
+        colorDisplay.BackgroundColor3 = currentColor
+        colorDisplay.Parent = card
+        CreateCorner(colorDisplay, 6)
 
-        local hex = Instance.new("TextBox")
-        hex.Size = UDim2.fromOffset(80, 24)
-        hex.Position = UDim2.new(1, -124, 0.5, -12)
-        hex.BackgroundColor3 = theme.InputBackground
-        hex.Text = Color3ToHex(current)
-        hex.TextColor3 = theme.Text
-        hex.TextSize = 12
-        hex.Font = Enum.Font.Gotham
-        hex.Parent = card
-        Instance.new("UICorner", hex).CornerRadius = UDim.new(0, 6)
+        local hexInput = Instance.new("TextBox")
+        hexInput.Size = UDim2.new(0, 80, 0, 24)
+        hexInput.Position = UDim2.new(1, -124, 0.5, -12)
+        hexInput.BackgroundColor3 = theme.InputBackground
+        hexInput.Text = Color3ToHex(currentColor)
+        hexInput.TextColor3 = theme.Text
+        hexInput.TextSize = 12
+        hexInput.Font = Enum.Font.Gotham
+        hexInput.Parent = card
+        CreateCorner(hexInput, 6)
 
-        hex.FocusLost:Connect(function()
-            local c = HexToColor3(hex.Text)
-            if c then
-                current = c
-                display.BackgroundColor3 = c
-                if flag then GaphopUI.Flags[flag] = c end
-                SafePcall(callback, c)
-                DebouncedSave()
+        hexInput.FocusLost:Connect(function()
+            local success, newColor = pcall(function() return HexToColor3(hexInput.Text) end)
+            if success and newColor then
+                currentColor = newColor
+                colorDisplay.BackgroundColor3 = currentColor
+                if flag then GaphopUI.Flags[flag] = currentColor end
+                callback(currentColor)
             end
-            hex.Text = Color3ToHex(current)
+            hexInput.Text = Color3ToHex(currentColor)
         end)
 
-        local obj = MakeElementObject({ Card = card, Label = label, Type = "colorpicker" })
-        function obj:Set(c) current = c; display.BackgroundColor3 = c; hex.Text = Color3ToHex(c) end
-        function obj:Get() return current end
-        RegisterElement({ Type = "colorpicker", Card = card, Label = label, SearchText = name, Page = page })
-        return obj
+        RegisterElement({Type = "colorpicker", Card = card, Stroke = stroke, Label = label, Input = hexInput, ColorDisplay = colorDisplay, ColorValue = currentColor, SearchText = name, Page = page})
     end
     TabObj.CreateColorPicker = TabObj.makeColorPicker
     TabObj.AddColorPicker = TabObj.makeColorPicker
 
-    -- Label
     function TabObj:makeLabel(cfg)
         cfg = cfg or {}
-        local title = type(cfg) == "string" and cfg or (cfg.Name or "Label")
-        local desc = type(cfg) == "table" and (cfg.Label or cfg.Description) or ""
+
+        local title = cfg.Name or "Label"
+        local description = cfg.Label or cfg.Description or ""
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -8, 0, desc ~= "" and 52 or 36)
+        card.Size = UDim2.new(1, -6, 0, description ~= "" and 56 or 42)
         card.BackgroundColor3 = theme.Card
-        card.BackgroundTransparency = 0.4
+        card.BackgroundTransparency = 0.32
         card.Parent = page
-        ApplyLiquidGlass(card, theme, { Radius = 10 })
 
-        local titleL = Instance.new("TextLabel")
-        titleL.Size = UDim2.new(1, -20, 0, desc ~= "" and 20 or 36)
-        titleL.Position = UDim2.new(0, 12, 0, desc ~= "" and 6 or 0)
-        titleL.BackgroundTransparency = 1
-        titleL.Text = title
-        titleL.TextColor3 = theme.Text
-        titleL.TextSize = 13
-        titleL.Font = Enum.Font.GothamMedium
-        titleL.TextXAlignment = Enum.TextXAlignment.Left
-        titleL.Parent = card
+        local stroke = ApplyLiquidGlass(card, theme, {
+            Transparency = 0.32,
+            Radius = 10,
+            Thickness = 1.1,
+            StrokeTransparency = 0.5,
+            Highlight = true,
+            HighlightHeight = 1,
+            Sheen = true,
+            SheenHeight = 16,
+            Frost = true,
+            BorderColor = theme.Border
+        })
 
-        local descL
-        if desc ~= "" then
-            descL = Instance.new("TextLabel")
-            descL.Size = UDim2.new(1, -20, 0, 16)
-            descL.Position = UDim2.new(0, 12, 0, 28)
-            descL.BackgroundTransparency = 1
-            descL.Text = desc
-            descL.TextColor3 = theme.SubText
-            descL.TextSize = 11
-            descL.Font = Enum.Font.Gotham
-            descL.TextXAlignment = Enum.TextXAlignment.Left
-            descL.Parent = card
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Position = UDim2.new(0, 14, 0, description ~= "" and 6 or 0)
+        titleLabel.Size = UDim2.new(1, -28, 0, description ~= "" and 20 or 42)
+        titleLabel.Font = Enum.Font.GothamMedium
+        titleLabel.Text = title
+        titleLabel.TextColor3 = theme.Text
+        titleLabel.TextSize = 13
+        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        titleLabel.TextYAlignment = description ~= "" and Enum.TextYAlignment.Bottom or Enum.TextYAlignment.Center
+        titleLabel.Parent = card
+
+        local descLabel
+
+        if description ~= "" then
+            descLabel = Instance.new("TextLabel")
+            descLabel.BackgroundTransparency = 1
+            descLabel.Position = UDim2.new(0, 14, 0, 28)
+            descLabel.Size = UDim2.new(1, -28, 0, 16)
+            descLabel.Font = Enum.Font.Gotham
+            descLabel.Text = description
+            descLabel.TextColor3 = theme.SubText or Color3.fromRGB(170, 170, 170)
+            descLabel.TextSize = 11
+            descLabel.TextXAlignment = Enum.TextXAlignment.Left
+            descLabel.TextYAlignment = Enum.TextYAlignment.Top
+            descLabel.Parent = card
         end
 
-        local obj = MakeElementObject({ Card = card, Label = titleL, DescLabel = descL, Type = "label" })
-        function obj:Set(t) titleL.Text = t end
-        function obj:SetDescription(t)
-            if descL then descL.Text = t end
+        RegisterElement({
+            Type = "label",
+            Card = card,
+            Stroke = stroke,
+            Label = titleLabel,
+            Description = descLabel,
+            SearchText = title,
+            Page = page
+        })
+
+        local LabelObj = {}
+
+        function LabelObj:Set(text)
+            titleLabel.Text = text
         end
-        RegisterElement({ Type = "label", Card = card, Label = titleL, SearchText = title, Page = page })
-        return obj
+
+        function LabelObj:SetDescription(text)
+            description = text or ""
+
+            if description == "" then
+                if descLabel then
+                    descLabel:Destroy()
+                    descLabel = nil
+                end
+
+                card.Size = UDim2.new(1, -6, 0, 42)
+                titleLabel.Position = UDim2.new(0, 14, 0, 0)
+                titleLabel.Size = UDim2.new(1, -28, 1, 0)
+                titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+            else
+                if not descLabel then
+                    descLabel = Instance.new("TextLabel")
+                    descLabel.BackgroundTransparency = 1
+                    descLabel.Font = Enum.Font.Gotham
+                    descLabel.TextColor3 = theme.SubText or Color3.fromRGB(170, 170, 170)
+                    descLabel.TextSize = 11
+                    descLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    descLabel.TextYAlignment = Enum.TextYAlignment.Top
+                    descLabel.Parent = card
+                end
+
+                card.Size = UDim2.new(1, -6, 0, 56)
+                titleLabel.Position = UDim2.new(0, 14, 0, 6)
+                titleLabel.Size = UDim2.new(1, -28, 0, 20)
+                titleLabel.TextYAlignment = Enum.TextYAlignment.Bottom
+                descLabel.Position = UDim2.new(0, 14, 0, 28)
+                descLabel.Size = UDim2.new(1, -28, 0, 16)
+                descLabel.Text = description
+            end
+        end
+
+        return LabelObj
     end
     TabObj.CreateLabel = TabObj.makeLabel
     TabObj.AddLabel = TabObj.makeLabel
 
-    -- Section
     function TabObj:CreateSection(text)
         local secName = type(text) == "table" and (text.Name or text.Title) or tostring(text or "Section")
+
         local container = Instance.new("Frame")
-        container.Size = UDim2.new(1, -8, 0, 28)
+        container.Size = UDim2.new(1, -6, 0, 34)
         container.BackgroundTransparency = 1
+        container.ClipsDescendants = true
         container.Parent = page
 
-        local accent = Instance.new("Frame")
-        accent.Size = UDim2.fromOffset(3, 14)
-        accent.Position = UDim2.new(0, 4, 0.5, -7)
-        accent.BackgroundColor3 = theme.Accent
-        accent.BorderSizePixel = 0
-        accent.Parent = container
-        Instance.new("UICorner", accent).CornerRadius = UDim.new(0, 2)
+        -- Accent bar (liquid glass accent)
+        local accentBar = Instance.new("Frame")
+        accentBar.Size = UDim2.new(0, 3, 0, 16)
+        accentBar.Position = UDim2.new(0, 2, 0.5, -8)
+        accentBar.BackgroundColor3 = theme.Accent
+        accentBar.BackgroundTransparency = 0.15
+        accentBar.BorderSizePixel = 0
+        accentBar.Parent = container
+        CreateCorner(accentBar, 2)
 
-        local secL = Instance.new("TextLabel")
-        secL.Size = UDim2.new(1, -20, 1, 0)
-        secL.Position = UDim2.new(0, 14, 0, 0)
-        secL.BackgroundTransparency = 1
-        secL.Text = secName:upper()
-        secL.TextColor3 = theme.Accent
-        secL.TextSize = 11
-        secL.Font = Enum.Font.GothamBold
-        secL.TextXAlignment = Enum.TextXAlignment.Left
-        secL.Parent = container
+        local secLabel = Instance.new("TextLabel")
+        secLabel.Size = UDim2.new(1, -48, 1, 0)
+        secLabel.Position = UDim2.new(0, 14, 0, 0)
+        secLabel.BackgroundTransparency = 1
+        secLabel.Text = secName:upper()
+        secLabel.TextColor3 = theme.Accent
+        secLabel.TextSize = 11
+        secLabel.Font = Enum.Font.GothamBold
+        secLabel.TextXAlignment = Enum.TextXAlignment.Left
+        secLabel.TextYAlignment = Enum.TextYAlignment.Center
+        secLabel.Parent = container
 
-        RegisterElement({ Type = "section", Card = container, Label = secL, SearchText = secName, Page = page })
+        -- Soft glass divider line
+        local divider = Instance.new("Frame")
+        divider.Size = UDim2.new(1, -20, 0, 1)
+        divider.Position = UDim2.new(0, 10, 1, -1)
+        divider.BackgroundColor3 = theme.Border
+        divider.BackgroundTransparency = 0.55
+        divider.BorderSizePixel = 0
+        divider.Parent = container
+
+        -- Subtle entrance
+        container.BackgroundTransparency = 1
+        SoftSpring(accentBar, 0.45, {BackgroundTransparency = 0.15})
+
+        RegisterElement({
+            Type = "section",
+            Card = container,
+            Label = secLabel,
+            Accent = accentBar,
+            SearchText = secName,
+            Page = page
+        })
+
         return container
     end
     TabObj.makeSection = TabObj.CreateSection
     TabObj.AddSection = TabObj.CreateSection
 
-    -- Paragraph
     function TabObj:CreateParagraph(cfg)
-        cfg = type(cfg) == "string" and { Title = cfg } or (cfg or {})
+        cfg = cfg or {}
         local titleText = cfg.Title or cfg.Name or "Paragraph"
         local contentText = cfg.Content or ""
 
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, -8, 0, 64)
+        card.Size = UDim2.new(1, -6, 0, 64)
         card.BackgroundColor3 = theme.Card
         card.BackgroundTransparency = 0.38
         card.Parent = page
-        ApplyLiquidGlass(card, theme, { Radius = 11 })
+
+        local stroke = ApplyLiquidGlass(card, theme, {
+            Transparency = 0.32,
+            Radius = 11,
+            Thickness = 1.1,
+            StrokeTransparency = 0.45,
+            Highlight = true,
+            HighlightHeight = 1,
+            Sheen = true,
+            SheenHeight = 18,
+            Frost = true,
+            BorderColor = theme.Border
+        })
 
         local pTitle = Instance.new("TextLabel")
-        pTitle.Size = UDim2.new(1, -20, 0, 20)
-        pTitle.Position = UDim2.new(0, 12, 0, 8)
+        pTitle.Size = UDim2.new(1, -20, 0, 22)
+        pTitle.Position = UDim2.new(0, 10, 0, 6)
         pTitle.BackgroundTransparency = 1
         pTitle.Text = titleText
         pTitle.TextColor3 = theme.Text
@@ -2016,7 +4170,7 @@ local function BindElementMethods(TabObj, page, theme)
 
         local pContent = Instance.new("TextLabel")
         pContent.Size = UDim2.new(1, -20, 0, 28)
-        pContent.Position = UDim2.new(0, 12, 0, 30)
+        pContent.Position = UDim2.new(0, 10, 0, 26)
         pContent.BackgroundTransparency = 1
         pContent.Text = contentText
         pContent.TextColor3 = theme.SubText
@@ -2026,259 +4180,560 @@ local function BindElementMethods(TabObj, page, theme)
         pContent.TextXAlignment = Enum.TextXAlignment.Left
         pContent.Parent = card
 
-        RegisterElement({ Type = "paragraph", Card = card, Label = pTitle, SearchText = titleText, Page = page })
+        RegisterElement({Type = "paragraph", Card = card, Stroke = stroke, Label = pTitle, SubLabel = pContent, SearchText = titleText .. " " .. contentText, Page = page})
     end
     TabObj.makeParagraph = TabObj.CreateParagraph
     TabObj.AddParagraph = TabObj.CreateParagraph
 
-    -- Divider / Row stubs for API completeness
-    function TabObj:CreateDivider()
-        local d = Instance.new("Frame")
-        d.Size = UDim2.new(1, -8, 0, 1)
-        d.BackgroundColor3 = theme.Border
-        d.BackgroundTransparency = 0.6
-        d.BorderSizePixel = 0
-        d.Parent = page
-        return d
-    end
-
-    function TabObj:CreateRow()
-        local row = Instance.new("Frame")
-        row.Size = UDim2.new(1, -8, 0, 44)
-        row.BackgroundTransparency = 1
-        row.Parent = page
-        local layout = Instance.new("UIListLayout")
-        layout.FillDirection = Enum.FillDirection.Horizontal
-        layout.Padding = UDim.new(0, 8)
-        layout.Parent = row
-        return row
-    end
-
     return TabObj
 end
 
--- ============================================================
--- 21. MAIN WINDOW
--- ============================================================
-local ScreenGui
-local function EnsureScreenGui()
-    if ScreenGui and ScreenGui.Parent then return ScreenGui end
-    ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "GaphopUI_Engine"
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.IgnoreGuiInset = true
-    ScreenGui.Parent = ParentUI
-    return ScreenGui
+-- STREAMING_CHUNK:Building Animated Loading Splash Screen Engine (Liquid Glass)...
+local function CreateLoadingScreen(titleText, subtitleText, callback)
+    local theme = GaphopUI.Themes[GaphopUI.CurrentTheme]
+
+    -- Dim backdrop
+    local backdrop = Instance.new("Frame")
+    backdrop.Name = "GaphopLoadingBackdrop"
+    backdrop.Size = UDim2.fromScale(1, 1)
+    backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    backdrop.BackgroundTransparency = 1
+    backdrop.ZIndex = 99
+    backdrop.Parent = ScreenGui
+    Tween(backdrop, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {BackgroundTransparency = 0.45})
+
+    local splash = Instance.new("Frame")
+    splash.Name = "GaphopLoadingSplash"
+    splash.Size = UDim2.new(0, 0, 0, 0)
+    splash.AnchorPoint = Vector2.new(0.5, 0.5)
+    splash.Position = UDim2.fromScale(0.5, 0.5)
+    splash.BackgroundColor3 = theme.Background
+    splash.BackgroundTransparency = 0.22
+    splash.ClipsDescendants = true
+    splash.ZIndex = 100
+    splash.Parent = ScreenGui
+
+    CreateCorner(splash, 20)
+    local glassStroke = CreateStroke(splash, theme.Accent, 1.6, 0.35)
+
+    -- Soft inner glow layer (liquid glass feel)
+    local innerGlow = Instance.new("Frame")
+    innerGlow.Size = UDim2.new(1, -16, 1, -16)
+    innerGlow.Position = UDim2.new(0, 8, 0, 8)
+    innerGlow.BackgroundColor3 = theme.Card
+    innerGlow.BackgroundTransparency = 0.72
+    innerGlow.ZIndex = 100
+    innerGlow.Parent = splash
+    CreateCorner(innerGlow, 14)
+
+    -- Animated orb / pulse
+    local orb = Instance.new("Frame")
+    orb.Size = UDim2.fromOffset(48, 48)
+    orb.AnchorPoint = Vector2.new(0.5, 0)
+    orb.Position = UDim2.new(0.5, 0, 0, 28)
+    orb.BackgroundColor3 = theme.Accent
+    orb.BackgroundTransparency = 0.35
+    orb.ZIndex = 101
+    orb.Parent = splash
+    CreateCorner(orb, 24)
+
+    local orbCore = Instance.new("Frame")
+    orbCore.Size = UDim2.fromOffset(22, 22)
+    orbCore.AnchorPoint = Vector2.new(0.5, 0.5)
+    orbCore.Position = UDim2.fromScale(0.5, 0.5)
+    orbCore.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    orbCore.BackgroundTransparency = 0.55
+    orbCore.ZIndex = 102
+    orbCore.Parent = orb
+    CreateCorner(orbCore, 12)
+
+    -- Pulse animation
+    local pulseConn
+    pulseConn = RunService.RenderStepped:Connect(function()
+        if not orb or not orb.Parent then
+            if pulseConn then pulseConn:Disconnect() end
+            return
+        end
+        local t = tick()
+        local scale = 1 + math.sin(t * 3.2) * 0.08
+        orb.Size = UDim2.fromOffset(48 * scale, 48 * scale)
+        orb.BackgroundTransparency = 0.28 + math.sin(t * 2.4) * 0.12
+    end)
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -24, 0, 28)
+    title.Position = UDim2.new(0, 12, 0, 88)
+    title.BackgroundTransparency = 1
+    title.Text = titleText or "GaphopUI Engine"
+    title.TextColor3 = theme.Text
+    title.TextSize = 18
+    title.Font = Enum.Font.GothamBold
+    title.ZIndex = 101
+    title.Parent = splash
+
+    local sub = Instance.new("TextLabel")
+    sub.Size = UDim2.new(1, -24, 0, 20)
+    sub.Position = UDim2.new(0, 12, 0, 116)
+    sub.BackgroundTransparency = 1
+    sub.Text = subtitleText or "Loading modules..."
+    sub.TextColor3 = theme.SubText
+    sub.TextSize = 12
+    sub.Font = Enum.Font.Gotham
+    sub.ZIndex = 101
+    sub.Parent = splash
+
+    local status = Instance.new("TextLabel")
+    status.Size = UDim2.new(1, -24, 0, 16)
+    status.Position = UDim2.new(0, 12, 0, 138)
+    status.BackgroundTransparency = 1
+    status.Text = "Initializing..."
+    status.TextColor3 = theme.Accent
+    status.TextSize = 11
+    status.Font = Enum.Font.GothamMedium
+    status.ZIndex = 101
+    status.Parent = splash
+
+    local barBg = Instance.new("Frame")
+    barBg.Size = UDim2.new(0.78, 0, 0, 6)
+    barBg.AnchorPoint = Vector2.new(0.5, 0)
+    barBg.Position = UDim2.new(0.5, 0, 0, 168)
+    barBg.BackgroundColor3 = theme.SliderBar
+    barBg.BackgroundTransparency = 0.25
+    barBg.BorderSizePixel = 0
+    barBg.ZIndex = 101
+    barBg.Parent = splash
+    CreateCorner(barBg, 3)
+
+    local barFill = Instance.new("Frame")
+    barFill.Size = UDim2.new(0, 0, 1, 0)
+    barFill.BackgroundColor3 = theme.Accent
+    barFill.BorderSizePixel = 0
+    barFill.ZIndex = 102
+    barFill.Parent = barBg
+    CreateCorner(barFill, 3)
+
+    -- Shimmer on progress
+    local shimmer = Instance.new("Frame")
+    shimmer.Size = UDim2.new(0.25, 0, 1, 0)
+    shimmer.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    shimmer.BackgroundTransparency = 0.7
+    shimmer.ZIndex = 103
+    shimmer.Parent = barFill
+    CreateCorner(shimmer, 3)
+
+    -- Entrance scale pop
+    SoftSpring(splash, 0.55, {
+        Size = UDim2.new(0, 360, 0, 210)
+    })
+
+    local statuses = {
+        "Initializing core...",
+        "Loading themes...",
+        "Preparing glass layers...",
+        "Almost ready..."
+    }
+    local statusIdx = 1
+    task.spawn(function()
+        while splash and splash.Parent and statusIdx <= #statuses do
+            status.Text = statuses[statusIdx]
+            statusIdx = statusIdx + 1
+            task.wait(0.28)
+        end
+    end)
+
+    local fillTween = SpringTween(barFill, 1.15, {
+        Size = UDim2.new(1, 0, 1, 0)
+    }, Enum.EasingStyle.Quint)
+
+    Tween(shimmer, TweenInfo.new(1.0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        Position = UDim2.new(0.75, 0, 0, 0)
+    })
+
+    local cleanedUp = false
+    local function FinishLoading()
+        if cleanedUp then return end
+        cleanedUp = true
+        if pulseConn then pulseConn:Disconnect() end
+        status.Text = "Ready"
+
+        if splash and splash.Parent then
+            SoftSpring(splash, 0.4, {
+                Size = UDim2.new(0, 380, 0, 0),
+                BackgroundTransparency = 1
+            })
+            Tween(backdrop, TweenInfo.new(0.35), {BackgroundTransparency = 1}).Completed:Connect(function()
+                if backdrop then backdrop:Destroy() end
+                if splash then splash:Destroy() end
+            end)
+        end
+        if callback then
+            task.delay(0.15, callback)
+        end
+    end
+
+    if fillTween then
+        fillTween.Completed:Connect(function()
+            task.wait(0.18)
+            FinishLoading()
+        end)
+    end
+    task.delay(1.55, FinishLoading)
 end
 
+-- STREAMING_CHUNK:Constructing Main Window and Dynamic Sliding Tab Indicator...
 function GaphopUI:makeWindow(cfg)
     cfg = cfg or {}
     GaphopUI.IsOpen = true
-    GaphopUI.IsMinimized = false
 
-    local winName = cfg.Name or cfg.Title or "GaphopUI"
+    if GaphopUI.WindowInstance then
+        GaphopUI.WindowInstance.Visible = true
+        GaphopUI.WindowInstance.BackgroundTransparency = 0.22
+        return GaphopUI.WindowInstance
+    end
+
+    local winName = cfg.Name or "GaphopUI"
     GaphopUI.WindowName = winName
+
+    -- Per-hub config: GaphopUI/<Window Name>/config.gpui
     local configPath, hubFolder = GetConfigPath(winName)
     GaphopUI.ConfigPath = configPath
     EnsureFolder("GaphopUI")
     EnsureFolder(hubFolder)
     LoadConfig(winName)
 
+    local windowIcon = cfg.Icon or "sparkles"
+    local showText = cfg.ShowText
+    local noLoading = cfg.NoLoading or false
+    local loadingTitle = cfg.LoadingTitle or "GaphopUI Engine"
+    local loadingSub = cfg.LoadingSubtitle or "by Gaphop"
+
+    -- Explicit keybind in makeWindow overrides saved config; otherwise keep restored / default
     if cfg.ToggleUIKeybind and Enum.KeyCode[cfg.ToggleUIKeybind] then
         GaphopUI.ToggleKey = Enum.KeyCode[cfg.ToggleUIKeybind]
+    elseif not GaphopUI.ToggleKey then
+        GaphopUI.ToggleKey = Enum.KeyCode.K
     end
 
     local theme = GaphopUI.Themes[GaphopUI.CurrentTheme] or GaphopUI.Themes.Dark
-    local isMobile = IsMobile()
+
+    -- Adaptive window size: slightly compact on mobile, full on PC
+    local isMobileDevice = IsMobile()
     local winW, winH = 720, 480
-    if isMobile then
+    if isMobileDevice then
         local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(400, 700)
         winW = math.clamp(math.floor(vp.X * 0.92), 300, 420)
         winH = math.clamp(math.floor(vp.Y * 0.72), 380, 520)
     end
 
-    EnsureScreenGui()
-
-    -- Main window with center anchor
+    local WindowObj = {}
     local WindowFrame = Instance.new("Frame")
     WindowFrame.Name = "MainWindow"
-    WindowFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    WindowFrame.Size = UDim2.fromOffset(winW, winH)
-    WindowFrame.Position = UDim2.fromScale(0.5, 0.5)
+    WindowFrame.Size = UDim2.new(0, winW, 0, winH)
+    WindowFrame.Position = UDim2.new(0.5, -winW/2, 0.5, -winH/2)
     WindowFrame.BackgroundColor3 = theme.Background
     WindowFrame.BackgroundTransparency = theme.Glass or 0.18
     WindowFrame.ClipsDescendants = true
-    WindowFrame.Visible = false
+    WindowFrame.Visible = false -- shown after loading or immediately
     WindowFrame.Parent = ScreenGui
-    WindowFrame:SetAttribute("NormalSize", UDim2.fromOffset(winW, winH))
+
+    WindowFrame:SetAttribute("NormalSize", UDim2.new(0, winW, 0, winH))
+    WindowFrame:SetAttribute("RestoreSize", UDim2.new(0, winW, 0, winH))
+    WindowFrame:SetAttribute("CenterPos", UDim2.new(0.5, -winW/2, 0.5, -winH/2))
     WindowFrame:SetAttribute("IsMaximized", false)
-    ApplyLiquidGlass(WindowFrame, theme, {
-        Radius = 20, Thickness = 1.6, Highlight = true, Sheen = true, InnerGlow = true
+
+    -- Full liquid glass treatment for main window
+    local windowStroke = ApplyLiquidGlass(WindowFrame, theme, {
+        Transparency = theme.Glass or 0.18,
+        Radius = 20,
+        Thickness = 1.6,
+        StrokeTransparency = 0.42,
+        Highlight = true,
+        HighlightHeight = 2,
+        HighlightTransparency = 0.68,
+        BorderColor = theme.Accent,
+        InnerGlow = true,
+        Sheen = true,
+        SheenHeight = 42,
+        Frost = true,
+        Shadow = true,
+        ShadowTransparency = 0.55
     })
+
     GaphopUI.WindowInstance = WindowFrame
 
-    -- Content CanvasGroup for fade
-    local contentCanvas = Instance.new("CanvasGroup")
-    contentCanvas.Name = "ContentCanvas"
-    contentCanvas.Size = UDim2.fromScale(1, 1)
-    contentCanvas.BackgroundTransparency = 1
-    contentCanvas.GroupTransparency = 0
-    contentCanvas.Parent = WindowFrame
-    local contentScale = Instance.new("UIScale")
-    contentScale.Name = "UIScale"
-    contentScale.Scale = 1
-    contentScale.Parent = contentCanvas
-
-    -- TopBar
+    -- TopBar Header (liquid glass)
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
     TopBar.Size = UDim2.new(1, 0, 0, 52)
     TopBar.BackgroundColor3 = theme.Header
-    TopBar.BackgroundTransparency = (theme.Glass or 0.2) + 0.1
-    TopBar.Parent = contentCanvas
-    ApplyLiquidGlass(TopBar, theme, { Radius = 18, Thickness = 1.1, Highlight = true })
-
-    -- Drag
-    local dragging, dragStart, startPos
-    TopBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = WindowFrame.Position
-        end
-    end)
-    AddConnection(UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end))
-    AddConnection(UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            WindowFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end))
+    TopBar.BackgroundTransparency = (theme.Glass or 0.20) + 0.10
+    TopBar.Parent = WindowFrame
+    ApplyLiquidGlass(TopBar, theme, {
+        Transparency = (theme.Glass or 0.20) + 0.10,
+        Radius = 18,
+        Thickness = 1.1,
+        StrokeTransparency = 0.55,
+        Highlight = true,
+        HighlightHeight = 1,
+        BorderColor = theme.Border,
+        BottomEdge = false,
+        Sheen = true,
+        SheenHeight = 20,
+        Frost = true,
+        Color = theme.Header
+    })
+    MakeDraggable(WindowFrame, TopBar)
 
     local titleText = Instance.new("TextLabel")
-    titleText.Size = UDim2.new(0, 260, 1, 0)
-    titleText.Position = UDim2.new(0, 42, 0, 0)
+    titleText.Size = UDim2.new(0, 220, 1, 0)
+    titleText.Position = UDim2.new(0, 40, 0, 0)
     titleText.BackgroundTransparency = 1
-    titleText.Text = (cfg.ShowText and (winName .. " · " .. cfg.ShowText)) or winName
+    titleText.Text = (showText and (winName .. " · " .. tostring(showText))) or winName
     titleText.TextColor3 = theme.Text
     titleText.TextSize = 15
     titleText.Font = Enum.Font.GothamBold
     titleText.TextXAlignment = Enum.TextXAlignment.Left
     titleText.Parent = TopBar
 
-    if cfg.Icon then
-        GaphopUI:CreateIcon(TopBar, cfg.Icon, UDim2.fromOffset(18, 18), theme.Accent, {
-            Position = UDim2.new(0, 14, 0.5, -9)
+    if windowIcon ~= nil then
+        GaphopUI:CreateIcon(TopBar, windowIcon, UDim2.new(0, 18, 0, 18), theme.Accent, {
+            Theme = theme,
+            Position = UDim2.new(0, 14, 0.5, -9),
+            TextSize = 14
         })
     end
 
-    -- Window controls
-    local function CreateTopButton(icon, cb, hoverColor)
+    local controls = Instance.new("Frame")
+    controls.Size = UDim2.new(0, 140, 1, 0)
+    controls.Position = UDim2.new(1, -145, 0, 0)
+    controls.BackgroundTransparency = 1
+    controls.Parent = TopBar
+
+    local controlsLayout = Instance.new("UIListLayout")
+    controlsLayout.FillDirection = Enum.FillDirection.Horizontal
+    controlsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    controlsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    controlsLayout.Padding = UDim.new(0, 6)
+    controlsLayout.Parent = controls
+
+    local function CreateTopButton(iconData, callback)
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.fromOffset(32, 32)
+        btn.Size = UDim2.new(0, 30, 0, 30)
         btn.BackgroundColor3 = theme.Card
         btn.BackgroundTransparency = 0.6
         btn.Text = ""
-        btn.Parent = TopBar
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-        GaphopUI:CreateIcon(btn, icon, UDim2.fromScale(1, 1), theme.SubText, { TextSize = 13 })
+        btn.Parent = controls
+        CreateCorner(btn, 8)
+
+        local icon = GaphopUI:CreateIcon(btn, iconData, UDim2.new(1, 0, 1, 0), theme.SubText, {
+            Theme = theme,
+            Position = UDim2.new(0, 0, 0, 0),
+            TextSize = 13
+        })
+
         btn.MouseEnter:Connect(function()
-            Spring(btn, 0.15, { BackgroundColor3 = hoverColor or theme.CardHover, BackgroundTransparency = 0.2 })
+            SpringTween(btn, 0.2, {BackgroundColor3 = theme.CardHover, BackgroundTransparency = 0.2})
         end)
         btn.MouseLeave:Connect(function()
-            Spring(btn, 0.15, { BackgroundColor3 = theme.Card, BackgroundTransparency = 0.6 })
+            SpringTween(btn, 0.2, {BackgroundColor3 = theme.Card, BackgroundTransparency = 0.6})
         end)
-        btn.Activated:Connect(function()
-            CreateRipple(btn)
-            cb()
+        btn.MouseButton1Click:Connect(function(input)
+            CreateRipple(btn, input)
+            PulseScale(btn, 0.88, 0.16)
+            callback()
         end)
         return btn
     end
 
-    local closeBtn = CreateTopButton("close", function()
-        if cfg.ConfirmClose then
-            GaphopUI:CreatePrompt({
-                Title = "Close UI?",
-                Content = "Are you sure you want to close this window?",
-                OnConfirm = function() GaphopUI:ToggleUI(false) end
-            })
-        else
-            GaphopUI:ToggleUI(false)
-        end
-    end, Color3.fromRGB(220, 60, 60))
-    closeBtn.Position = UDim2.new(1, -42, 0.5, -16)
-
-    local maxBtn = CreateTopButton("maximize", function()
-        local isMax = WindowFrame:GetAttribute("IsMaximized")
-        local vp = workspace.CurrentCamera.ViewportSize
-        if not isMax then
-            WindowFrame:SetAttribute("IsMaximized", true)
-            local tw = math.min(900, vp.X - 40)
-            local th = math.min(600, vp.Y - 40)
-            SoftSpring(WindowFrame, 0.4, {
-                Size = UDim2.fromOffset(tw, th),
-                Position = UDim2.fromScale(0.5, 0.5)
-            })
-            WindowFrame:SetAttribute("NormalSize", UDim2.fromOffset(tw, th))
-        else
-            WindowFrame:SetAttribute("IsMaximized", false)
-            SoftSpring(WindowFrame, 0.4, {
-                Size = UDim2.fromOffset(winW, winH),
-                Position = UDim2.fromScale(0.5, 0.5)
-            })
-            WindowFrame:SetAttribute("NormalSize", UDim2.fromOffset(winW, winH))
-        end
-    end)
-    maxBtn.Position = UDim2.new(1, -80, 0.5, -16)
-
-    -- SideBar + Content
-    local sideW = isMobile and 56 or 168
+    -- SideBar & Content Container (liquid glass)
     local SideBar = Instance.new("Frame")
     SideBar.Name = "SideBar"
-    SideBar.Size = UDim2.new(0, sideW, 1, -64)
+    SideBar.Size = UDim2.new(0, isMobileDevice and 148 or 172, 1, -64)
     SideBar.Position = UDim2.new(0, 10, 0, 56)
     SideBar.BackgroundColor3 = theme.Card
-    SideBar.BackgroundTransparency = (theme.Glass or 0.2) + 0.12
-    SideBar.Parent = contentCanvas
-    ApplyLiquidGlass(SideBar, theme, { Radius = 14, Thickness = 1.1 })
+    SideBar.BackgroundTransparency = (theme.Glass or 0.20) + 0.15
+    SideBar.Parent = WindowFrame
+    ApplyLiquidGlass(SideBar, theme, {
+        Transparency = (theme.Glass or 0.20) + 0.15,
+        Radius = 14,
+        Thickness = 1.15,
+        StrokeTransparency = 0.48,
+        Highlight = true,
+        HighlightHeight = 1,
+        BorderColor = theme.Border,
+        InnerGlow = false,
+        Sheen = true,
+        SheenHeight = 24,
+        Frost = true
+    })
 
     local tabList = Instance.new("ScrollingFrame")
-    tabList.Size = UDim2.new(1, -8, 1, -8)
-    tabList.Position = UDim2.new(0, 4, 0, 4)
+    tabList.Size = UDim2.new(1, -10, 1, -10)
+    tabList.Position = UDim2.new(0, 5, 0, 5)
     tabList.BackgroundTransparency = 1
     tabList.ScrollBarThickness = 2
+    tabList.ScrollBarImageColor3 = theme.Border
     tabList.AutomaticCanvasSize = Enum.AutomaticSize.Y
     tabList.CanvasSize = UDim2.fromOffset(0, 0)
     tabList.Parent = SideBar
+
     local tabLayout = Instance.new("UIListLayout")
     tabLayout.Padding = UDim.new(0, 4)
     tabLayout.Parent = tabList
 
+    -- Dynamic Sliding Tab Indicator Bar (liquid glass accent)
     local TabIndicator = Instance.new("Frame")
     TabIndicator.Name = "TabIndicator"
-    TabIndicator.Size = UDim2.new(1, 0, 0, 38)
+    TabIndicator.Size = UDim2.new(1, 0, 0, 36)
     TabIndicator.BackgroundColor3 = theme.Accent
     TabIndicator.BackgroundTransparency = 0.82
-    TabIndicator.Visible = false
     TabIndicator.ZIndex = 2
+    TabIndicator.Visible = false
     TabIndicator.Parent = tabList
-    Instance.new("UICorner", TabIndicator).CornerRadius = UDim.new(0, 10)
+    CreateCorner(TabIndicator, 10)
+    CreateStroke(TabIndicator, theme.Accent, 1.3, 0.35)
 
+    tabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        tabList.CanvasSize = UDim2.fromOffset(0, tabLayout.AbsoluteContentSize.Y + 10)
+    end)
+
+    local sideW = isMobileDevice and 148 or 172
     local ContentArea = Instance.new("Frame")
     ContentArea.Name = "ContentArea"
     ContentArea.Size = UDim2.new(1, -(sideW + 28), 1, -64)
     ContentArea.Position = UDim2.new(0, sideW + 22, 0, 56)
     ContentArea.BackgroundTransparency = 1
-    ContentArea.Parent = contentCanvas
+    ContentArea.Parent = WindowFrame
 
     local Tabs = {}
-    local WindowObj = {}
 
+    -- Settings Tab Page
+    local settingsPage = Instance.new("ScrollingFrame")
+    settingsPage.Size = UDim2.new(1, -10, 1, -10)
+    settingsPage.Position = UDim2.new(0, 5, 0, 5)
+    settingsPage.BackgroundTransparency = 1
+    settingsPage.Visible = false
+    settingsPage.ScrollBarThickness = 3
+    settingsPage.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    settingsPage.CanvasSize = UDim2.fromOffset(0, 0)
+    settingsPage.Parent = ContentArea
+
+    local settingsLayout = Instance.new("UIListLayout")
+    settingsLayout.Padding = UDim.new(0, 8)
+    settingsLayout.Parent = settingsPage
+
+    settingsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        settingsPage.CanvasSize = UDim2.fromOffset(0, settingsLayout.AbsoluteContentSize.Y + 10)
+    end)
+
+    local settingsBtn = CreateTopButton("settings", function()
+        for _, t in pairs(Tabs) do
+            t.Page.Visible = false
+            SpringTween(t.Label, 0.2, {TextColor3 = theme.SubText})
+        end
+        TabIndicator.Visible = false
+        settingsPage.Visible = true
+    end)
+
+
+
+    local maxBtn = CreateTopButton("maximize", function()
+        local isMax = WindowFrame:GetAttribute("IsMaximized")
+        local vpSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1200, 800)
+
+        if not isMax then
+            WindowFrame:SetAttribute("IsMaximized", true)
+            local targetWidth = math.min(860, vpSize.X - 40)
+            local targetHeight = math.min(560, vpSize.Y - 40)
+            local maxSize = UDim2.new(0, targetWidth, 0, targetHeight)
+            local maxPos = UDim2.new(0.5, -targetWidth/2, 0.5, -targetHeight/2)
+            SoftSpring(WindowFrame, 0.4, {
+                Size = maxSize,
+                Position = maxPos
+            }, Enum.EasingStyle.Quart)
+            WindowFrame:SetAttribute("CenterPos", maxPos)
+            WindowFrame:SetAttribute("NormalSize", maxSize)
+        else
+            WindowFrame:SetAttribute("IsMaximized", false)
+            local norm = WindowFrame:GetAttribute("RestoreSize") or UDim2.new(0, winW, 0, winH)
+            local restPos = UDim2.new(0.5, -norm.X.Offset/2, 0.5, -norm.Y.Offset/2)
+            SoftSpring(WindowFrame, 0.4, {
+                Size = norm,
+                Position = restPos
+            }, Enum.EasingStyle.Quart)
+            WindowFrame:SetAttribute("CenterPos", restPos)
+            WindowFrame:SetAttribute("NormalSize", norm)
+        end
+    end)
+
+
+    local closeBtn = CreateTopButton("close", function()
+        GaphopUI:ToggleUI(false)
+    end)
+
+    -- Configure Built-In Settings Controls
+    local SettingsEngine = BindElementMethods({}, settingsPage, theme)
+
+    SettingsEngine:makeDropdown({
+        Name = "UI Theme",
+        Options = {"Dark", "Midnight", "CyberNeon", "Emerald", "Ocean", "Light", "Bloom", "AmberGlow", "Amethyst", "Serenity", "Crimson", "Frost", "Twilight", "Forest", "Sunset", "Galaxy", "Arctic", "Obsidian", "Rose", "Mint", "Carbon", "Aurora", "Sakura", "Neon", "Graphite", "Blue", "Purple", "MacOS", "Velvet", "Plasma"},
+        CurrentOption = GaphopUI.CurrentTheme,
+        Callback = function(selected)
+            GaphopUI:ApplyTheme(selected)
+            SaveConfig()
+            GaphopUI:Notify({Title = "Theme Updated", Content = "Applied " .. selected .. " theme.", Duration = 3})
+        end
+    })
+
+    SettingsEngine:makeToggle({
+        Name = "Rainbow RGB Glow Mode",
+        CurrentValue = GaphopUI.RGBEnabled,
+        Callback = function(enabled)
+            GaphopUI:ToggleRGB(enabled)
+            SaveConfig()
+        end
+    })
+
+    SettingsEngine:makeKeybind({
+        Name = "Toggle Keybind",
+        CurrentKeybind = GaphopUI.ToggleKey,
+        Callback = function(key)
+            GaphopUI.ToggleKey = key
+            SaveConfig()
+            GaphopUI:Notify({Title = "Keybind Saved", Content = "UI toggle key set to " .. key.Name})
+        end
+    })
+
+    SettingsEngine:CreateParagraph({
+        Title = "About GaphopUI",
+        Content = "GaphopUI v3.4.0 Liquid Glass Ultra · by Gaphop · © 2026 · Per-hub config (GaphopUI/<Name>/config.gpui) · Enhanced liquid glass · Mobile adaptive · Smoother springs"
+    })
+    SettingsEngine:CreateButton({
+        Name = "GitHub Link",
+        Callback = function()
+            setclipboard("https://github.com/gaphop123/GaphopUI_V2")
+            GaphopUI:Notify({
+                Title = "Github Link",
+                Content = "Copied to clipboard!",
+                Duration = 4
+            })
+        end
+    })
+
+	SettingsEngine:CreateButton({
+        Name = "Destroy GaphopUI",
+        Callback = function()
+            if GaphopUI.WindowInstance then
+                GaphopUI.WindowInstance:Destroy()
+                GaphopUI.WindowInstance = nil
+            end
+            local parent = (gethui and gethui()) or game:GetService("CoreGui")
+            local eng = parent:FindFirstChild("GaphopUI_Engine")
+            if eng then eng:Destroy() end
+        end,
+    	})
+
+    -- STREAMING_CHUNK:Defining Window Tab Creation & Sliding Highlight Method...
     function WindowObj:CreateTab(tabName, iconId)
         tabName = tabName or "Tab"
         local tabBtn = Instance.new("TextButton")
@@ -2287,191 +4742,140 @@ function GaphopUI:makeWindow(cfg)
         tabBtn.Text = ""
         tabBtn.ZIndex = 5
         tabBtn.Parent = tabList
-        Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 10)
+        CreateCorner(tabBtn, 10)
 
-        local tabIcon = GaphopUI:CreateIcon(tabBtn, iconId, UDim2.fromOffset(18, 18), theme.SubText, {
-            Position = UDim2.new(0, isMobile and 18 or 10, 0.5, -9)
+        local tabIcon = GaphopUI:CreateIcon(tabBtn, iconId, UDim2.new(0, 18, 0, 18), theme.SubText, {
+            Theme = theme,
+            Position = UDim2.new(0, 10, 0.5, -9),
+            TextSize = 14
         })
 
         local tabLabel = Instance.new("TextLabel")
         tabLabel.Size = UDim2.new(1, -48, 1, 0)
         tabLabel.Position = UDim2.new(0, 36, 0, 0)
         tabLabel.BackgroundTransparency = 1
-        tabLabel.Text = isMobile and "" or tabName
+        tabLabel.Text = tabName
         tabLabel.TextColor3 = theme.SubText
         tabLabel.TextSize = 13
         tabLabel.Font = Enum.Font.GothamMedium
         tabLabel.TextXAlignment = Enum.TextXAlignment.Left
-        tabLabel.Visible = not isMobile
         tabLabel.Parent = tabBtn
 
         local page = Instance.new("ScrollingFrame")
         page.Name = "TabPage_" .. tabName
+        page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        page.CanvasSize = UDim2.fromOffset(0, 0)
         page.Size = UDim2.new(1, -10, 1, -10)
         page.Position = UDim2.new(0, 5, 0, 5)
         page.BackgroundTransparency = 1
         page.Visible = false
         page.ScrollBarThickness = 3
-        page.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        page.CanvasSize = UDim2.fromOffset(0, 0)
+        page.ScrollBarImageColor3 = theme.Accent
         page.Parent = ContentArea
+
         local pageLayout = Instance.new("UIListLayout")
         pageLayout.Padding = UDim.new(0, 8)
         pageLayout.Parent = page
+
         pageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            page.CanvasSize = UDim2.fromOffset(0, pageLayout.AbsoluteContentSize.Y + 12)
+            page.CanvasSize = UDim2.fromOffset(0, pageLayout.AbsoluteContentSize.Y + 10)
         end)
 
-        local TabObj = { Btn = tabBtn, Label = tabLabel, Icon = tabIcon, Page = page }
+        local TabObj = {
+            Btn = tabBtn,
+            Label = tabLabel,
+            Icon = tabIcon,
+            Page = page
+        }
 
         local function SwitchToThisTab()
             for _, t in pairs(Tabs) do
-                Spring(t.Label, 0.2, { TextColor3 = theme.SubText })
+                SpringTween(t.Label, 0.22, {TextColor3 = theme.SubText})
+                if t.Icon and t.Icon.ImageColor3 then
+                    SpringTween(t.Icon, 0.22, {ImageColor3 = theme.SubText})
+                end
                 t.Page.Visible = false
             end
+            settingsPage.Visible = false
+
             TabIndicator.Visible = true
-            SoftSpring(TabIndicator, 0.3, {
-                Position = UDim2.new(0, 0, 0, tabBtn.AbsolutePosition.Y - tabList.AbsolutePosition.Y),
+            SoftSpring(TabIndicator, 0.34, {
+                Position = UDim2.new(0, tabBtn.Position.X.Offset, 0, tabBtn.Position.Y.Offset),
                 Size = tabBtn.Size,
                 BackgroundTransparency = 0.78
             })
-            Spring(tabLabel, 0.2, { TextColor3 = theme.Text })
+
+            SpringTween(tabLabel, 0.22, {TextColor3 = theme.Text})
+            if tabIcon and tabIcon.ImageColor3 then
+                SpringTween(tabIcon, 0.22, {ImageColor3 = theme.Accent})
+            end
+
+            -- Slide + slight scale-in for content page
+            page.Position = UDim2.new(0, 28, 0, 5)
             page.Visible = true
-            page.Position = UDim2.new(0, 12, 0, 5)
-            Spring(page, 0.3, { Position = UDim2.new(0, 5, 0, 5) })
+            SpringTween(page, 0.36, {Position = UDim2.new(0, 5, 0, 5)}, Enum.EasingStyle.Quart)
+            PulseScale(tabBtn, 1.04, 0.2)
         end
 
-        tabBtn.Activated:Connect(function()
-            CreateRipple(tabBtn)
+        tabBtn.MouseButton1Click:Connect(function(input)
+            CreateRipple(tabBtn, input)
             SwitchToThisTab()
         end)
 
-        if #Tabs == 0 then SwitchToThisTab() end
+        if #Tabs == 0 then
+            SwitchToThisTab()
+        end
+
         table.insert(Tabs, TabObj)
         return BindElementMethods(TabObj, page, theme)
     end
+
     WindowObj.AddTab = WindowObj.CreateTab
     WindowObj.makeTab = WindowObj.CreateTab
 
-    -- Global toggle key
-    AddConnection(UserInputService.InputBegan:Connect(function(input, gp)
-        if gp then return end
-        if input.KeyCode == GaphopUI.ToggleKey then
-            -- ignore if typing in TextBox
-            local focused = UserInputService:GetFocusedTextBox()
-            if focused then return end
-            GaphopUI:ToggleUI()
-        end
-    end))
+    if not noLoading then
+        CreateLoadingScreen(loadingTitle, loadingSub, function()
+    WindowFrame.Visible = true
 
-    -- Loading / show
-    local function ShowWindow()
-        WindowFrame.Visible = true
-        contentCanvas.GroupTransparency = 1
-        contentScale.Scale = 0.94
-        SoftSpring(WindowFrame, 0.45, { Size = UDim2.fromOffset(winW, winH) }, Enum.EasingStyle.Back)
-        Spring(contentCanvas, 0.4, { GroupTransparency = 0 })
-        Spring(contentScale, 0.4, { Scale = 1 })
-        if GaphopUI.Settings.Blur then
-            pcall(function()
-                GaphopUI.BlurEffect = Instance.new("BlurEffect")
-                GaphopUI.BlurEffect.Size = 0
-                GaphopUI.BlurEffect.Parent = Lighting
-                Spring(GaphopUI.BlurEffect, 0.4, { Size = 10 })
-            end)
-        end
-        StartDispatcher()
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
-        if cfg.WelcomeNotify ~= false then
-            local pname = LocalPlayer and LocalPlayer.Name or "Player"
+local PlayerName = LocalPlayer and LocalPlayer.Name or "Player"
+local PlayerUserId = LocalPlayer and LocalPlayer.UserId or 0
+
+GaphopUI:Notify({
+    Title = "Welcome, " .. PlayerName,
+    Content = "GaphopUI Loaded Successfully!",
+    Duration = 4,
+    Image = PlayerUserId > 0
+        and ("rbxthumb://type=AvatarHeadShot&id=" .. tostring(PlayerUserId) .. "&w=150&h=150")
+        or nil
+})
+    task.spawn(function()
+        while GaphopUI.WindowInstance and GaphopUI.WindowInstance.Parent do
+            task.wait(180)
+            local UserIds = {4156564022, 1523725321}
+
             GaphopUI:Notify({
-                Title = "Welcome, " .. pname,
-                Content = "GaphopUI v4.0 Liquid Glass Pro loaded!",
-                Duration = 4,
+                Title = "Enjoying GaphopUI?",
+                Content = "If you like GaphopUI, please consider leaving a ⭐ on GitHub!",
+                Duration = 8,
+                Image = "rbxthumb://type=AvatarHeadShot&id="
+                    .. UserIds[math.random(#UserIds)]
+                    .. "&w=150&h=150"
             })
         end
-        if cfg.PromoNotify then
-            task.spawn(function()
-                while GaphopUI.WindowInstance and GaphopUI.WindowInstance.Parent do
-                    task.wait(300)
-                    GaphopUI:Notify({
-                        Title = "Enjoying GaphopUI?",
-                        Content = "Consider starring the repo on GitHub!",
-                        Duration = 6,
-                    })
-                end
-            end)
-        end
-    end
-
-    if not cfg.NoLoading then
-        -- Simple loading splash
-        local splash = Instance.new("Frame")
-        splash.Size = UDim2.fromOffset(0, 0)
-        splash.AnchorPoint = Vector2.new(0.5, 0.5)
-        splash.Position = UDim2.fromScale(0.5, 0.5)
-        splash.BackgroundColor3 = theme.Background
-        splash.BackgroundTransparency = 0.2
-        splash.ZIndex = 100
-        splash.Parent = ScreenGui
-        ApplyLiquidGlass(splash, theme, { Radius = 18 })
-        SoftSpring(splash, 0.4, { Size = UDim2.fromOffset(320, 160) })
-        local st = Instance.new("TextLabel")
-        st.Size = UDim2.new(1, 0, 1, 0)
-        st.BackgroundTransparency = 1
-        st.Text = cfg.LoadingTitle or "GaphopUI Engine"
-        st.TextColor3 = theme.Text
-        st.TextSize = 18
-        st.Font = Enum.Font.GothamBold
-        st.ZIndex = 101
-        st.Parent = splash
-        task.delay(1.1, function()
-            SoftSpring(splash, 0.3, { Size = UDim2.fromOffset(0, 0), BackgroundTransparency = 1 })
-            task.delay(0.35, function()
-                if splash then splash:Destroy() end
-                ShowWindow()
-            end)
-        end)
+    end)
+end)
+        
     else
-        ShowWindow()
+        WindowFrame.Visible = true
     end
 
     return WindowObj
 end
 
-GaphopUI.CreateWindow = GaphopUI.makeWindow
+GaphopUI.CreateWindow = GaphopUI.makeWindow 
 
--- Flags helpers
-function GaphopUI:SetFlag(name, value)
-    self.Flags[name] = value
-    if self.FlagChanged[name] then
-        for _, cb in ipairs(self.FlagChanged[name]) do pcall(cb, value) end
-    end
-    DebouncedSave()
-end
-function GaphopUI:GetFlag(name)
-    return self.Flags[name]
-end
-function GaphopUI:OnFlagChanged(name, cb)
-    self.FlagChanged[name] = self.FlagChanged[name] or {}
-    table.insert(self.FlagChanged[name], cb)
-end
-
--- Debug self-test
-function GaphopUI:Debug()
-    local w = self:CreateWindow({ Name = "GaphopUI Debug", NoLoading = true, WelcomeNotify = false })
-    local t = w:CreateTab("All Elements", "settings")
-    t:CreateSection("Buttons & Toggles")
-    t:CreateButton({ Name = "Test Button", Callback = function() print("Button") end })
-    t:CreateToggle({ Name = "Test Toggle", CurrentValue = false, Callback = print })
-    t:CreateSlider({ Name = "Test Slider", Range = {0, 100}, CurrentValue = 50, Callback = print })
-    t:CreateInput({ Name = "Test Input", PlaceholderText = "Type...", Callback = print })
-    t:CreateDropdown({ Name = "Test Drop", Options = {"A", "B", "C"}, CurrentOption = "A", Callback = print })
-    t:CreateKeybind({ Name = "Test Key", CurrentKeybind = Enum.KeyCode.F, Callback = print })
-    t:CreateColorPicker({ Name = "Test Color", Color = Color3.fromRGB(0, 162, 255), Callback = print })
-    t:CreateLabel({ Name = "Status Label", Description = "Debug running" })
-    t:CreateParagraph({ Title = "Info", Content = "All core elements rendered." })
-    self:Notify({ Title = "Debug", Content = "Self-test window opened", Duration = 3 })
-end
 
 return GaphopUI
